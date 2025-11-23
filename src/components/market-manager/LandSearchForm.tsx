@@ -21,6 +21,7 @@ export function LandSearchForm({ sessionId, onComplete }: LandSearchFormProps) {
     placeName: '',
     address: '',
     contactName: '',
+    contactPhone: '',
     isFinalized: false,
     openingDate: '',
   });
@@ -34,10 +35,10 @@ export function LandSearchForm({ sessionId, onComplete }: LandSearchFormProps) {
 
     setLoading(true);
     const { error } = await supabase.from('market_land_search').insert({
-      session_id: sessionId,
       place_name: formData.placeName,
       address: formData.address,
       contact_name: formData.contactName,
+      contact_phone: formData.contactPhone || null,
       is_finalized: formData.isFinalized,
       opening_date: formData.isFinalized && formData.openingDate ? formData.openingDate : null,
     });
@@ -49,7 +50,7 @@ export function LandSearchForm({ sessionId, onComplete }: LandSearchFormProps) {
     }
 
     toast.success('Land search saved successfully');
-    setFormData({ placeName: '', address: '', contactName: '', isFinalized: false, openingDate: '' });
+    setFormData({ placeName: '', address: '', contactName: '', contactPhone: '', isFinalized: false, openingDate: '' });
     onComplete();
   };
 
@@ -91,6 +92,16 @@ export function LandSearchForm({ sessionId, onComplete }: LandSearchFormProps) {
                 value={formData.contactName}
                 onChange={(e) => setFormData({ ...formData, contactName: e.target.value })}
                 placeholder="Enter contact name"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="contact-phone">Contact Phone</Label>
+              <Input
+                id="contact-phone"
+                value={formData.contactPhone}
+                onChange={(e) => setFormData({ ...formData, contactPhone: e.target.value })}
+                placeholder="Enter contact phone"
               />
             </div>
 

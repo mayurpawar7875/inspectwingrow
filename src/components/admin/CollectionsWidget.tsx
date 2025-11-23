@@ -42,13 +42,8 @@ export default function CollectionsWidget({ marketId }: CollectionsWidgetProps) 
     try {
       let query = supabase
         .from('collections')
-        .select(`
-          id,
-          amount,
-          market_id,
-          markets (name)
-        `)
-        .eq('market_date', selectedDate);
+        .select('id, amount, market_id')
+        .eq('collection_date', selectedDate);
 
       // Filter by market if marketId is provided
       if (marketId) {
@@ -59,11 +54,22 @@ export default function CollectionsWidget({ marketId }: CollectionsWidgetProps) 
 
       if (error) throw error;
 
+      // Get unique market IDs
+      const marketIds = [...new Set(data?.map(item => item.market_id).filter(Boolean) as string[])];
+      
+      // Fetch market names
+      const { data: marketsData } = await supabase
+        .from('markets')
+        .select('id, name')
+        .in('id', marketIds);
+
+      const marketNameMap = new Map(marketsData?.map(m => [m.id, m.name]) || []);
+
       const marketMap = new Map<string, CollectionData>();
       let total = 0;
 
       data?.forEach((item: any) => {
-        const marketName = item.markets?.name || 'Unknown Market';
+        const marketName = marketNameMap.get(item.market_id) || 'Unknown Market';
         
         if (!marketMap.has(marketName)) {
           marketMap.set(marketName, {

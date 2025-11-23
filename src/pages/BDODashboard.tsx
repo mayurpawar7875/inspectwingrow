@@ -527,17 +527,20 @@ export default function BDODashboard() {
           const { error: submissionError } = await supabase
             .from('bdo_market_submissions')
             .insert({
-              name: market.name.trim(),
-              location: market.location.trim(),
-              address: market.address.trim(),
-              city: market.city?.trim() || null,
-              contact_person_name: market.contactPersonName.trim(),
-              contact_phone: market.contactPhone.trim(),
-              contact_email: market.contactEmail?.trim() || null,
-              opening_date: market.openingDate,
-              photo_url: photoUrl,
+              market_name: market.name.trim(),
+              google_map_location: market.location.trim(),
+              location_type: market.locationType || 'urban',
+              market_opening_date: market.openingDate,
+              submission_metadata: {
+                address: market.address.trim(),
+                city: market.city?.trim() || null,
+                contact_person_name: market.contactPersonName.trim(),
+                contact_phone: market.contactPhone.trim(),
+                contact_email: market.contactEmail?.trim() || null,
+              },
+              video_url: videoUrl || null,
               submitted_by: user.id,
-              status: 'pending',
+              status: 'pending_review',
             });
 
           if (submissionError) {
