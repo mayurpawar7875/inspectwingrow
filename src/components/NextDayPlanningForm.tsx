@@ -147,7 +147,8 @@ export default function NextDayPlanningForm({ sessionId, marketDate, userId, onS
           .insert({
             user_id: userId,
             session_id: sessionId,
-            current_market_date: marketDate,
+            market_date: marketDate,
+            market_id: marketData?.id || '',
             next_day_market_name: marketName.trim(),
             stall_list: stallListJson,
           });
