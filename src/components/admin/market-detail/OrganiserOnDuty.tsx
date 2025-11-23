@@ -96,25 +96,37 @@ export function OrganiserOnDuty({ marketId, marketDate, isToday }: Props) {
       // Fallback: find employee with most uploads for this market/date
       const { data: uploads } = await supabase
         .from('media')
-        .select('user_id')
-        .eq('market_id', marketId)
-        .eq('market_date', marketDate);
+        .select('session_id')
+        .eq('market_id', marketId);
 
       if (uploads && uploads.length > 0) {
-        // Count uploads per user
-        const uploadCounts: Record<string, number> = {};
-        uploads.forEach(u => {
-          if (u.user_id) {
-            uploadCounts[u.user_id] = (uploadCounts[u.user_id] || 0) + 1;
-          }
-        });
+        // Get sessions to map to user_id
+        const sessionIds = [...new Set(uploads.map(u => u.session_id).filter(Boolean))];
+        const { data: sessions } = await supabase
+          .from('sessions')
+          .select('id, user_id, session_date')
+          .in('id', sessionIds)
+          .eq('session_date', marketDate);
 
-        // Find user with most uploads
-        const mostActiveUser = Object.entries(uploadCounts)
-          .sort(([, a], [, b]) => b - a)[0];
-        
-        if (mostActiveUser) {
-          selectedUserId = mostActiveUser[0];
+        if (sessions && sessions.length > 0) {
+          const sessionUserMap = Object.fromEntries(sessions.map((s: any) => [s.id, s.user_id]));
+          
+          // Count uploads per user
+          const uploadCounts: Record<string, number> = {};
+          uploads.forEach(u => {
+            const userId = sessionUserMap[u.session_id];
+            if (userId) {
+              uploadCounts[userId] = (uploadCounts[userId] || 0) + 1;
+            }
+          });
+
+          // Find user with most uploads
+          const mostActiveUser = Object.entries(uploadCounts)
+            .sort(([, a], [, b]) => b - a)[0];
+          
+          if (mostActiveUser) {
+            selectedUserId = mostActiveUser[0];
+          }
         }
       }
     }
@@ -137,16 +149,27 @@ export function OrganiserOnDuty({ marketId, marketDate, isToday }: Props) {
           }
         } as any);
 
-        // Fetch last activity
-        const { data: mediaData } = await supabase
-          .from('media')
-          .select('captured_at')
+        // Fetch last activity - get sessions for this user first
+        const { data: userSessions } = await supabase
+          .from('sessions')
+          .select('id')
           .eq('user_id', selectedUserId)
-          .eq('market_id', marketId)
-          .eq('market_date', marketDate)
-          .order('captured_at', { ascending: false })
-          .limit(1)
-          .maybeSingle();
+          .eq('session_date', marketDate)
+          .eq('market_id', marketId);
+
+        if (userSessions && userSessions.length > 0) {
+          const { data: mediaData } = await supabase
+            .from('media')
+            .select('captured_at')
+            .in('session_id', userSessions.map(s => s.id))
+            .order('captured_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+          if (mediaData) {
+            setLastActivity(mediaData.captured_at);
+          }
+        }
 
         if (mediaData) {
           setLastActivity(mediaData.captured_at);
