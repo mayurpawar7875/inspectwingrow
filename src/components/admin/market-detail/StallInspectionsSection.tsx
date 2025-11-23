@@ -129,18 +129,11 @@ export function StallInspectionsSection({ marketId, marketDate, isToday }: Props
                 <TableRow>
                   <TableHead>Time</TableHead>
                   <TableHead>Employee</TableHead>
-                  <TableHead>Farmer</TableHead>
-                  <TableHead className="text-center">Tent</TableHead>
-                  <TableHead className="text-center">Table</TableHead>
-                  <TableHead className="text-center">Mat</TableHead>
-                  <TableHead className="text-center">Apron</TableHead>
-                  <TableHead className="text-center">Cap</TableHead>
-                  <TableHead className="text-center">Light</TableHead>
-                  <TableHead className="text-center">Flex</TableHead>
-                  <TableHead className="text-center">Net</TableHead>
-                  <TableHead className="text-center">Display</TableHead>
-                  <TableHead className="text-center">Rate Board</TableHead>
-                  <TableHead className="text-center">Scale</TableHead>
+                  <TableHead>Farmer Name</TableHead>
+                  <TableHead>Stall Name</TableHead>
+                  <TableHead>Stall No</TableHead>
+                  <TableHead>Rating</TableHead>
+                  <TableHead>Feedback</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -149,17 +142,10 @@ export function StallInspectionsSection({ marketId, marketDate, isToday }: Props
                     <TableCell>{format(new Date(inspection.created_at), 'hh:mm a')}</TableCell>
                     <TableCell>{inspection.employee_name}</TableCell>
                     <TableCell>{inspection.farmer_name}</TableCell>
-                    <TableCell className="text-center"><CheckIcon checked={inspection.has_tent} /></TableCell>
-                    <TableCell className="text-center"><CheckIcon checked={inspection.has_table} /></TableCell>
-                    <TableCell className="text-center"><CheckIcon checked={inspection.has_mat} /></TableCell>
-                    <TableCell className="text-center"><CheckIcon checked={inspection.has_apron} /></TableCell>
-                    <TableCell className="text-center"><CheckIcon checked={inspection.has_cap} /></TableCell>
-                    <TableCell className="text-center"><CheckIcon checked={inspection.has_light} /></TableCell>
-                    <TableCell className="text-center"><CheckIcon checked={inspection.has_flex} /></TableCell>
-                    <TableCell className="text-center"><CheckIcon checked={inspection.has_green_net} /></TableCell>
-                    <TableCell className="text-center"><CheckIcon checked={inspection.has_display} /></TableCell>
-                    <TableCell className="text-center"><CheckIcon checked={inspection.has_rateboard} /></TableCell>
-                    <TableCell className="text-center"><CheckIcon checked={inspection.has_digital_weighing_machine} /></TableCell>
+                    <TableCell>{inspection.stall_name}</TableCell>
+                    <TableCell>{inspection.stall_no || '—'}</TableCell>
+                    <TableCell>{inspection.rating || '—'}</TableCell>
+                    <TableCell className="max-w-xs truncate">{inspection.feedback || '—'}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
