@@ -46,23 +46,40 @@ export function ReimbursementRequestsWidget() {
     try {
       const { data, error } = await supabase
         .from("reimbursement_requests")
-        .select(`
-          *,
-          employee:profiles!reimbursement_requests_employee_id_fkey(full_name)
-        `)
+        .select("*")
         .order("submitted_at", { ascending: false });
 
       if (error) throw error;
 
       setRequests(data || []);
 
-      // Create name map from the joined data
+      // Fetch employee names from both profiles and employees tables
+      const employeeIds = [...new Set(data?.map(r => r.employee_id) || [])];
+      
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("id, full_name")
+        .in("id", employeeIds);
+
+      const { data: employees } = await supabase
+        .from("employees")
+        .select("id, full_name")
+        .in("id", employeeIds);
+
       const nameMap: Record<string, string> = {};
-      data?.forEach(r => {
-        if (r.employee?.full_name) {
-          nameMap[r.employee_id] = r.employee.full_name;
+      
+      // Prioritize profiles table
+      profiles?.forEach(p => {
+        nameMap[p.id] = p.full_name;
+      });
+      
+      // Fallback to employees table
+      employees?.forEach(e => {
+        if (!nameMap[e.id] && e.full_name) {
+          nameMap[e.id] = e.full_name;
         }
       });
+      
       setEmployeeNames(nameMap);
     } catch (error: any) {
       console.error("Error fetching requests:", error);
