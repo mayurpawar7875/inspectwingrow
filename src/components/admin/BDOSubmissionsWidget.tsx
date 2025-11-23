@@ -257,10 +257,10 @@ export default function BDOSubmissionsWidget({ filter = 'all' }: BDOSubmissionsW
               <TableBody>
                 {filteredMarkets.map((market) => (
                   <TableRow key={market.id}>
-                    <TableCell className="font-medium">{market.name}</TableCell>
-                    <TableCell>{market.city || 'N/A'}</TableCell>
-                    <TableCell>{format(new Date(market.opening_date), 'MMM dd, yyyy')}</TableCell>
-                    <TableCell>{format(new Date(market.submitted_at), 'MMM dd, HH:mm')}</TableCell>
+                    <TableCell className="font-medium">{market.market_name}</TableCell>
+                    <TableCell>{market.submission_metadata?.city || 'N/A'}</TableCell>
+                    <TableCell>{market.market_opening_date ? format(new Date(market.market_opening_date), 'MMM dd, yyyy') : 'N/A'}</TableCell>
+                    <TableCell>{format(new Date(market.submission_date), 'MMM dd, HH:mm')}</TableCell>
                     <TableCell>{getStatusBadge(market.status)}</TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
