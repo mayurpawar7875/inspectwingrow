@@ -1630,6 +1630,14 @@ export type Database = {
           created_at: string
           farmer_name: string
           feedback: string | null
+          has_apron: boolean | null
+          has_cap: boolean | null
+          has_display: boolean | null
+          has_flex: boolean | null
+          has_mat: boolean | null
+          has_rateboard: boolean | null
+          has_table: boolean | null
+          has_tent: boolean | null
           id: string
           market_id: string
           rating: number | null
@@ -1642,6 +1650,14 @@ export type Database = {
           created_at?: string
           farmer_name: string
           feedback?: string | null
+          has_apron?: boolean | null
+          has_cap?: boolean | null
+          has_display?: boolean | null
+          has_flex?: boolean | null
+          has_mat?: boolean | null
+          has_rateboard?: boolean | null
+          has_table?: boolean | null
+          has_tent?: boolean | null
           id?: string
           market_id: string
           rating?: number | null
@@ -1654,6 +1670,14 @@ export type Database = {
           created_at?: string
           farmer_name?: string
           feedback?: string | null
+          has_apron?: boolean | null
+          has_cap?: boolean | null
+          has_display?: boolean | null
+          has_flex?: boolean | null
+          has_mat?: boolean | null
+          has_rateboard?: boolean | null
+          has_table?: boolean | null
+          has_tent?: boolean | null
           id?: string
           market_id?: string
           rating?: number | null
