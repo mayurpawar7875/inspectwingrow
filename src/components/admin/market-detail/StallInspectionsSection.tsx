@@ -66,13 +66,22 @@ export function StallInspectionsSection({ marketId, marketDate, isToday }: Props
         .from('stall_inspections')
         .select('*')
         .eq('market_id', marketId)
-        .eq('market_date', marketDate)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
 
       if (data) {
-        const userIds = [...new Set(data.map(i => i.user_id))];
+        // Get sessions to map session_id to user_id
+        const sessionIds = [...new Set(data.map(i => i.session_id))];
+        const { data: sessions } = await supabase
+          .from('sessions')
+          .select('id, user_id, session_date')
+          .in('id', sessionIds)
+          .eq('session_date', marketDate);
+
+        const sessionUserMap = new Map((sessions || []).map((s: any) => [s.id, s.user_id]));
+        const userIds = [...new Set(Array.from(sessionUserMap.values()))];
+        
         const { data: employees } = await supabase
           .from('employees')
           .select('id, full_name')
@@ -82,10 +91,10 @@ export function StallInspectionsSection({ marketId, marketDate, isToday }: Props
 
         const formattedInspections = data.map(i => ({
           ...i,
-          employee_name: employeeMap.get(i.user_id) || 'Unknown',
+          employee_name: employeeMap.get(sessionUserMap.get(i.session_id) || '') || 'Unknown',
         }));
 
-        setInspections(formattedInspections);
+        setInspections(formattedInspections as any);
       }
     } catch (error) {
       console.error('Error fetching stall inspections:', error);
