@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -9,6 +9,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { Loader2, Sparkles } from 'lucide-react';
+import { format } from 'date-fns';
 
 const offerSchema = z.object({
   antic: z.string().trim().min(1, 'Antic commodity is required').max(100),
@@ -45,6 +46,8 @@ interface TodaysOffersFormProps {
 
 export default function TodaysOffersForm({ sessionId, marketId, marketDate, userId, onSuccess }: TodaysOffersFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submittedOffers, setSubmittedOffers] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   
   const form = useForm<OfferFormData>({
     resolver: zodResolver(offerSchema),
@@ -71,6 +74,29 @@ export default function TodaysOffersForm({ sessionId, marketId, marketDate, user
       seasonal_2_rate: '',
     },
   });
+
+  useEffect(() => {
+    fetchSubmittedOffers();
+  }, [userId, marketDate]);
+
+  const fetchSubmittedOffers = async () => {
+    try {
+      setIsLoading(true);
+      const { data, error } = await supabase
+        .from('offers')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('market_date', marketDate)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setSubmittedOffers(data || []);
+    } catch (error: any) {
+      console.error('Error fetching offers:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const onSubmit = async (data: OfferFormData) => {
     setIsSubmitting(true);
@@ -104,6 +130,7 @@ export default function TodaysOffersForm({ sessionId, marketId, marketDate, user
 
       toast.success('Today\'s offers submitted successfully!');
       form.reset();
+      fetchSubmittedOffers();
       onSuccess?.();
     } catch (error: any) {
       console.error('Error submitting offers:', error);
@@ -123,6 +150,20 @@ export default function TodaysOffersForm({ sessionId, marketId, marketDate, user
         <CardDescription>Enter the commodity offers for today's market</CardDescription>
       </CardHeader>
       <CardContent>
+        {/* Submitted Offers List */}
+        {submittedOffers.length > 0 && (
+          <div className="mb-6 p-4 bg-muted rounded-lg">
+            <h3 className="text-sm font-semibold mb-3">Submitted Offers ({format(new Date(marketDate), 'MMM dd, yyyy')})</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+              {submittedOffers.map((offer) => (
+                <div key={offer.id} className="flex justify-between items-center p-2 bg-background rounded">
+                  <span className="font-medium">{offer.commodity_name}</span>
+                  <span className="text-muted-foreground">₹{offer.price}/kg</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             {/* Antic */}
