@@ -252,6 +252,13 @@ export type Database = {
             foreignKeyName: "asset_requests_market_id_fkey"
             columns: ["market_id"]
             isOneToOne: false
+            referencedRelation: "live_markets_today"
+            referencedColumns: ["market_id"]
+          },
+          {
+            foreignKeyName: "asset_requests_market_id_fkey"
+            columns: ["market_id"]
+            isOneToOne: false
             referencedRelation: "markets"
             referencedColumns: ["id"]
           },
@@ -340,6 +347,13 @@ export type Database = {
             foreignKeyName: "assets_usage_market_id_fkey"
             columns: ["market_id"]
             isOneToOne: false
+            referencedRelation: "live_markets_today"
+            referencedColumns: ["market_id"]
+          },
+          {
+            foreignKeyName: "assets_usage_market_id_fkey"
+            columns: ["market_id"]
+            isOneToOne: false
             referencedRelation: "markets"
             referencedColumns: ["id"]
           },
@@ -348,6 +362,75 @@ export type Database = {
             columns: ["session_id"]
             isOneToOne: false
             referencedRelation: "market_manager_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      attendance_records: {
+        Row: {
+          attendance_date: string
+          created_at: string | null
+          id: string
+          mm_session_id: string | null
+          punch_in_lat: number | null
+          punch_in_lng: number | null
+          punch_in_time: string | null
+          punch_out_lat: number | null
+          punch_out_lng: number | null
+          punch_out_time: string | null
+          selfie_url: string | null
+          session_id: string | null
+          status: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          attendance_date?: string
+          created_at?: string | null
+          id?: string
+          mm_session_id?: string | null
+          punch_in_lat?: number | null
+          punch_in_lng?: number | null
+          punch_in_time?: string | null
+          punch_out_lat?: number | null
+          punch_out_lng?: number | null
+          punch_out_time?: string | null
+          selfie_url?: string | null
+          session_id?: string | null
+          status?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          attendance_date?: string
+          created_at?: string | null
+          id?: string
+          mm_session_id?: string | null
+          punch_in_lat?: number | null
+          punch_in_lng?: number | null
+          punch_in_time?: string | null
+          punch_out_lat?: number | null
+          punch_out_lng?: number | null
+          punch_out_time?: string | null
+          selfie_url?: string | null
+          session_id?: string | null
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attendance_records_mm_session_id_fkey"
+            columns: ["mm_session_id"]
+            isOneToOne: false
+            referencedRelation: "market_manager_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_records_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "sessions"
             referencedColumns: ["id"]
           },
         ]
@@ -429,6 +512,13 @@ export type Database = {
           video_url?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "bdo_market_submissions_market_id_fkey"
+            columns: ["market_id"]
+            isOneToOne: false
+            referencedRelation: "live_markets_today"
+            referencedColumns: ["market_id"]
+          },
           {
             foreignKeyName: "bdo_market_submissions_market_id_fkey"
             columns: ["market_id"]
@@ -554,6 +644,13 @@ export type Database = {
             foreignKeyName: "collections_market_id_fkey"
             columns: ["market_id"]
             isOneToOne: false
+            referencedRelation: "live_markets_today"
+            referencedColumns: ["market_id"]
+          },
+          {
+            foreignKeyName: "collections_market_id_fkey"
+            columns: ["market_id"]
+            isOneToOne: false
             referencedRelation: "markets"
             referencedColumns: ["id"]
           },
@@ -617,6 +714,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "employee_allocations_market_id_fkey"
+            columns: ["market_id"]
+            isOneToOne: false
+            referencedRelation: "live_markets_today"
+            referencedColumns: ["market_id"]
+          },
           {
             foreignKeyName: "employee_allocations_market_id_fkey"
             columns: ["market_id"]
@@ -749,6 +853,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "market_inspection_updates_market_id_fkey"
+            columns: ["market_id"]
+            isOneToOne: false
+            referencedRelation: "live_markets_today"
+            referencedColumns: ["market_id"]
+          },
           {
             foreignKeyName: "market_inspection_updates_market_id_fkey"
             columns: ["market_id"]
@@ -942,6 +1053,13 @@ export type Database = {
             foreignKeyName: "market_schedule_market_id_fkey"
             columns: ["market_id"]
             isOneToOne: false
+            referencedRelation: "live_markets_today"
+            referencedColumns: ["market_id"]
+          },
+          {
+            foreignKeyName: "market_schedule_market_id_fkey"
+            columns: ["market_id"]
+            isOneToOne: false
             referencedRelation: "markets"
             referencedColumns: ["id"]
           },
@@ -1034,6 +1152,13 @@ export type Database = {
             foreignKeyName: "media_market_id_fkey"
             columns: ["market_id"]
             isOneToOne: false
+            referencedRelation: "live_markets_today"
+            referencedColumns: ["market_id"]
+          },
+          {
+            foreignKeyName: "media_market_id_fkey"
+            columns: ["market_id"]
+            isOneToOne: false
             referencedRelation: "markets"
             referencedColumns: ["id"]
           },
@@ -1085,6 +1210,13 @@ export type Database = {
             foreignKeyName: "next_day_planning_market_id_fkey"
             columns: ["market_id"]
             isOneToOne: false
+            referencedRelation: "live_markets_today"
+            referencedColumns: ["market_id"]
+          },
+          {
+            foreignKeyName: "next_day_planning_market_id_fkey"
+            columns: ["market_id"]
+            isOneToOne: false
             referencedRelation: "markets"
             referencedColumns: ["id"]
           },
@@ -1132,6 +1264,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "non_available_commodities_market_id_fkey"
+            columns: ["market_id"]
+            isOneToOne: false
+            referencedRelation: "live_markets_today"
+            referencedColumns: ["market_id"]
+          },
           {
             foreignKeyName: "non_available_commodities_market_id_fkey"
             columns: ["market_id"]
@@ -1226,6 +1365,13 @@ export type Database = {
             foreignKeyName: "offers_market_id_fkey"
             columns: ["market_id"]
             isOneToOne: false
+            referencedRelation: "live_markets_today"
+            referencedColumns: ["market_id"]
+          },
+          {
+            foreignKeyName: "offers_market_id_fkey"
+            columns: ["market_id"]
+            isOneToOne: false
             referencedRelation: "markets"
             referencedColumns: ["id"]
           },
@@ -1273,6 +1419,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "organiser_feedback_market_id_fkey"
+            columns: ["market_id"]
+            isOneToOne: false
+            referencedRelation: "live_markets_today"
+            referencedColumns: ["market_id"]
+          },
           {
             foreignKeyName: "organiser_feedback_market_id_fkey"
             columns: ["market_id"]
@@ -1355,6 +1508,13 @@ export type Database = {
             foreignKeyName: "sessions_market_id_fkey"
             columns: ["market_id"]
             isOneToOne: false
+            referencedRelation: "live_markets_today"
+            referencedColumns: ["market_id"]
+          },
+          {
+            foreignKeyName: "sessions_market_id_fkey"
+            columns: ["market_id"]
+            isOneToOne: false
             referencedRelation: "markets"
             referencedColumns: ["id"]
           },
@@ -1392,6 +1552,13 @@ export type Database = {
           stall_no?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "stall_confirmations_market_id_fkey"
+            columns: ["market_id"]
+            isOneToOne: false
+            referencedRelation: "live_markets_today"
+            referencedColumns: ["market_id"]
+          },
           {
             foreignKeyName: "stall_confirmations_market_id_fkey"
             columns: ["market_id"]
@@ -1439,6 +1606,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "stall_inspections_market_id_fkey"
+            columns: ["market_id"]
+            isOneToOne: false
+            referencedRelation: "live_markets_today"
+            referencedColumns: ["market_id"]
+          },
           {
             foreignKeyName: "stall_inspections_market_id_fkey"
             columns: ["market_id"]
@@ -1560,7 +1734,16 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      live_markets_today: {
+        Row: {
+          active_sessions: number | null
+          city: string | null
+          last_upload_time: string | null
+          market_id: string | null
+          market_name: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       has_role: {
