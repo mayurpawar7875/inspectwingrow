@@ -18,6 +18,16 @@ export const ALLOWED_VIDEO_TYPES = [
   'video/webm'
 ];
 
+export const ALLOWED_AUDIO_TYPES = [
+  'audio/mpeg',
+  'audio/mp3',
+  'audio/wav',
+  'audio/webm',
+  'audio/ogg',
+  'audio/mp4',
+  'audio/x-m4a'
+];
+
 export const ALLOWED_DOCUMENT_TYPES = [
   'application/pdf',
   'application/msword',
@@ -121,6 +131,17 @@ export function validateVideo(file: File): boolean {
     maxSize: MAX_VIDEO_SIZE,
     allowedTypes: ALLOWED_VIDEO_TYPES,
     allowedExtensions: ['mp4', 'mov', 'avi', 'webm']
+  });
+}
+
+/**
+ * Validates an audio file
+ */
+export function validateAudio(file: File): boolean {
+  return validateFile(file, {
+    maxSize: MAX_FILE_SIZE,
+    allowedTypes: ALLOWED_AUDIO_TYPES,
+    allowedExtensions: ['mp3', 'wav', 'webm', 'ogg', 'm4a']
   });
 }
 

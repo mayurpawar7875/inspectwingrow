@@ -171,10 +171,25 @@ export default function MediaUpload() {
         return;
       }
 
-      // Validate file based on media type
-      const isVideo = mediaType === 'market_video' || mediaType === 'cleaning_video' || mediaType === 'customer_feedback';
+      // Validate file based on media type and file type
+      const isVideo = mediaType === 'market_video' || mediaType === 'cleaning_video';
+      const isAudio = file.type.startsWith('audio/');
+      
       if (isVideo) {
         validateVideo(file);
+      } else if (isAudio) {
+        const { validateAudio } = await import('@/lib/fileValidation');
+        validateAudio(file);
+      } else if (mediaType === 'customer_feedback') {
+        // Customer feedback can be video or audio
+        if (file.type.startsWith('video/')) {
+          validateVideo(file);
+        } else if (file.type.startsWith('audio/')) {
+          const { validateAudio } = await import('@/lib/fileValidation');
+          validateAudio(file);
+        } else {
+          validateImage(file);
+        }
       } else {
         validateImage(file);
       }
