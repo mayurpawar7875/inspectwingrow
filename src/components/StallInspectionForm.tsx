@@ -140,7 +140,7 @@ export default function StallInspectionForm({ sessionId, marketId, marketDate, u
 
       toast.success(`Inspection submitted for ${selectedStall.farmer_name}`);
       
-      // Reset form
+      // Reset form for next entry
       setSelectedFarmerId('');
       setSelectedStall(null);
       setHasTable(false);
@@ -153,7 +153,6 @@ export default function StallInspectionForm({ sessionId, marketId, marketDate, u
       setHasRateboard(false);
       
       await fetchData();
-      onSuccess?.();
     } catch (error: any) {
       console.error('Error saving inspection:', error);
       toast.error('Failed to save inspection');
@@ -174,7 +173,6 @@ export default function StallInspectionForm({ sessionId, marketId, marketDate, u
 
       toast.success(`Inspection deleted for ${farmerName}`);
       await fetchData();
-      onSuccess?.();
     } catch (error: any) {
       console.error('Error deleting inspection:', error);
       toast.error('Failed to delete inspection');
