@@ -369,8 +369,11 @@ export type Database = {
       attendance_records: {
         Row: {
           attendance_date: string
+          city: string | null
+          completed_tasks: number | null
           created_at: string | null
           id: string
+          market_id: string | null
           mm_session_id: string | null
           punch_in_lat: number | null
           punch_in_lng: number | null
@@ -378,16 +381,21 @@ export type Database = {
           punch_out_lat: number | null
           punch_out_lng: number | null
           punch_out_time: string | null
+          role: Database["public"]["Enums"]["user_role"] | null
           selfie_url: string | null
           session_id: string | null
           status: string | null
+          total_tasks: number | null
           updated_at: string | null
           user_id: string
         }
         Insert: {
           attendance_date?: string
+          city?: string | null
+          completed_tasks?: number | null
           created_at?: string | null
           id?: string
+          market_id?: string | null
           mm_session_id?: string | null
           punch_in_lat?: number | null
           punch_in_lng?: number | null
@@ -395,16 +403,21 @@ export type Database = {
           punch_out_lat?: number | null
           punch_out_lng?: number | null
           punch_out_time?: string | null
+          role?: Database["public"]["Enums"]["user_role"] | null
           selfie_url?: string | null
           session_id?: string | null
           status?: string | null
+          total_tasks?: number | null
           updated_at?: string | null
           user_id: string
         }
         Update: {
           attendance_date?: string
+          city?: string | null
+          completed_tasks?: number | null
           created_at?: string | null
           id?: string
+          market_id?: string | null
           mm_session_id?: string | null
           punch_in_lat?: number | null
           punch_in_lng?: number | null
@@ -412,13 +425,29 @@ export type Database = {
           punch_out_lat?: number | null
           punch_out_lng?: number | null
           punch_out_time?: string | null
+          role?: Database["public"]["Enums"]["user_role"] | null
           selfie_url?: string | null
           session_id?: string | null
           status?: string | null
+          total_tasks?: number | null
           updated_at?: string | null
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "attendance_records_market_id_fkey"
+            columns: ["market_id"]
+            isOneToOne: false
+            referencedRelation: "live_markets_today"
+            referencedColumns: ["market_id"]
+          },
+          {
+            foreignKeyName: "attendance_records_market_id_fkey"
+            columns: ["market_id"]
+            isOneToOne: false
+            referencedRelation: "markets"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "attendance_records_mm_session_id_fkey"
             columns: ["mm_session_id"]
@@ -617,27 +646,45 @@ export type Database = {
       collections: {
         Row: {
           amount: number
+          collected_by: string | null
           collection_date: string
           created_at: string
+          farmer_name: string | null
           id: string
           market_id: string
+          mode: string | null
           notes: string | null
+          screenshot_url: string | null
+          stall_confirmation_id: string | null
+          stall_name: string | null
         }
         Insert: {
           amount: number
+          collected_by?: string | null
           collection_date: string
           created_at?: string
+          farmer_name?: string | null
           id?: string
           market_id: string
+          mode?: string | null
           notes?: string | null
+          screenshot_url?: string | null
+          stall_confirmation_id?: string | null
+          stall_name?: string | null
         }
         Update: {
           amount?: number
+          collected_by?: string | null
           collection_date?: string
           created_at?: string
+          farmer_name?: string | null
           id?: string
           market_id?: string
+          mode?: string | null
           notes?: string | null
+          screenshot_url?: string | null
+          stall_confirmation_id?: string | null
+          stall_name?: string | null
         }
         Relationships: [
           {
@@ -652,6 +699,13 @@ export type Database = {
             columns: ["market_id"]
             isOneToOne: false
             referencedRelation: "markets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "collections_stall_confirmation_id_fkey"
+            columns: ["stall_confirmation_id"]
+            isOneToOne: false
+            referencedRelation: "stall_confirmations"
             referencedColumns: ["id"]
           },
         ]
@@ -1528,6 +1582,7 @@ export type Database = {
           id: string
           market_date: string
           market_id: string
+          rent_amount: number | null
           stall_name: string
           stall_no: string
         }
@@ -1538,6 +1593,7 @@ export type Database = {
           id?: string
           market_date: string
           market_id: string
+          rent_amount?: number | null
           stall_name: string
           stall_no: string
         }
@@ -1548,6 +1604,7 @@ export type Database = {
           id?: string
           market_date?: string
           market_id?: string
+          rent_amount?: number | null
           stall_name?: string
           stall_no?: string
         }
