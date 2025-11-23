@@ -204,7 +204,6 @@ export default function Dashboard() {
         .from('attendance_records')
         .select('status')
         .eq('user_id', user.id)
-        .eq('role', 'employee')
         .gte('attendance_date', startDate)
         .lte('attendance_date', today);
       
@@ -971,7 +970,7 @@ export default function Dashboard() {
               <StallInspectionForm
                 sessionId={todaySession.id}
                 marketId={todaySession.market_id}
-                marketDate={todaySession.market_date || todaySession.session_date}
+                marketDate={todaySession.session_date}
                 userId={user!.id}
                 onSuccess={() => {
                   fetchTodaySession();

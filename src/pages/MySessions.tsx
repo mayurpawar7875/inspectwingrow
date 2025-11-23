@@ -22,7 +22,6 @@ import { ArrowLeft, Calendar, Clock, MapPin, Eye, Filter, Search } from 'lucide-
 interface Session {
   id: string;
   session_date: string;
-  market_date: string | null;
   punch_in_time: string | null;
   punch_out_time: string | null;
   status: string;
@@ -38,11 +37,11 @@ interface Session {
 
 interface BDOSubmission {
   id: string;
-  name: string;
-  submitted_at: string;
+  market_name: string;
+  submission_date: string;
   status: string;
-  opening_date: string;
-  review_notes: string | null;
+  market_opening_date: string | null;
+  reviewed_at: string | null;
 }
 
 interface BDOMediaUpload {
@@ -50,7 +49,6 @@ interface BDOMediaUpload {
   file_name: string;
   captured_at: string;
   media_type: string;
-  market_date: string;
 }
 
 export default function MySessions() {
@@ -169,64 +167,36 @@ export default function MySessions() {
 
       const todayIST = getISTDateString(new Date());
       
-      // Define required task types
-      const requiredTasks = ['punch', 'stall_confirm', 'outside_rates', 'selfie_gps', 'rate_board', 'market_video', 'cleaning_video', 'collection'];
-      
-      // Fetch additional stats for each session and update old active sessions
+      // Fetch additional stats for each session
       const sessionsWithStats = await Promise.all(
         sessionList.map(async (session) => {
-          const [stallsResult, mediaResult, taskStatusResult] = await Promise.all([
+          const [stallsResult, mediaResult] = await Promise.all([
             supabase
               .from('stall_confirmations')
               .select('id', { count: 'exact', head: true })
               .eq('market_id', session.market_id)
-              .eq('market_date', session.market_date || session.session_date),
+              .eq('market_date', session.session_date),
             supabase
               .from('media')
               .select('id', { count: 'exact', head: true })
               .eq('session_id', session.id),
-            supabase
-              .from('task_status')
-              .select('task_type, status')
-              .eq('session_id', session.id),
           ]);
 
-          // Check if all required tasks are completed (status is 'submitted' or 'locked')
-          const taskStatuses = taskStatusResult.data || [];
-          const completedTasks = taskStatuses.filter(
-            (ts: any) => ts.status === 'submitted' || ts.status === 'locked'
-          );
-          const allTasksCompleted = requiredTasks.every((taskType) => {
-            const taskStatus = taskStatuses.find((ts: any) => ts.task_type === taskType);
-            return taskStatus && (taskStatus.status === 'submitted' || taskStatus.status === 'locked');
-          });
-
-          // If session is from a previous day and still marked as active, determine correct status
-          const sessionDate = session.market_date || session.session_date;
+          // Simple session status based on finalized_at
+          const sessionDate = session.session_date;
           const isExpired = sessionDate < todayIST;
           let finalStatus = session.status;
           
-          if (isExpired) {
-            if (session.status === 'active') {
-              // Session expired - update to completed in database
-              try {
-                await supabase
-                  .from('sessions')
-                  .update({ status: 'completed' })
-                  .eq('id', session.id);
-              } catch (error) {
-                console.error('Error updating session status:', error);
-              }
-              
-              // Determine display status based on task completion
-              if (allTasksCompleted) {
-                finalStatus = 'completed';
-              } else {
-                finalStatus = 'incomplete_expired';
-              }
-            } else if (session.status !== 'finalized' && session.status !== 'locked' && !allTasksCompleted) {
-              // Session is already completed/finalized but tasks are incomplete, mark as incomplete_expired for display
-              finalStatus = 'incomplete_expired';
+          if (isExpired && session.status === 'active') {
+            // Session expired - update to completed in database
+            try {
+              await supabase
+                .from('sessions')
+                .update({ status: 'completed' })
+                .eq('id', session.id);
+              finalStatus = 'completed';
+            } catch (error) {
+              console.error('Error updating session status:', error);
             }
           }
 
@@ -235,9 +205,6 @@ export default function MySessions() {
             status: finalStatus,
             stalls_count: stallsResult.count || 0,
             media_count: mediaResult.count || 0,
-            tasks_completed: completedTasks.length,
-            tasks_total: requiredTasks.length,
-            all_tasks_completed: allTasksCompleted,
           };
         })
       );
@@ -505,9 +472,9 @@ export default function MySessions() {
                       <TableBody>
                         {bdoMarketSubmissions.map((submission) => (
                           <TableRow key={submission.id}>
-                            <TableCell className="font-medium">{submission.name}</TableCell>
-                            <TableCell>{formatDate(submission.opening_date)}</TableCell>
-                            <TableCell>{formatDate(submission.submitted_at)}</TableCell>
+                            <TableCell className="font-medium">{submission.market_name}</TableCell>
+                            <TableCell>{formatDate(submission.market_opening_date)}</TableCell>
+                            <TableCell>{formatDate(submission.submission_date)}</TableCell>
                             <TableCell>
                               <Badge
                                 variant={
@@ -522,7 +489,7 @@ export default function MySessions() {
                               </Badge>
                             </TableCell>
                             <TableCell className="max-w-xs truncate">
-                              {submission.review_notes || '-'}
+                              {submission.reviewed_at ? formatDate(submission.reviewed_at) : '-'}
                             </TableCell>
                           </TableRow>
                         ))}
@@ -566,7 +533,6 @@ export default function MySessions() {
                                 {media.media_type.replace('_', ' ')}
                               </Badge>
                             </TableCell>
-                            <TableCell>{formatDate(media.market_date)}</TableCell>
                             <TableCell>{formatDate(media.captured_at)}</TableCell>
                           </TableRow>
                         ))}
