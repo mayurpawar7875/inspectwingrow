@@ -7,8 +7,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { Loader2, Sparkles } from 'lucide-react';
+import { Loader2, Sparkles, ListChecks } from 'lucide-react';
 import { format } from 'date-fns';
 
 const offerSchema = z.object({
@@ -48,6 +49,7 @@ export default function TodaysOffersForm({ sessionId, marketId, marketDate, user
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submittedOffers, setSubmittedOffers] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [showOffers, setShowOffers] = useState(false);
   
   const form = useForm<OfferFormData>({
     resolver: zodResolver(offerSchema),
@@ -143,27 +145,46 @@ export default function TodaysOffersForm({ sessionId, marketId, marketDate, user
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center gap-2">
-          <Sparkles className="h-5 w-5 text-accent" />
-          <CardTitle>Today's Offers</CardTitle>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Sparkles className="h-5 w-5 text-accent" />
+            <CardTitle>Today's Offers</CardTitle>
+          </div>
+          <Dialog open={showOffers} onOpenChange={setShowOffers}>
+            <DialogTrigger asChild>
+              <Button variant="outline" size="sm">
+                <ListChecks className="h-4 w-4 mr-2" />
+                Submitted Offers
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>Submitted Offers - {format(new Date(marketDate), 'MMM dd, yyyy')}</DialogTitle>
+              </DialogHeader>
+              <div className="max-h-96 overflow-y-auto">
+                {isLoading ? (
+                  <div className="flex justify-center py-8">
+                    <Loader2 className="h-6 w-6 animate-spin" />
+                  </div>
+                ) : submittedOffers.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    {submittedOffers.map((offer) => (
+                      <div key={offer.id} className="flex justify-between items-center p-3 bg-muted rounded-lg">
+                        <span className="font-medium">{offer.commodity_name}</span>
+                        <span className="text-muted-foreground">₹{offer.price}/kg</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-center text-muted-foreground py-8">No offers submitted yet for today</p>
+                )}
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
         <CardDescription>Enter the commodity offers for today's market</CardDescription>
       </CardHeader>
       <CardContent>
-        {/* Submitted Offers List */}
-        {submittedOffers.length > 0 && (
-          <div className="mb-6 p-4 bg-muted rounded-lg">
-            <h3 className="text-sm font-semibold mb-3">Submitted Offers ({format(new Date(marketDate), 'MMM dd, yyyy')})</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
-              {submittedOffers.map((offer) => (
-                <div key={offer.id} className="flex justify-between items-center p-2 bg-background rounded">
-                  <span className="font-medium">{offer.commodity_name}</span>
-                  <span className="text-muted-foreground">₹{offer.price}/kg</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             {/* Antic */}
