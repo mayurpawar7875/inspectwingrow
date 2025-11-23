@@ -410,7 +410,7 @@ export default function Dashboard() {
                 </TooltipContent>
               </Tooltip>
               
-              <Tooltip>
+                <Tooltip>
                 <TooltipTrigger asChild>
                   <Button variant="outline" size="sm" className="flex-1 sm:flex-none" onClick={() => navigate('/my-attendance')}>
                     <CalendarCheck className="h-4 w-4 sm:mr-2" />
@@ -419,6 +419,18 @@ export default function Dashboard() {
                 </TooltipTrigger>
                 <TooltipContent>
                   <p>View My Attendance</p>
+                </TooltipContent>
+              </Tooltip>
+              
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="outline" size="sm" className="flex-1 sm:flex-none" onClick={() => setLocationVisitDialog(true)}>
+                    <MapPin className="h-4 w-4 sm:mr-2" />
+                    <span className="hidden sm:inline">Location Visit</span>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Submit Location Visit</p>
                 </TooltipContent>
               </Tooltip>
               
@@ -648,15 +660,6 @@ export default function Dashboard() {
                     <Calendar className="h-6 w-6 sm:h-7 sm:w-7 text-accent mb-1" />
                     <CardTitle className="text-sm sm:text-base">Planning</CardTitle>
                     <CardDescription className="text-xs">Next day</CardDescription>
-                  </CardHeader>
-                </Card>
-
-                {/* Market Location Visit */}
-                <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setLocationVisitDialog(true)}>
-                  <CardHeader className="p-3 sm:p-4">
-                    <MapPin className="h-6 w-6 sm:h-7 sm:w-7 text-accent mb-1" />
-                    <CardTitle className="text-sm sm:text-base">Location Visit</CardTitle>
-                    <CardDescription className="text-xs">Market location</CardDescription>
                   </CardHeader>
                 </Card>
 
