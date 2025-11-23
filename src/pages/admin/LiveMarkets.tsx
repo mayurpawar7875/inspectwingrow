@@ -81,12 +81,13 @@ export default function LiveMarkets() {
         .eq('market_date', todayDate);
 
       // Fetch market videos
-      const { count: marketVideoCount } = await supabase
+      const { count: marketVideoCount } = await (supabase as any)
         .from('media')
         .select('*', { count: 'exact', head: true })
         .eq('market_id', marketId)
-        .eq('market_date', todayDate)
-        .eq('media_type', 'selfie_gps' as any);
+        .gte('captured_at', `${todayDate}T00:00:00`)
+        .lte('captured_at', `${todayDate}T23:59:59`)
+        .eq('media_type', 'selfie_gps');
 
       // Fetch other media types (placeholder for future video types)
       const cleaningVideoCount = 0;
