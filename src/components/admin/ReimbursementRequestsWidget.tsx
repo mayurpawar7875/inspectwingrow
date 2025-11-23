@@ -46,23 +46,22 @@ export function ReimbursementRequestsWidget() {
     try {
       const { data, error } = await supabase
         .from("reimbursement_requests")
-        .select("*")
+        .select(`
+          *,
+          employee:profiles!reimbursement_requests_employee_id_fkey(full_name)
+        `)
         .order("submitted_at", { ascending: false });
 
       if (error) throw error;
 
       setRequests(data || []);
 
-      // Fetch employee names
-      const employeeIds = [...new Set(data?.map(r => r.employee_id) || [])];
-      const { data: profiles } = await supabase
-        .from("profiles")
-        .select("id, full_name")
-        .in("id", employeeIds);
-
+      // Create name map from the joined data
       const nameMap: Record<string, string> = {};
-      profiles?.forEach(p => {
-        nameMap[p.id] = p.full_name;
+      data?.forEach(r => {
+        if (r.employee?.full_name) {
+          nameMap[r.employee_id] = r.employee.full_name;
+        }
       });
       setEmployeeNames(nameMap);
     } catch (error: any) {
