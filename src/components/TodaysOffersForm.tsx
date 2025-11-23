@@ -9,6 +9,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { Loader2, Sparkles } from 'lucide-react';
+import SubmittedOffersList from './SubmittedOffersList';
 
 const offerSchema = z.object({
   antic: z.string().trim().min(1, 'Antic commodity is required').max(100),
@@ -114,14 +115,15 @@ export default function TodaysOffersForm({ sessionId, marketId, marketDate, user
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center gap-2">
-          <Sparkles className="h-5 w-5 text-accent" />
-          <CardTitle>Today's Offers</CardTitle>
-        </div>
-        <CardDescription>Enter the commodity offers for today's market</CardDescription>
-      </CardHeader>
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Sparkles className="h-5 w-5 text-accent" />
+            <CardTitle>Today's Offers</CardTitle>
+          </div>
+          <CardDescription>Enter the commodity offers for today's market</CardDescription>
+        </CardHeader>
       <CardContent>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
@@ -447,6 +449,13 @@ export default function TodaysOffersForm({ sessionId, marketId, marketDate, user
           </form>
         </Form>
       </CardContent>
-    </Card>
+      </Card>
+      
+      <SubmittedOffersList 
+        userId={userId}
+        marketDate={marketDate}
+        marketId={marketId}
+      />
+    </div>
   );
 }
