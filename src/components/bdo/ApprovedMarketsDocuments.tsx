@@ -21,13 +21,12 @@ import { validateDocument, generateUploadPath } from '@/lib/fileValidation';
 
 interface ApprovedMarket {
   id: string;
-  name: string;
-  location: string;
-  address: string;
-  city: string | null;
-  opening_date: string;
+  market_name: string;
+  google_map_location: string;
+  submission_metadata: any;
+  market_opening_date: string | null;
   reviewed_at: string | null;
-  documents_status: string;
+  documents_status: string | null;
   service_agreement_url: string | null;
   stalls_accommodation_count: number | null;
 }
@@ -62,7 +61,7 @@ export default function ApprovedMarketsDocuments() {
 
       const { data, error } = await supabase
         .from('bdo_market_submissions')
-        .select('id, name, location, address, city, opening_date, reviewed_at, documents_status, service_agreement_url, stalls_accommodation_count')
+        .select('*')
         .eq('submitted_by', user.id)
         .eq('status', 'approved')
         .order('reviewed_at', { ascending: false });
