@@ -91,11 +91,13 @@ export default function MarketDetail() {
         selectedUserId = organiserSession.user_id;
       } else {
         // Fallback: user with most uploads for this market/date
-        const { data: uploads } = await supabase
+        const uploadsResult: any = await (supabase as any)
           .from('media')
           .select('user_id')
           .eq('market_id', marketId)
           .eq('market_date', dateStr);
+        
+        const { data: uploads } = uploadsResult;
 
         if (uploads && uploads.length > 0) {
           const uploadCounts: Record<string, number> = {};

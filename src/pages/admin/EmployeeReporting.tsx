@@ -77,12 +77,12 @@ export default function EmployeeReporting() {
         .eq('session_date', today)
         .in('status', ['completed', 'finalized']);
       
-      const mediaQuery = supabase
+      const mediaQuery: any = (supabase as any)
         .from('media')
         .select('id', { count: 'exact', head: true })
         .eq('market_date', today);
       
-      const collectionsQuery = supabase
+      const collectionsQuery: any = (supabase as any)
         .from('collections')
         .select('amount')
         .eq('market_date', today);
