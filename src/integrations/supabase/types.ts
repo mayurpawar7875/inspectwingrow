@@ -14,6 +14,41 @@ export type Database = {
   }
   public: {
     Tables: {
+      collections: {
+        Row: {
+          amount: number
+          collection_date: string
+          created_at: string
+          id: string
+          market_id: string
+          notes: string | null
+        }
+        Insert: {
+          amount: number
+          collection_date: string
+          created_at?: string
+          id?: string
+          market_id: string
+          notes?: string | null
+        }
+        Update: {
+          amount?: number
+          collection_date?: string
+          created_at?: string
+          id?: string
+          market_id?: string
+          notes?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "collections_market_id_fkey"
+            columns: ["market_id"]
+            isOneToOne: false
+            referencedRelation: "markets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       comments: {
         Row: {
           comment: string
@@ -46,6 +81,39 @@ export type Database = {
           },
         ]
       }
+      employee_leaves: {
+        Row: {
+          approved_by: string | null
+          created_at: string
+          id: string
+          leave_date: string
+          reason: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          approved_by?: string | null
+          created_at?: string
+          id?: string
+          leave_date: string
+          reason?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          approved_by?: string | null
+          created_at?: string
+          id?: string
+          leave_date?: string
+          reason?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       employees: {
         Row: {
           created_at: string
@@ -75,6 +143,65 @@ export type Database = {
           username?: string | null
         }
         Relationships: []
+      }
+      farmers: {
+        Row: {
+          address: string | null
+          contact_phone: string
+          created_at: string
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          contact_phone: string
+          created_at?: string
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          contact_phone?: string
+          created_at?: string
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      market_schedule: {
+        Row: {
+          created_at: string
+          day_of_week: number
+          id: string
+          is_active: boolean
+          market_id: string
+        }
+        Insert: {
+          created_at?: string
+          day_of_week: number
+          id?: string
+          is_active?: boolean
+          market_id: string
+        }
+        Update: {
+          created_at?: string
+          day_of_week?: number
+          id?: string
+          is_active?: boolean
+          market_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "market_schedule_market_id_fkey"
+            columns: ["market_id"]
+            isOneToOne: false
+            referencedRelation: "markets"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       markets: {
         Row: {
@@ -160,6 +287,249 @@ export type Database = {
           },
         ]
       }
+      next_day_planning: {
+        Row: {
+          created_at: string
+          id: string
+          market_date: string
+          market_id: string
+          next_day_market_name: string
+          session_id: string | null
+          stall_list: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          market_date?: string
+          market_id: string
+          next_day_market_name: string
+          session_id?: string | null
+          stall_list: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          market_date?: string
+          market_id?: string
+          next_day_market_name?: string
+          session_id?: string | null
+          stall_list?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "next_day_planning_market_id_fkey"
+            columns: ["market_id"]
+            isOneToOne: false
+            referencedRelation: "markets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "next_day_planning_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      non_available_commodities: {
+        Row: {
+          commodity_name: string
+          created_at: string
+          id: string
+          market_date: string
+          market_id: string
+          notes: string | null
+          session_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          commodity_name: string
+          created_at?: string
+          id?: string
+          market_date?: string
+          market_id: string
+          notes?: string | null
+          session_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          commodity_name?: string
+          created_at?: string
+          id?: string
+          market_date?: string
+          market_id?: string
+          notes?: string | null
+          session_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "non_available_commodities_market_id_fkey"
+            columns: ["market_id"]
+            isOneToOne: false
+            referencedRelation: "markets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "non_available_commodities_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notifications: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          read: boolean
+          read_at: string | null
+          sent_by: string | null
+          target_user_id: string | null
+          title: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          id?: string
+          read?: boolean
+          read_at?: string | null
+          sent_by?: string | null
+          target_user_id?: string | null
+          title: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          read?: boolean
+          read_at?: string | null
+          sent_by?: string | null
+          target_user_id?: string | null
+          title?: string
+        }
+        Relationships: []
+      }
+      offers: {
+        Row: {
+          category: string
+          commodity_name: string
+          created_at: string
+          id: string
+          market_date: string
+          market_id: string
+          notes: string | null
+          price: number | null
+          session_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category: string
+          commodity_name: string
+          created_at?: string
+          id?: string
+          market_date?: string
+          market_id: string
+          notes?: string | null
+          price?: number | null
+          session_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          category?: string
+          commodity_name?: string
+          created_at?: string
+          id?: string
+          market_date?: string
+          market_id?: string
+          notes?: string | null
+          price?: number | null
+          session_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "offers_market_id_fkey"
+            columns: ["market_id"]
+            isOneToOne: false
+            referencedRelation: "markets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "offers_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organiser_feedback: {
+        Row: {
+          created_at: string
+          difficulties: string | null
+          feedback: string | null
+          id: string
+          market_date: string
+          market_id: string
+          session_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          difficulties?: string | null
+          feedback?: string | null
+          id?: string
+          market_date?: string
+          market_id: string
+          session_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          difficulties?: string | null
+          feedback?: string | null
+          id?: string
+          market_date?: string
+          market_id?: string
+          session_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organiser_feedback_market_id_fkey"
+            columns: ["market_id"]
+            isOneToOne: false
+            referencedRelation: "markets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organiser_feedback_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
@@ -227,6 +597,101 @@ export type Database = {
             columns: ["market_id"]
             isOneToOne: false
             referencedRelation: "markets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stall_confirmations: {
+        Row: {
+          created_at: string
+          created_by: string
+          farmer_name: string
+          id: string
+          market_date: string
+          market_id: string
+          stall_name: string
+          stall_no: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          farmer_name: string
+          id?: string
+          market_date: string
+          market_id: string
+          stall_name: string
+          stall_no: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          farmer_name?: string
+          id?: string
+          market_date?: string
+          market_id?: string
+          stall_name?: string
+          stall_no?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stall_confirmations_market_id_fkey"
+            columns: ["market_id"]
+            isOneToOne: false
+            referencedRelation: "markets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stall_inspections: {
+        Row: {
+          created_at: string
+          farmer_name: string
+          feedback: string | null
+          id: string
+          market_id: string
+          rating: number | null
+          session_id: string
+          stall_name: string
+          stall_no: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          farmer_name: string
+          feedback?: string | null
+          id?: string
+          market_id: string
+          rating?: number | null
+          session_id: string
+          stall_name: string
+          stall_no?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          farmer_name?: string
+          feedback?: string | null
+          id?: string
+          market_id?: string
+          rating?: number | null
+          session_id?: string
+          stall_name?: string
+          stall_no?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stall_inspections_market_id_fkey"
+            columns: ["market_id"]
+            isOneToOne: false
+            referencedRelation: "markets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stall_inspections_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "sessions"
             referencedColumns: ["id"]
           },
         ]
