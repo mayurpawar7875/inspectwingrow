@@ -1577,6 +1577,54 @@ export type Database = {
         }
         Relationships: []
       }
+      reimbursement_requests: {
+        Row: {
+          amount: number
+          created_at: string
+          description: string | null
+          employee_id: string
+          id: string
+          receipt_url: string
+          request_type: string
+          review_notes: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          submitted_at: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          description?: string | null
+          employee_id: string
+          id?: string
+          receipt_url: string
+          request_type: string
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          submitted_at?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          description?: string | null
+          employee_id?: string
+          id?: string
+          receipt_url?: string
+          request_type?: string
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          submitted_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       sessions: {
         Row: {
           created_at: string

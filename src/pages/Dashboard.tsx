@@ -30,6 +30,7 @@ import {
   Sparkles,
   Package,
   CalendarCheck,
+  DollarSign,
 } from 'lucide-react';
 // import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 // import { Textarea } from '@/components/ui/textarea';
@@ -43,6 +44,7 @@ const OrganiserFeedbackForm = lazy(() => import('@/components/OrganiserFeedbackF
 const StallInspectionForm = lazy(() => import('@/components/StallInspectionForm'));
 const NextDayPlanningForm = lazy(() => import('@/components/NextDayPlanningForm'));
 const MarketLocationVisitForm = lazy(() => import('@/components/MarketLocationVisitForm'));
+const ReimbursementForm = lazy(() => import('@/components/ReimbursementForm'));
 
 interface Session {
   id: string;
@@ -78,6 +80,7 @@ export default function Dashboard() {
   const [inspectionDialog, setInspectionDialog] = useState(false);
   const [planningDialog, setPlanningDialog] = useState(false);
   const [locationVisitDialog, setLocationVisitDialog] = useState(false);
+  const [reimbursementDialog, setReimbursementDialog] = useState(false);
   const [leaveDialog, setLeaveDialog] = useState(false);
   const [leaveDate, setLeaveDate] = useState<string>('');
   const [leaveReason, setLeaveReason] = useState('');
@@ -431,6 +434,18 @@ export default function Dashboard() {
                 </TooltipTrigger>
                 <TooltipContent>
                   <p>Submit Location Visit</p>
+                </TooltipContent>
+              </Tooltip>
+              
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="outline" size="sm" className="flex-1 sm:flex-none" onClick={() => setReimbursementDialog(true)}>
+                    <DollarSign className="h-4 w-4 sm:mr-2" />
+                    <span className="hidden sm:inline">Reimbursement</span>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Submit Reimbursement Request</p>
                 </TooltipContent>
               </Tooltip>
               
@@ -1004,6 +1019,18 @@ export default function Dashboard() {
           </DialogHeader>
           <Suspense fallback={<div className="p-6 text-center text-muted-foreground">Loading form...</div>}>
             <MarketLocationVisitForm />
+          </Suspense>
+        </DialogContent>
+      </Dialog>
+
+      {/* Reimbursement Request Dialog */}
+      <Dialog open={reimbursementDialog} onOpenChange={setReimbursementDialog}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Reimbursement Request</DialogTitle>
+          </DialogHeader>
+          <Suspense fallback={<div className="p-6 text-center text-muted-foreground">Loading form...</div>}>
+            <ReimbursementForm />
           </Suspense>
         </DialogContent>
       </Dialog>

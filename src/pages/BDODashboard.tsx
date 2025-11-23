@@ -18,6 +18,7 @@ import TaskProgressWidget from '@/components/admin/TaskProgressWidget';
 import CollectionsWidget from '@/components/admin/CollectionsWidget';
 import ApprovedMarketsDocuments from '@/components/bdo/ApprovedMarketsDocuments';
 import LocationVisitsWidget from '@/components/admin/LocationVisitsWidget';
+import { ReimbursementRequestsWidget } from '@/components/admin/ReimbursementRequestsWidget';
 import { toast } from 'sonner';
 import { validateImage, generateUploadPath } from '@/lib/fileValidation';
 import {
@@ -1194,6 +1195,7 @@ export default function BDODashboard() {
           <LiveMarketsWidget />
           <LeaveRequestsWidget />
           <LocationVisitsWidget />
+          <ReimbursementRequestsWidget />
         </div>
 
         {/* Approved Markets Document Upload */}
