@@ -34,6 +34,7 @@ interface SettingsContextType {
   settings: Settings;
   loading: boolean;
   updateSetting: (key: string, value: any) => Promise<void>;
+  updateSettings: (values: Partial<Settings>) => Promise<void>;
   refreshSettings: () => Promise<void>;
 }
 
@@ -95,7 +96,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       const { error } = await supabase
         .from('app_settings')
         .update({ [key]: value })
-        .eq('id', settings.id || 1);
+        .eq('id', settings.id);
 
       if (error) throw error;
 
@@ -104,6 +105,24 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       console.error('Error updating setting:', error);
       toast.error('Failed to update setting');
+      throw error;
+    }
+  };
+
+  const updateSettings = async (values: Partial<Settings>) => {
+    try {
+      const { error } = await supabase
+        .from('app_settings')
+        .update(values)
+        .eq('id', settings.id);
+
+      if (error) throw error;
+
+      setSettings((prev) => ({ ...prev, ...values }));
+      toast.success('Settings updated successfully');
+    } catch (error) {
+      console.error('Error updating settings:', error);
+      toast.error('Failed to update settings');
       throw error;
     }
   };
@@ -117,7 +136,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <SettingsContext.Provider value={{ settings, loading, updateSetting, refreshSettings }}>
+    <SettingsContext.Provider value={{ settings, loading, updateSetting, updateSettings, refreshSettings }}>
       {children}
     </SettingsContext.Provider>
   );

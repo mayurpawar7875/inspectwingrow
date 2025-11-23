@@ -14,6 +14,72 @@ export type Database = {
   }
   public: {
     Tables: {
+      app_settings: {
+        Row: {
+          attendance_end: string
+          attendance_start: string
+          collection_sheet_url: string | null
+          created_at: string
+          face_recognition_required: boolean
+          geofence_radius_meters: number
+          gps_accuracy_meters: number
+          grace_minutes: number
+          id: string
+          market_video_end: string
+          market_video_start: string
+          org_email: string | null
+          org_name: string
+          outside_rates_end: string
+          outside_rates_start: string
+          primary_color: string
+          retention_days: number
+          secondary_color: string
+          updated_at: string
+        }
+        Insert: {
+          attendance_end?: string
+          attendance_start?: string
+          collection_sheet_url?: string | null
+          created_at?: string
+          face_recognition_required?: boolean
+          geofence_radius_meters?: number
+          gps_accuracy_meters?: number
+          grace_minutes?: number
+          id?: string
+          market_video_end?: string
+          market_video_start?: string
+          org_email?: string | null
+          org_name?: string
+          outside_rates_end?: string
+          outside_rates_start?: string
+          primary_color?: string
+          retention_days?: number
+          secondary_color?: string
+          updated_at?: string
+        }
+        Update: {
+          attendance_end?: string
+          attendance_start?: string
+          collection_sheet_url?: string | null
+          created_at?: string
+          face_recognition_required?: boolean
+          geofence_radius_meters?: number
+          gps_accuracy_meters?: number
+          grace_minutes?: number
+          id?: string
+          market_video_end?: string
+          market_video_start?: string
+          org_email?: string | null
+          org_name?: string
+          outside_rates_end?: string
+          outside_rates_start?: string
+          primary_color?: string
+          retention_days?: number
+          secondary_color?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       asset_inventory: {
         Row: {
           asset_name: string
