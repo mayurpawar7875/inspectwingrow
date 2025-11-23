@@ -80,8 +80,7 @@ export default function LiveMarketWidget() {
           // Fetch attendance records to determine status
           const { data: attendanceData } = await supabase
             .from('attendance_records')
-            .select('user_id, status, completed_tasks, total_tasks')
-            .eq('market_id', row.market_id)
+            .select('user_id, status')
             .eq('attendance_date', today);
 
           const employees: EmployeeStatus[] = (sessionsData || []).map((session: any) => {
@@ -109,8 +108,8 @@ export default function LiveMarketWidget() {
               punch_in_time: session.punch_in_time,
               punch_out_time: session.punch_out_time,
               duration,
-              completed_tasks: attendance?.completed_tasks || 0,
-              total_tasks: attendance?.total_tasks || 0,
+              completed_tasks: 0,
+              total_tasks: 0,
             };
           });
 
@@ -258,17 +257,6 @@ export default function LiveMarketWidget() {
                                   </div>
                                 )}
                                 
-                                <div className="flex items-center gap-2">
-                                  <span className="text-muted-foreground">Task Progress:</span>
-                                  <span className="font-medium">
-                                    {employee.completed_tasks}/{employee.total_tasks}
-                                  </span>
-                                  {employee.total_tasks > 0 && (
-                                    <span className="text-xs text-muted-foreground">
-                                      ({Math.round((employee.completed_tasks / employee.total_tasks) * 100)}%)
-                                    </span>
-                                  )}
-                                </div>
                               </div>
                             </div>
                           </HoverCardContent>

@@ -19,25 +19,27 @@ import { toast } from 'sonner';
 
 interface BDOMarketSubmission {
   id: string;
-  name: string;
-  location: string;
-  address: string;
-  city: string | null;
-  contact_person_name: string;
-  contact_phone: string;
-  contact_email: string | null;
-  opening_date: string;
-  photo_url: string | null;
+  market_name: string;
+  google_map_location: string;
+  location_type: string;
+  market_opening_date: string | null;
+  submission_date: string;
   submitted_by: string;
-  submitted_at: string;
+  created_at: string;
+  updated_at: string;
   status: string;
   reviewed_by: string | null;
   reviewed_at: string | null;
-  review_notes: string | null;
+  video_url: string | null;
+  video_file_name: string | null;
   service_agreement_url: string | null;
   stalls_accommodation_count: number | null;
   documents_status: string | null;
   documents_uploaded_at: string | null;
+  rent: string | null;
+  customer_reach: string | null;
+  flats_occupancy: string | null;
+  submission_metadata: any;
 }
 
 interface BDOStallSubmission {
@@ -254,10 +256,10 @@ export default function BDOSubmissionsWidget({ filter = 'all' }: BDOSubmissionsW
               <TableBody>
                 {filteredMarkets.map((market) => (
                   <TableRow key={market.id}>
-                    <TableCell className="font-medium">{market.name}</TableCell>
-                    <TableCell>{market.city || 'N/A'}</TableCell>
-                    <TableCell>{format(new Date(market.opening_date), 'MMM dd, yyyy')}</TableCell>
-                    <TableCell>{format(new Date(market.submitted_at), 'MMM dd, HH:mm')}</TableCell>
+                    <TableCell className="font-medium">{market.market_name}</TableCell>
+                    <TableCell>{market.submission_metadata?.city || 'N/A'}</TableCell>
+                    <TableCell>{market.market_opening_date ? format(new Date(market.market_opening_date), 'MMM dd, yyyy') : 'N/A'}</TableCell>
+                    <TableCell>{format(new Date(market.submission_date), 'MMM dd, HH:mm')}</TableCell>
                     <TableCell>{getStatusBadge(market.status)}</TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
@@ -410,39 +412,27 @@ export default function BDOSubmissionsWidget({ filter = 'all' }: BDOSubmissionsW
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="text-sm font-medium">Market Name</p>
-                  <p className="text-sm text-muted-foreground">{selectedMarket.name}</p>
+                  <p className="text-sm text-muted-foreground">{selectedMarket.market_name}</p>
                 </div>
                 <div>
-                  <p className="text-sm font-medium">City</p>
-                  <p className="text-sm text-muted-foreground">{selectedMarket.city || 'N/A'}</p>
+                  <p className="text-sm font-medium">Location Type</p>
+                  <p className="text-sm text-muted-foreground">{selectedMarket.location_type}</p>
                 </div>
                 <div>
                   <p className="text-sm font-medium">Opening Date</p>
                   <p className="text-sm text-muted-foreground">
-                    {format(new Date(selectedMarket.opening_date), 'MMM dd, yyyy')}
+                    {selectedMarket.market_opening_date ? format(new Date(selectedMarket.market_opening_date), 'MMM dd, yyyy') : 'N/A'}
                   </p>
                 </div>
                 <div>
-                  <p className="text-sm font-medium">Contact Person</p>
-                  <p className="text-sm text-muted-foreground">{selectedMarket.contact_person_name}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium">Contact Phone</p>
-                  <p className="text-sm text-muted-foreground">{selectedMarket.contact_phone}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium">Contact Email</p>
-                  <p className="text-sm text-muted-foreground">{selectedMarket.contact_email || 'N/A'}</p>
+                  <p className="text-sm font-medium">Stalls Capacity</p>
+                  <p className="text-sm text-muted-foreground">{selectedMarket.stalls_accommodation_count || 'N/A'}</p>
                 </div>
               </div>
               <div>
-                <p className="text-sm font-medium">Address</p>
-                <p className="text-sm text-muted-foreground">{selectedMarket.address}</p>
-              </div>
-              <div>
-                <p className="text-sm font-medium">Location Link</p>
+                <p className="text-sm font-medium">Google Maps Location</p>
                 <a
-                  href={selectedMarket.location}
+                  href={selectedMarket.google_map_location}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-sm text-primary hover:underline"

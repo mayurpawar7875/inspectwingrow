@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { Checkbox } from '@/components/ui/checkbox';
+import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -22,60 +22,39 @@ interface Props {
   onSuccess?: () => void;
 }
 
-interface InspectionItem {
-  label: string;
-  key: string;
-}
-
 interface Inspection {
   id: string;
   farmer_name: string;
-  has_tent: boolean;
-  has_table: boolean;
-  has_rateboard: boolean;
-  has_flex: boolean;
-  has_light: boolean;
-  has_green_net: boolean;
-  has_mat: boolean;
-  has_digital_weighing_machine: boolean;
-  has_display: boolean;
-  has_apron: boolean;
-  has_cap: boolean;
+  stall_name: string;
+  stall_no: string | null;
+  rating: number | null;
+  feedback: string | null;
+  session_id: string;
+  market_id: string;
   created_at: string;
 }
 
-const INSPECTION_ITEMS: InspectionItem[] = [
-  { label: 'Tent', key: 'has_tent' },
-  { label: 'Table', key: 'has_table' },
-  { label: 'Rate Board', key: 'has_rateboard' },
-  { label: 'Flex', key: 'has_flex' },
-  { label: 'Light', key: 'has_light' },
-  { label: 'Green Net', key: 'has_green_net' },
-  { label: 'Mat', key: 'has_mat' },
-  { label: 'Digital Weighing Machine', key: 'has_digital_weighing_machine' },
-  { label: 'Display', key: 'has_display' },
-  { label: 'Apron', key: 'has_apron' },
-  { label: 'Cap', key: 'has_cap' },
-];
-
 export default function StallInspectionForm({ sessionId, marketId, marketDate, userId, onSuccess }: Props) {
   const [farmerName, setFarmerName] = useState('');
-  const [checkedItems, setCheckedItems] = useState<Record<string, boolean>>({});
+  const [stallName, setStallName] = useState('');
+  const [stallNo, setStallNo] = useState('');
+  const [rating, setRating] = useState('');
+  const [feedback, setFeedback] = useState('');
   const [inspections, setInspections] = useState<Inspection[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     fetchInspections();
-  }, [userId, marketDate]);
+  }, [sessionId]);
 
   const fetchInspections = async () => {
     try {
       const { data, error } = await supabase
         .from('stall_inspections')
         .select('*')
-        .eq('user_id', userId)
-        .eq('market_date', marketDate)
+        .eq('session_id', sessionId)
+        .eq('market_id', marketId)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -85,10 +64,6 @@ export default function StallInspectionForm({ sessionId, marketId, marketDate, u
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleCheckChange = (key: string, checked: boolean) => {
-    setCheckedItems((prev) => ({ ...prev, [key]: checked }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -106,22 +81,17 @@ export default function StallInspectionForm({ sessionId, marketId, marketDate, u
 
     setSaving(true);
     try {
-      const inspectionData: any = {
-        user_id: userId,
-        session_id: sessionId,
-        market_id: marketId,
-        market_date: marketDate,
-        farmer_name: farmerName.trim(),
-      };
-
-      // Add all checkbox values
-      INSPECTION_ITEMS.forEach((item) => {
-        inspectionData[item.key] = checkedItems[item.key] || false;
-      });
-
       const { error } = await supabase
         .from('stall_inspections')
-        .insert(inspectionData);
+        .insert({
+          session_id: sessionId,
+          market_id: marketId,
+          farmer_name: farmerName.trim(),
+          stall_name: stallName.trim(),
+          stall_no: stallNo.trim() || null,
+          rating: rating ? Number(rating) : null,
+          feedback: feedback.trim() || null,
+        });
 
       if (error) throw error;
 
@@ -129,7 +99,10 @@ export default function StallInspectionForm({ sessionId, marketId, marketDate, u
       
       // Reset form
       setFarmerName('');
-      setCheckedItems({});
+      setStallName('');
+      setStallNo('');
+      setRating('');
+      setFeedback('');
       
       await fetchInspections();
       onSuccess?.();
@@ -179,42 +152,71 @@ export default function StallInspectionForm({ sessionId, marketId, marketDate, u
       <Card>
         <CardHeader>
           <CardTitle>Stall Inspection</CardTitle>
-          <CardDescription>Inspect each farmer's stall and check available equipment</CardDescription>
+          <CardDescription>Inspect and record details for each stall</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="farmer-name">Farmer Name</Label>
-              <Input
-                id="farmer-name"
-                placeholder="Enter farmer name"
-                value={farmerName}
-                onChange={(e) => setFarmerName(e.target.value)}
-                disabled={saving}
-                required
-              />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="farmer-name">Farmer Name *</Label>
+                <Input
+                  id="farmer-name"
+                  placeholder="Enter farmer name"
+                  value={farmerName}
+                  onChange={(e) => setFarmerName(e.target.value)}
+                  disabled={saving}
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="stall-name">Stall Name *</Label>
+                <Input
+                  id="stall-name"
+                  placeholder="Enter stall name"
+                  value={stallName}
+                  onChange={(e) => setStallName(e.target.value)}
+                  disabled={saving}
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="stall-no">Stall Number</Label>
+                <Input
+                  id="stall-no"
+                  placeholder="Enter stall number"
+                  value={stallNo}
+                  onChange={(e) => setStallNo(e.target.value)}
+                  disabled={saving}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="rating">Rating (1-5)</Label>
+                <Input
+                  id="rating"
+                  type="number"
+                  min="1"
+                  max="5"
+                  placeholder="Rate the stall"
+                  value={rating}
+                  onChange={(e) => setRating(e.target.value)}
+                  disabled={saving}
+                />
+              </div>
             </div>
 
-            <div className="space-y-3">
-              <Label>Equipment Available</Label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                {INSPECTION_ITEMS.map((item) => (
-                  <div key={item.key} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={item.key}
-                      checked={checkedItems[item.key] || false}
-                      onCheckedChange={(checked) => handleCheckChange(item.key, checked as boolean)}
-                      disabled={saving}
-                    />
-                    <Label
-                      htmlFor={item.key}
-                      className="text-sm font-normal cursor-pointer"
-                    >
-                      {item.label}
-                    </Label>
-                  </div>
-                ))}
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="feedback">Feedback</Label>
+              <Textarea
+                id="feedback"
+                placeholder="Enter inspection feedback..."
+                value={feedback}
+                onChange={(e) => setFeedback(e.target.value)}
+                disabled={saving}
+                rows={3}
+              />
             </div>
 
             <Button type="submit" disabled={saving}>
@@ -246,11 +248,10 @@ export default function StallInspectionForm({ sessionId, marketId, marketDate, u
                 <div className="flex justify-between items-start">
                   <div>
                     <h4 className="font-semibold text-lg">{inspection.farmer_name}</h4>
-                    <p className="text-xs text-muted-foreground">
-                      {new Date(inspection.created_at).toLocaleString('en-IN', {
-                        timeZone: 'Asia/Kolkata',
-                      })}
-                    </p>
+                    <p className="text-sm text-muted-foreground">{inspection.stall_name}</p>
+                    {inspection.stall_no && (
+                      <p className="text-xs text-muted-foreground">Stall #{inspection.stall_no}</p>
+                    )}
                   </div>
                   <Button
                     variant="ghost"
@@ -264,21 +265,24 @@ export default function StallInspectionForm({ sessionId, marketId, marketDate, u
                 
                 <Separator />
                 
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 text-sm">
-                  {INSPECTION_ITEMS.map((item) => {
-                    const hasItem = inspection[item.key as keyof Inspection] as boolean;
-                    return (
-                      <div
-                        key={item.key}
-                        className={`flex items-center gap-1 ${
-                          hasItem ? 'text-success' : 'text-muted-foreground'
-                        }`}
-                      >
-                        <span>{hasItem ? '✓' : '✗'}</span>
-                        <span>{item.label}</span>
-                      </div>
-                    );
-                  })}
+                <div className="space-y-2">
+                  {inspection.rating && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium">Rating:</span>
+                      <span className="text-sm">{'⭐'.repeat(inspection.rating)}</span>
+                    </div>
+                  )}
+                  {inspection.feedback && (
+                    <div>
+                      <span className="text-sm font-medium">Feedback:</span>
+                      <p className="text-sm text-muted-foreground mt-1">{inspection.feedback}</p>
+                    </div>
+                  )}
+                  <p className="text-xs text-muted-foreground">
+                    {new Date(inspection.created_at).toLocaleString('en-IN', {
+                      timeZone: 'Asia/Kolkata',
+                    })}
+                  </p>
                 </div>
               </div>
             ))}
