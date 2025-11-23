@@ -56,11 +56,22 @@ export default function CollectionsWidget({ marketId }: CollectionsWidgetProps) 
 
       if (error) throw error;
 
+      // Get unique market IDs
+      const marketIds = [...new Set((data || []).map(c => c.market_id).filter(Boolean))];
+      
+      // Fetch market names
+      const { data: markets } = await supabase
+        .from('markets')
+        .select('id, name')
+        .in('id', marketIds);
+
+      const marketNameMap = new Map((markets || []).map((m: any) => [m.id, m.name]));
+
       const marketMap = new Map<string, CollectionData>();
       let total = 0;
 
       data?.forEach((item: any) => {
-        const marketName = item.markets?.name || 'Unknown Market';
+        const marketName = marketNameMap.get(item.market_id) || 'Unknown Market';
         
         if (!marketMap.has(marketName)) {
           marketMap.set(marketName, {
