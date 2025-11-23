@@ -527,17 +527,23 @@ export default function BDODashboard() {
           const { error: submissionError } = await supabase
             .from('bdo_market_submissions')
             .insert({
-              name: market.name.trim(),
-              location: market.location.trim(),
-              address: market.address.trim(),
-              city: market.city?.trim() || null,
-              contact_person_name: market.contactPersonName.trim(),
-              contact_phone: market.contactPhone.trim(),
-              contact_email: market.contactEmail?.trim() || null,
-              opening_date: market.openingDate,
-              photo_url: photoUrl,
+              market_name: market.name.trim(),
+              google_map_location: market.location.trim(),
+              location_type: 'Standard',
+              rent: null,
+              customer_reach: null,
+              flats_occupancy: null,
+              video_url: photoUrl,
               submitted_by: user.id,
-              status: 'pending',
+              status: 'pending_review',
+              submission_metadata: {
+                address: market.address.trim(),
+                city: market.city?.trim() || null,
+                contact_person_name: market.contactPersonName.trim(),
+                contact_phone: market.contactPhone.trim(),
+                contact_email: market.contactEmail?.trim() || null,
+                opening_date: market.openingDate,
+              },
             });
 
           if (submissionError) {

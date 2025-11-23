@@ -9,19 +9,12 @@ import { CheckCircle2, XCircle } from 'lucide-react';
 interface StallInspection {
   id: string;
   farmer_name: string;
-  has_tent: boolean;
-  has_table: boolean;
-  has_mat: boolean;
-  has_apron: boolean;
-  has_cap: boolean;
-  has_light: boolean;
-  has_flex: boolean;
-  has_green_net: boolean;
-  has_display: boolean;
-  has_rateboard: boolean;
-  has_digital_weighing_machine: boolean;
+  stall_name: string;
+  stall_no: string | null;
+  rating: number | null;
+  feedback: string | null;
   created_at: string;
-  user_id: string;
+  session_id: string;
   employee_name: string;
 }
 
