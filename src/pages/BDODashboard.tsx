@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Textarea } from '@/components/ui/textarea';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import LiveMarketsWidget from '@/components/admin/LiveMarketsWidget';
+import LeaveRequestsWidget from '@/components/admin/LeaveRequestsWidget';
 import TaskProgressWidget from '@/components/admin/TaskProgressWidget';
 import CollectionsWidget from '@/components/admin/CollectionsWidget';
 import ApprovedMarketsDocuments from '@/components/bdo/ApprovedMarketsDocuments';
@@ -1155,6 +1156,12 @@ export default function BDODashboard() {
               <p className="text-xs text-muted-foreground">View records</p>
             </CardContent>
           </Card>
+        </div>
+
+        {/* Widgets Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+          <LiveMarketsWidget />
+          <LeaveRequestsWidget />
         </div>
 
         {/* Approved Markets Document Upload */}
