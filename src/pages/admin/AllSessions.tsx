@@ -390,7 +390,7 @@ export default function AllSessions() {
       locked: 'bg-muted text-muted-foreground',
       stall_confirmations_only: 'bg-orange-100 text-orange-800',
     };
-    return <Badge className={colors[status as keyof typeof colors] || 'bg-muted text-muted-foreground'}>{status.replace('_', ' ')}</Badge>;
+    return <Badge className={`${colors[status as keyof typeof colors] || 'bg-muted text-muted-foreground'} text-xs`}>{status.replace('_', ' ')}</Badge>;
   };
 
   if (loading) {
@@ -402,50 +402,52 @@ export default function AllSessions() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-start">
+    <div className="space-y-3 sm:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2 sm:gap-0">
         <div>
-          <h2 className="text-3xl font-bold">All Sessions</h2>
-          <p className="text-muted-foreground">View and manage employee reporting sessions</p>
+          <h2 className="text-xl sm:text-2xl md:text-3xl font-bold">All Sessions</h2>
+          <p className="text-xs sm:text-sm text-muted-foreground">View and manage employee reporting sessions</p>
         </div>
-        <Button onClick={exportToCSV} disabled={filteredSessions.length === 0}>
-          <Download className="mr-2 h-4 w-4" />
-          Export CSV
+        <Button onClick={exportToCSV} disabled={filteredSessions.length === 0} size="sm" className="btn-touch">
+          <Download className="mr-1 h-3 w-3 sm:h-4 sm:w-4" />
+          <span className="text-xs sm:text-sm">Export CSV</span>
         </Button>
       </div>
 
       {/* Filters */}
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Filter className="h-5 w-5" />
+        <CardHeader className="p-3 sm:p-6">
+          <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
+            <Filter className="h-4 w-4" />
             Filters
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="dateFrom">Date From</Label>
+        <CardContent className="p-3 sm:p-6 pt-0">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+            <div className="space-y-1 sm:space-y-2">
+              <Label htmlFor="dateFrom" className="text-xs sm:text-sm">Date From</Label>
               <Input
                 id="dateFrom"
                 type="date"
                 value={filters.dateFrom}
                 onChange={(e) => setFilters({ ...filters, dateFrom: e.target.value })}
+                className="h-9 text-xs sm:text-sm"
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="dateTo">Date To</Label>
+            <div className="space-y-1 sm:space-y-2">
+              <Label htmlFor="dateTo" className="text-xs sm:text-sm">Date To</Label>
               <Input
                 id="dateTo"
                 type="date"
                 value={filters.dateTo}
                 onChange={(e) => setFilters({ ...filters, dateTo: e.target.value })}
+                className="h-9 text-xs sm:text-sm"
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="status">Status</Label>
+            <div className="space-y-1 sm:space-y-2">
+              <Label htmlFor="status" className="text-xs sm:text-sm">Status</Label>
               <Select value={filters.status} onValueChange={(val) => setFilters({ ...filters, status: val })}>
-                <SelectTrigger id="status">
+                <SelectTrigger id="status" className="h-9 text-xs sm:text-sm">
                   <SelectValue placeholder="All statuses" />
                 </SelectTrigger>
                 <SelectContent>
@@ -460,13 +462,13 @@ export default function AllSessions() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="market">Market</Label>
+            <div className="space-y-1 sm:space-y-2">
+              <Label htmlFor="market" className="text-xs sm:text-sm">Market</Label>
               <Select
                 value={filters.marketId}
                 onValueChange={(val) => setFilters({ ...filters, marketId: val })}
               >
-                <SelectTrigger id="market">
+                <SelectTrigger id="market" className="h-9 text-xs sm:text-sm">
                   <SelectValue placeholder="All markets" />
                 </SelectTrigger>
                 <SelectContent>
@@ -480,8 +482,8 @@ export default function AllSessions() {
               </Select>
             </div>
           </div>
-          <div className="mt-4 flex items-center gap-2">
-            <p className="text-sm text-muted-foreground">
+          <div className="mt-3 sm:mt-4 flex flex-col sm:flex-row sm:items-center gap-2">
+            <p className="text-xs sm:text-sm text-muted-foreground">
               Showing {filteredSessions.length} of {sessions.length} sessions
             </p>
             {(filters.dateFrom || filters.dateTo || filters.status || filters.marketId) && (
@@ -489,6 +491,7 @@ export default function AllSessions() {
                 variant="outline"
                 size="sm"
                 onClick={() => setFilters({ dateFrom: '', dateTo: '', status: '', marketId: '' })}
+                className="text-xs"
               >
                 Clear Filters
               </Button>
@@ -498,46 +501,46 @@ export default function AllSessions() {
       </Card>
 
       {/* Sessions List */}
-      <div className="space-y-4">
+      <div className="space-y-3 sm:space-y-4">
         {filteredSessions.length === 0 ? (
           <Card>
-            <CardContent className="py-12 text-center text-muted-foreground">
+            <CardContent className="py-8 sm:py-12 text-center text-muted-foreground text-xs sm:text-sm">
               No sessions found matching the filters
             </CardContent>
           </Card>
         ) : (
           filteredSessions.map((session) => (
             <Card key={session.id}>
-              <CardContent className="p-6">
-                <div className="flex justify-between items-start">
-                  <div className="space-y-2 flex-1">
-                    <div className="flex items-center gap-3">
-                      <h3 className="font-semibold text-lg">{session.employees?.full_name || 'Unknown'}</h3>
-                      <div className="flex gap-2">
+              <CardContent className="p-3 sm:p-6">
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2 sm:gap-0">
+                  <div className="space-y-1 sm:space-y-2 flex-1">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
+                      <h3 className="font-semibold text-sm sm:text-base">{session.employees?.full_name || 'Unknown'}</h3>
+                      <div className="flex gap-1 flex-wrap">
                         {(session.statuses || [session.status]).map((status: string, idx: number) => (
-                          <span key={idx}>{getStatusBadge(status)}</span>
+                          <span key={idx} className="text-xs">{getStatusBadge(status)}</span>
                         ))}
                       </div>
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
-                      <div className="flex items-center gap-2 text-muted-foreground">
-                        <Calendar className="h-4 w-4" />
-                        {new Date(session.session_date).toLocaleDateString()}
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4 text-xs">
+                      <div className="flex items-center gap-1 text-muted-foreground">
+                        <Calendar className="h-3 w-3 flex-shrink-0" />
+                        <span className="truncate">{new Date(session.session_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}</span>
                       </div>
-                      <div className="flex items-center gap-2 text-muted-foreground">
-                        <MapPin className="h-4 w-4" />
-                        {session.markets?.name || 'N/A'}
+                      <div className="flex items-center gap-1 text-muted-foreground">
+                        <MapPin className="h-3 w-3 flex-shrink-0" />
+                        <span className="truncate">{session.markets?.name || 'N/A'}</span>
                       </div>
-                      <div className="flex items-center gap-2 text-muted-foreground">
-                        <Clock className="h-4 w-4" />
-                        In: {session.punch_in_time ? new Date(session.punch_in_time).toLocaleTimeString() : 'N/A'}
+                      <div className="flex items-center gap-1 text-muted-foreground">
+                        <Clock className="h-3 w-3 flex-shrink-0" />
+                        <span className="truncate">In: {session.punch_in_time ? new Date(session.punch_in_time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : 'N/A'}</span>
                       </div>
-                      <div className="flex items-center gap-2 text-muted-foreground">
-                        <Clock className="h-4 w-4" />
-                        Out: {session.punch_out_time ? new Date(session.punch_out_time).toLocaleTimeString() : 'N/A'}
+                      <div className="flex items-center gap-1 text-muted-foreground">
+                        <Clock className="h-3 w-3 flex-shrink-0" />
+                        <span className="truncate">Out: {session.punch_out_time ? new Date(session.punch_out_time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : 'N/A'}</span>
                       </div>
                     </div>
-                    <div className="flex gap-4 text-sm">
+                    <div className="flex gap-3 sm:gap-4 text-xs">
                       <span className="text-muted-foreground">
                         Stalls: <strong>{session.stalls?.length || 0}</strong>
                       </span>
@@ -546,9 +549,9 @@ export default function AllSessions() {
                       </span>
                     </div>
                   </div>
-                  <Button variant="outline" size="sm" onClick={() => setSelectedSession(session)}>
-                    <Eye className="mr-2 h-4 w-4" />
-                    View Details
+                  <Button variant="outline" size="sm" onClick={() => setSelectedSession(session)} className="btn-touch w-full sm:w-auto mt-2 sm:mt-0">
+                    <Eye className="mr-1 h-3 w-3 sm:h-4 sm:w-4" />
+                    <span className="text-xs sm:text-sm">View Details</span>
                   </Button>
                 </div>
               </CardContent>
@@ -561,31 +564,31 @@ export default function AllSessions() {
       <Dialog open={!!selectedSession} onOpenChange={() => setSelectedSession(null)}>
         <DialogContent className="max-w-4xl max-h-[80vh] overflow-auto">
           <DialogHeader>
-            <DialogTitle>Session Details</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-base sm:text-lg">Session Details</DialogTitle>
+            <DialogDescription className="text-xs sm:text-sm">
               {selectedSession?.employees?.full_name} -{' '}
               {selectedSession && new Date(selectedSession.session_date).toLocaleDateString()}
             </DialogDescription>
           </DialogHeader>
           {selectedSession && (
-            <div className="space-y-6">
+            <div className="space-y-4 sm:space-y-6">
               {/* Basic Info */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div>
-                  <h4 className="font-semibold mb-2">Employee Information</h4>
-                  <p className="text-sm">
+                  <h4 className="font-semibold mb-2 text-sm">Employee Information</h4>
+                  <p className="text-xs sm:text-sm">
                     <strong>Name:</strong> {selectedSession.employees?.full_name}
                   </p>
-                  <p className="text-sm">
+                  <p className="text-xs sm:text-sm">
                     <strong>Phone:</strong> {selectedSession.employees?.phone || 'N/A'}
                   </p>
                 </div>
                 <div>
-                  <h4 className="font-semibold mb-2">Market Information</h4>
-                  <p className="text-sm">
+                  <h4 className="font-semibold mb-2 text-sm">Market Information</h4>
+                  <p className="text-xs sm:text-sm">
                     <strong>Market:</strong> {selectedSession.markets?.name}
                   </p>
-                  <p className="text-sm">
+                  <p className="text-xs sm:text-sm">
                     <strong>Location:</strong> {selectedSession.markets?.location}
                   </p>
                 </div>
@@ -593,13 +596,13 @@ export default function AllSessions() {
 
               {/* Stalls */}
               <div>
-                <h4 className="font-semibold mb-3">Stalls ({selectedSession.stalls?.length || 0})</h4>
+                <h4 className="font-semibold mb-2 sm:mb-3 text-sm">Stalls ({selectedSession.stalls?.length || 0})</h4>
                 {selectedSession.stalls?.length > 0 ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
                     {selectedSession.stalls.map((stall: any) => (
                       <Card key={stall.id}>
-                        <CardContent className="p-3">
-                          <p className="text-sm">
+                        <CardContent className="p-2 sm:p-3">
+                          <p className="text-xs sm:text-sm">
                             <strong>{stall.stall_name}</strong>
                           </p>
                           <p className="text-xs text-muted-foreground">Farmer: {stall.farmer_name}</p>
@@ -609,43 +612,43 @@ export default function AllSessions() {
                     ))}
                   </div>
                 ) : (
-                  <p className="text-sm text-muted-foreground">No stalls recorded</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground">No stalls recorded</p>
                 )}
               </div>
 
               {/* Media */}
               <div>
-                <h4 className="font-semibold mb-3">Media Files ({selectedSession.media?.length || 0})</h4>
+                <h4 className="font-semibold mb-2 sm:mb-3 text-sm">Media Files ({selectedSession.media?.length || 0})</h4>
                 {selectedSession.media?.length > 0 ? (
-                  <div className="space-y-3">
+                  <div className="space-y-2 sm:space-y-3">
                     {selectedSession.media.map((media: any) => (
                       <Card key={media.id}>
-                        <CardContent className="p-3">
-                          <div className="flex justify-between items-start">
+                        <CardContent className="p-2 sm:p-3">
+                          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2">
                             <div>
-                              <p className="text-sm font-medium">{media.file_name}</p>
+                              <p className="text-xs sm:text-sm font-medium">{media.file_name}</p>
                               <p className="text-xs text-muted-foreground">
                                 Type: {media.media_type === 'outside_rates' ? 'Outside Rates' : 'Selfie + GPS'}
                               </p>
                               <p className="text-xs text-muted-foreground">
-                                Captured: {new Date(media.captured_at).toLocaleString()}
+                                Captured: {new Date(media.captured_at).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
                               </p>
                               {media.gps_lat && media.gps_lng && (
                                 <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
                                   <MapPin className="h-3 w-3" />
-                                  GPS: {media.gps_lat.toFixed(6)}, {media.gps_lng.toFixed(6)}
+                                  GPS: {media.gps_lat.toFixed(4)}, {media.gps_lng.toFixed(4)}
                                   <a
                                     href={`https://www.google.com/maps?q=${media.gps_lat},${media.gps_lng}`}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="text-accent hover:underline ml-2"
+                                    className="text-accent hover:underline ml-1"
                                   >
                                     View on Map
                                   </a>
                                 </p>
                               )}
                             </div>
-                            <Button variant="outline" size="sm" asChild>
+                            <Button variant="outline" size="sm" asChild className="text-xs">
                               <a href={media.file_url} target="_blank" rel="noopener noreferrer">
                                 View File
                               </a>
@@ -656,7 +659,7 @@ export default function AllSessions() {
                     ))}
                   </div>
                 ) : (
-                  <p className="text-sm text-muted-foreground">No media files uploaded</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground">No media files uploaded</p>
                 )}
               </div>
 
