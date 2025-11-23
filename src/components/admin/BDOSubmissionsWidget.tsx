@@ -413,39 +413,35 @@ export default function BDOSubmissionsWidget({ filter = 'all' }: BDOSubmissionsW
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="text-sm font-medium">Market Name</p>
-                  <p className="text-sm text-muted-foreground">{selectedMarket.name}</p>
+                  <p className="text-sm text-muted-foreground">{selectedMarket.market_name}</p>
                 </div>
                 <div>
                   <p className="text-sm font-medium">City</p>
-                  <p className="text-sm text-muted-foreground">{selectedMarket.city || 'N/A'}</p>
+                  <p className="text-sm text-muted-foreground">{selectedMarket.submission_metadata?.city || 'N/A'}</p>
                 </div>
                 <div>
                   <p className="text-sm font-medium">Opening Date</p>
                   <p className="text-sm text-muted-foreground">
-                    {format(new Date(selectedMarket.opening_date), 'MMM dd, yyyy')}
+                    {selectedMarket.market_opening_date ? format(new Date(selectedMarket.market_opening_date), 'MMM dd, yyyy') : 'N/A'}
                   </p>
                 </div>
                 <div>
-                  <p className="text-sm font-medium">Contact Person</p>
-                  <p className="text-sm text-muted-foreground">{selectedMarket.contact_person_name}</p>
+                  <p className="text-sm font-medium">Location Type</p>
+                  <p className="text-sm text-muted-foreground">{selectedMarket.location_type}</p>
                 </div>
                 <div>
-                  <p className="text-sm font-medium">Contact Phone</p>
-                  <p className="text-sm text-muted-foreground">{selectedMarket.contact_phone}</p>
+                  <p className="text-sm font-medium">Rent</p>
+                  <p className="text-sm text-muted-foreground">{selectedMarket.rent || 'N/A'}</p>
                 </div>
                 <div>
-                  <p className="text-sm font-medium">Contact Email</p>
-                  <p className="text-sm text-muted-foreground">{selectedMarket.contact_email || 'N/A'}</p>
+                  <p className="text-sm font-medium">Customer Reach</p>
+                  <p className="text-sm text-muted-foreground">{selectedMarket.customer_reach || 'N/A'}</p>
                 </div>
               </div>
               <div>
-                <p className="text-sm font-medium">Address</p>
-                <p className="text-sm text-muted-foreground">{selectedMarket.address}</p>
-              </div>
-              <div>
-                <p className="text-sm font-medium">Location Link</p>
+                <p className="text-sm font-medium">Google Map Location</p>
                 <a
-                  href={selectedMarket.location}
+                  href={selectedMarket.google_map_location}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-sm text-primary hover:underline"
@@ -453,17 +449,13 @@ export default function BDOSubmissionsWidget({ filter = 'all' }: BDOSubmissionsW
                   View on Map
                 </a>
               </div>
-              {selectedMarket.photo_url && (
+              {selectedMarket.video_url && (
                 <div>
-                  <p className="text-sm font-medium mb-2">Photo</p>
-                  <img
-                    src={
-                      selectedMarket.photo_url.startsWith('http') 
-                        ? selectedMarket.photo_url 
-                        : supabase.storage.from('employee-media').getPublicUrl(selectedMarket.photo_url).data.publicUrl
-                    }
-                    alt="Market location"
-                    className="max-h-64 rounded-lg"
+                  <p className="text-sm font-medium mb-2">Video</p>
+                  <video
+                    src={selectedMarket.video_url}
+                    controls
+                    className="max-h-64 rounded-lg w-full"
                   />
                 </div>
               )}
