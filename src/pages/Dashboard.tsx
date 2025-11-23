@@ -364,26 +364,26 @@ export default function Dashboard() {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="border-b bg-card">
-        <div className="container mx-auto px-3 sm:px-4 py-3 sm:py-4">
-          <div className="flex justify-between items-center gap-2 mb-2 sm:mb-0">
+        <div className="container mx-auto px-2 sm:px-4 py-2 sm:py-4">
+          <div className="flex justify-between items-center gap-2 mb-1.5 sm:mb-0">
             <div className="flex-1 min-w-0">
-              <h1 className="text-sm sm:text-2xl font-bold text-foreground">Employee Dashboard</h1>
-              <p className="text-xs sm:text-sm text-muted-foreground truncate">{user?.email}</p>
+              <h1 className="text-xs sm:text-2xl font-bold text-foreground">Employee Dashboard</h1>
+              <p className="text-[10px] sm:text-sm text-muted-foreground truncate">{user?.email}</p>
             </div>
             <div className="flex gap-1 sm:gap-2 flex-shrink-0">
               <NotificationBell />
-              <Button variant="outline" size="sm" onClick={handleSignOut}>
-                <LogOut className="h-4 w-4 sm:mr-2" />
+              <Button variant="outline" size="sm" className="h-7 px-2 sm:h-9 sm:px-3" onClick={handleSignOut}>
+                <LogOut className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-2" />
                 <span className="hidden sm:inline">Sign Out</span>
               </Button>
             </div>
           </div>
           <TooltipProvider>
-            <div className="flex gap-1 sm:gap-2 mt-2 sm:mt-0">
+            <div className="flex gap-0.5 sm:gap-2 mt-1.5 sm:mt-0 flex-wrap">
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button variant="outline" size="sm" className="flex-1 sm:flex-none" onClick={() => navigate('/my-sessions')}>
-                    <History className="h-4 w-4 sm:mr-2" />
+                  <Button variant="outline" size="sm" className="h-7 px-2 sm:h-9 sm:px-3 flex-shrink-0" onClick={() => navigate('/my-sessions')}>
+                    <History className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-2" />
                     <span className="hidden sm:inline">My Sessions</span>
                   </Button>
                 </TooltipTrigger>
@@ -394,8 +394,8 @@ export default function Dashboard() {
               
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button variant="outline" size="sm" className="flex-1 sm:flex-none" onClick={() => setLeaveDialog(true)}>
-                    <Umbrella className="h-4 w-4 sm:mr-2" />
+                  <Button variant="outline" size="sm" className="h-7 px-2 sm:h-9 sm:px-3 flex-shrink-0" onClick={() => setLeaveDialog(true)}>
+                    <Umbrella className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-2" />
                     <span className="hidden sm:inline">Request Leave</span>
                   </Button>
                 </TooltipTrigger>
@@ -406,8 +406,8 @@ export default function Dashboard() {
               
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button variant="outline" size="sm" className="flex-1 sm:flex-none" onClick={() => navigate('/asset-requests')}>
-                    <Package className="h-4 w-4 sm:mr-2" />
+                  <Button variant="outline" size="sm" className="h-7 px-2 sm:h-9 sm:px-3 flex-shrink-0" onClick={() => navigate('/asset-requests')}>
+                    <Package className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-2" />
                     <span className="hidden sm:inline">Assets</span>
                   </Button>
                 </TooltipTrigger>
@@ -418,8 +418,8 @@ export default function Dashboard() {
               
                 <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button variant="outline" size="sm" className="flex-1 sm:flex-none" onClick={() => navigate('/my-attendance')}>
-                    <CalendarCheck className="h-4 w-4 sm:mr-2" />
+                  <Button variant="outline" size="sm" className="h-7 px-2 sm:h-9 sm:px-3 flex-shrink-0" onClick={() => navigate('/my-attendance')}>
+                    <CalendarCheck className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-2" />
                     <span className="hidden sm:inline">Attendance</span>
                   </Button>
                 </TooltipTrigger>
@@ -430,8 +430,8 @@ export default function Dashboard() {
               
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button variant="outline" size="sm" className="flex-1 sm:flex-none" onClick={() => setLocationVisitDialog(true)}>
-                    <MapPin className="h-4 w-4 sm:mr-2" />
+                  <Button variant="outline" size="sm" className="h-7 px-2 sm:h-9 sm:px-3 flex-shrink-0" onClick={() => setLocationVisitDialog(true)}>
+                    <MapPin className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-2" />
                     <span className="hidden sm:inline">Location Visit</span>
                   </Button>
                 </TooltipTrigger>
@@ -442,8 +442,8 @@ export default function Dashboard() {
               
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button variant="outline" size="sm" className="flex-1 sm:flex-none" onClick={() => setReimbursementDialog(true)}>
-                    <DollarSign className="h-4 w-4 sm:mr-2" />
+                  <Button variant="outline" size="sm" className="h-7 px-2 sm:h-9 sm:px-3 flex-shrink-0" onClick={() => setReimbursementDialog(true)}>
+                    <DollarSign className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-2" />
                     <span className="hidden sm:inline">Reimbursement</span>
                   </Button>
                 </TooltipTrigger>
@@ -452,7 +452,7 @@ export default function Dashboard() {
                 </TooltipContent>
               </Tooltip>
               
-              <Button variant="outline" size="sm" className="flex-1 sm:flex-none" onClick={() => navigate('/install')}>
+              <Button variant="outline" size="sm" className="h-7 px-2 text-[10px] sm:h-9 sm:px-3 sm:text-sm flex-shrink-0" onClick={() => navigate('/install')}>
                 Install App
               </Button>
             </div>
@@ -461,7 +461,7 @@ export default function Dashboard() {
       </header>
 
       {/* Main Content */}
-      <main className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 md:py-8">
+      <main className="container mx-auto px-2 sm:px-4 py-2 sm:py-6 md:py-8">
         {!todaySession ? (
           <div className="space-y-4">
             <Card>
@@ -497,23 +497,23 @@ export default function Dashboard() {
             </Card>
           </div>
         ) : (
-          <div className="space-y-6">
+          <div className="space-y-2 sm:space-y-6">
             {/* Session Info */}
             <Card>
-              <CardHeader className="pb-3 sm:pb-6">
-                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2">
+              <CardHeader className="p-3 sm:pb-6 sm:px-6 sm:pt-6">
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-1.5 sm:gap-2">
                   <div className="flex-1 min-w-0">
-                    <CardTitle className="text-lg sm:text-xl">Today's Session</CardTitle>
-                    <CardDescription className="mt-1.5 sm:mt-2 text-xs sm:text-sm break-words">
+                    <CardTitle className="text-sm sm:text-xl">Today's Session</CardTitle>
+                    <CardDescription className="mt-1 sm:mt-2 text-[10px] sm:text-sm break-words">
                       <span className="font-medium">{todaySession.market.name}</span>
-                      <span className="mx-1">-</span>
+                      <span className="mx-0.5 sm:mx-1">-</span>
                       <a 
                         href={todaySession.market.location} 
                         target="_blank" 
                         rel="noopener noreferrer"
-                        className="text-primary hover:underline inline-flex items-center gap-1"
+                        className="text-primary hover:underline inline-flex items-center gap-0.5 sm:gap-1"
                       >
-                        <MapPin className="h-3 w-3 inline" />
+                        <MapPin className="h-2.5 w-2.5 sm:h-3 sm:w-3 inline" />
                         <span className="break-all">View Location</span>
                       </a>
                     </CardDescription>
@@ -523,41 +523,41 @@ export default function Dashboard() {
                   </div>
                 </div>
               </CardHeader>
-              <CardContent className="pt-0">
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
-                  <div className="flex items-start gap-3">
+              <CardContent className="p-3 pt-0 sm:px-6 sm:pb-6">
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-3 sm:gap-4">
+                  <div className="flex items-start gap-2 sm:gap-3">
                     <div className="flex-shrink-0 mt-0.5">
-                      <Clock className="h-5 w-5 text-muted-foreground" />
+                      <Clock className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground" />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="text-xs sm:text-sm text-muted-foreground">Punch In</p>
-                      <p className="font-medium text-sm sm:text-base break-words">
+                      <p className="text-[10px] sm:text-sm text-muted-foreground">Punch In</p>
+                      <p className="font-medium text-xs sm:text-base break-words">
                         {todaySession.punch_in_time
                           ? new Date(todaySession.punch_in_time).toLocaleTimeString()
                           : 'Not recorded'}
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-start gap-3">
+                  <div className="flex items-start gap-2 sm:gap-3">
                     <div className="flex-shrink-0 mt-0.5">
-                      <Clock className="h-5 w-5 text-muted-foreground" />
+                      <Clock className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground" />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="text-xs sm:text-sm text-muted-foreground">Punch Out</p>
-                      <p className="font-medium text-sm sm:text-base break-words">
+                      <p className="text-[10px] sm:text-sm text-muted-foreground">Punch Out</p>
+                      <p className="font-medium text-xs sm:text-base break-words">
                         {todaySession.punch_out_time
                           ? new Date(todaySession.punch_out_time).toLocaleTimeString()
                           : 'Not recorded'}
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-start gap-3">
+                  <div className="flex items-start gap-2 sm:gap-3">
                     <div className="flex-shrink-0 mt-0.5">
-                      <Calendar className="h-5 w-5 text-muted-foreground" />
+                      <Calendar className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground" />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="text-xs sm:text-sm text-muted-foreground">Date</p>
-                      <p className="font-medium text-sm sm:text-base break-words">
+                      <p className="text-[10px] sm:text-sm text-muted-foreground">Date</p>
+                      <p className="font-medium text-xs sm:text-base break-words">
                         {new Date(todaySession.session_date).toLocaleDateString()}
                       </p>
                     </div>
@@ -568,24 +568,24 @@ export default function Dashboard() {
 
             {/* Action Cards - Show until punch out */}
             {!todaySession.punch_out_time && (
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-1.5 sm:gap-3">
                 {/* Punch In */}
                 {!todaySession.punch_in_time && (
                   <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate('/punch')}>
-                    <CardHeader className="p-3 sm:p-4">
-                      <Clock className="h-6 w-6 sm:h-7 sm:w-7 text-accent mb-1" />
-                      <CardTitle className="text-sm sm:text-base">Punch In</CardTitle>
-                      <CardDescription className="text-xs">Record arrival</CardDescription>
+                    <CardHeader className="p-2 sm:p-4">
+                      <Clock className="h-5 w-5 sm:h-7 sm:w-7 text-accent mb-0.5 sm:mb-1" />
+                      <CardTitle className="text-xs sm:text-base">Punch In</CardTitle>
+                      <CardDescription className="text-[10px] sm:text-xs">Record arrival</CardDescription>
                     </CardHeader>
                   </Card>
                 )}
 
                 {/* Stall Confirmations */}
                 <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate('/stalls')}>
-                  <CardHeader className="p-3 sm:p-4">
-                    <FileText className="h-6 w-6 sm:h-7 sm:w-7 text-accent mb-1" />
-                    <CardTitle className="text-sm sm:text-base">Stalls</CardTitle>
-                    <CardDescription className="text-xs">
+                  <CardHeader className="p-2 sm:p-4">
+                    <FileText className="h-5 w-5 sm:h-7 sm:w-7 text-accent mb-0.5 sm:mb-1" />
+                    <CardTitle className="text-xs sm:text-base">Stalls</CardTitle>
+                    <CardDescription className="text-[10px] sm:text-xs">
                       {stallsCount} added
                     </CardDescription>
                   </CardHeader>
@@ -593,100 +593,100 @@ export default function Dashboard() {
 
                 {/* Outside Market Rates */}
                 <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate('/media-upload?type=outside_rates')}>
-                  <CardHeader className="p-3 sm:p-4">
-                    <Upload className="h-6 w-6 sm:h-7 sm:w-7 text-accent mb-1" />
-                    <CardTitle className="text-sm sm:text-base">Outside Rates</CardTitle>
-                    <CardDescription className="text-xs">Upload media</CardDescription>
+                  <CardHeader className="p-2 sm:p-4">
+                    <Upload className="h-5 w-5 sm:h-7 sm:w-7 text-accent mb-0.5 sm:mb-1" />
+                    <CardTitle className="text-xs sm:text-base">Outside Rates</CardTitle>
+                    <CardDescription className="text-[10px] sm:text-xs">Upload media</CardDescription>
                   </CardHeader>
                 </Card>
 
                 {/* Rate Board Photo */}
                 <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate('/media-upload?type=rate_board')}>
-                  <CardHeader className="p-3 sm:p-4">
-                    <ImageIcon className="h-6 w-6 sm:h-7 sm:w-7 text-accent mb-1" />
-                    <CardTitle className="text-sm sm:text-base">Rate Board</CardTitle>
-                    <CardDescription className="text-xs">Photo upload</CardDescription>
+                  <CardHeader className="p-2 sm:p-4">
+                    <ImageIcon className="h-5 w-5 sm:h-7 sm:w-7 text-accent mb-0.5 sm:mb-1" />
+                    <CardTitle className="text-xs sm:text-base">Rate Board</CardTitle>
+                    <CardDescription className="text-[10px] sm:text-xs">Photo upload</CardDescription>
                   </CardHeader>
                 </Card>
 
                 {/* Market Video */}
                 <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate('/media-upload?type=market_video')}>
-                  <CardHeader className="p-3 sm:p-4">
-                    <Video className="h-6 w-6 sm:h-7 sm:w-7 text-accent mb-1" />
-                    <CardTitle className="text-sm sm:text-base">Market Video</CardTitle>
-                    <CardDescription className="text-xs">Pan video</CardDescription>
+                  <CardHeader className="p-2 sm:p-4">
+                    <Video className="h-5 w-5 sm:h-7 sm:w-7 text-accent mb-0.5 sm:mb-1" />
+                    <CardTitle className="text-xs sm:text-base">Market Video</CardTitle>
+                    <CardDescription className="text-[10px] sm:text-xs">Pan video</CardDescription>
                   </CardHeader>
                 </Card>
 
                 {/* Cleaning Video */}
                 <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate('/media-upload?type=cleaning_video')}>
-                  <CardHeader className="p-3 sm:p-4">
-                    <Sparkles className="h-6 w-6 sm:h-7 sm:w-7 text-accent mb-1" />
-                    <CardTitle className="text-sm sm:text-base">Cleaning</CardTitle>
-                    <CardDescription className="text-xs">Video upload</CardDescription>
+                  <CardHeader className="p-2 sm:p-4">
+                    <Sparkles className="h-5 w-5 sm:h-7 sm:w-7 text-accent mb-0.5 sm:mb-1" />
+                    <CardTitle className="text-xs sm:text-base">Cleaning</CardTitle>
+                    <CardDescription className="text-[10px] sm:text-xs">Video upload</CardDescription>
                   </CardHeader>
                 </Card>
 
                 {/* Customer Feedback */}
                 <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate('/media-upload?type=customer_feedback')}>
-                  <CardHeader className="p-3 sm:p-4">
-                    <MessageSquare className="h-6 w-6 sm:h-7 sm:w-7 text-accent mb-1" />
-                    <CardTitle className="text-sm sm:text-base">Feedback</CardTitle>
-                    <CardDescription className="text-xs">Customer video</CardDescription>
+                  <CardHeader className="p-2 sm:p-4">
+                    <MessageSquare className="h-5 w-5 sm:h-7 sm:w-7 text-accent mb-0.5 sm:mb-1" />
+                    <CardTitle className="text-xs sm:text-base">Feedback</CardTitle>
+                    <CardDescription className="text-[10px] sm:text-xs">Customer video</CardDescription>
                   </CardHeader>
                 </Card>
 
                 {/* Today's Offers */}
                 <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setOffersDialog(true)}>
-                  <CardHeader className="p-3 sm:p-4">
-                    <FileText className="h-6 w-6 sm:h-7 sm:w-7 text-accent mb-1" />
-                    <CardTitle className="text-sm sm:text-base">Today's Offers</CardTitle>
-                    <CardDescription className="text-xs">Add pricing</CardDescription>
+                  <CardHeader className="p-2 sm:p-4">
+                    <FileText className="h-5 w-5 sm:h-7 sm:w-7 text-accent mb-0.5 sm:mb-1" />
+                    <CardTitle className="text-xs sm:text-base">Today's Offers</CardTitle>
+                    <CardDescription className="text-[10px] sm:text-xs">Add pricing</CardDescription>
                   </CardHeader>
                 </Card>
 
                 {/* Non-Available Commodities */}
                 <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setCommoditiesDialog(true)}>
-                  <CardHeader className="p-3 sm:p-4">
-                    <AlertCircle className="h-6 w-6 sm:h-7 sm:w-7 text-accent mb-1" />
-                    <CardTitle className="text-sm sm:text-base">Non-Available</CardTitle>
-                    <CardDescription className="text-xs">Report items</CardDescription>
+                  <CardHeader className="p-2 sm:p-4">
+                    <AlertCircle className="h-5 w-5 sm:h-7 sm:w-7 text-accent mb-0.5 sm:mb-1" />
+                    <CardTitle className="text-xs sm:text-base">Non-Available</CardTitle>
+                    <CardDescription className="text-[10px] sm:text-xs">Report items</CardDescription>
                   </CardHeader>
                 </Card>
 
                 {/* Organiser Feedback */}
                 <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setFeedbackDialog(true)}>
-                  <CardHeader className="p-3 sm:p-4">
-                    <MessageSquare className="h-6 w-6 sm:h-7 sm:w-7 text-accent mb-1" />
-                    <CardTitle className="text-sm sm:text-base">My Feedback</CardTitle>
-                    <CardDescription className="text-xs">Share thoughts</CardDescription>
+                  <CardHeader className="p-2 sm:p-4">
+                    <MessageSquare className="h-5 w-5 sm:h-7 sm:w-7 text-accent mb-0.5 sm:mb-1" />
+                    <CardTitle className="text-xs sm:text-base">My Feedback</CardTitle>
+                    <CardDescription className="text-[10px] sm:text-xs">Share thoughts</CardDescription>
                   </CardHeader>
                 </Card>
 
                 {/* Stall Inspection */}
                 <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setInspectionDialog(true)}>
-                  <CardHeader className="p-3 sm:p-4">
-                    <ClipboardCheck className="h-6 w-6 sm:h-7 sm:w-7 text-accent mb-1" />
-                    <CardTitle className="text-sm sm:text-base">Inspection</CardTitle>
-                    <CardDescription className="text-xs">Stall check</CardDescription>
+                  <CardHeader className="p-2 sm:p-4">
+                    <ClipboardCheck className="h-5 w-5 sm:h-7 sm:w-7 text-accent mb-0.5 sm:mb-1" />
+                    <CardTitle className="text-xs sm:text-base">Inspection</CardTitle>
+                    <CardDescription className="text-[10px] sm:text-xs">Stall check</CardDescription>
                   </CardHeader>
                 </Card>
 
                 {/* Next Day Planning */}
                 <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setPlanningDialog(true)}>
-                  <CardHeader className="p-3 sm:p-4">
-                    <Calendar className="h-6 w-6 sm:h-7 sm:w-7 text-accent mb-1" />
-                    <CardTitle className="text-sm sm:text-base">Planning</CardTitle>
-                    <CardDescription className="text-xs">Next day</CardDescription>
+                  <CardHeader className="p-2 sm:p-4">
+                    <Calendar className="h-5 w-5 sm:h-7 sm:w-7 text-accent mb-0.5 sm:mb-1" />
+                    <CardTitle className="text-xs sm:text-base">Planning</CardTitle>
+                    <CardDescription className="text-[10px] sm:text-xs">Next day</CardDescription>
                   </CardHeader>
                 </Card>
 
                 {/* Collection Sheet */}
                 <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={handleOpenCollectionSheet}>
-                  <CardHeader className="p-3 sm:p-4">
-                    <ExternalLink className="h-6 w-6 sm:h-7 sm:w-7 text-accent mb-1" />
-                    <CardTitle className="text-sm sm:text-base">Collections</CardTitle>
-                    <CardDescription className="text-xs">Record daily</CardDescription>
+                  <CardHeader className="p-2 sm:p-4">
+                    <ExternalLink className="h-5 w-5 sm:h-7 sm:w-7 text-accent mb-0.5 sm:mb-1" />
+                    <CardTitle className="text-xs sm:text-base">Collections</CardTitle>
+                    <CardDescription className="text-[10px] sm:text-xs">Record daily</CardDescription>
                   </CardHeader>
                 </Card>
 
@@ -730,10 +730,10 @@ export default function Dashboard() {
                       );
                     }}
                   >
-                    <CardHeader className="p-3 sm:p-4">
-                      <LogOut className="h-6 w-6 sm:h-7 sm:w-7 text-accent mb-1" />
-                      <CardTitle className="text-sm sm:text-base">Punch Out</CardTitle>
-                      <CardDescription className="text-xs">Record departure</CardDescription>
+                    <CardHeader className="p-2 sm:p-4">
+                      <LogOut className="h-5 w-5 sm:h-7 sm:w-7 text-accent mb-0.5 sm:mb-1" />
+                      <CardTitle className="text-xs sm:text-base">Punch Out</CardTitle>
+                      <CardDescription className="text-[10px] sm:text-xs">Record departure</CardDescription>
                     </CardHeader>
                   </Card>
                 )}
