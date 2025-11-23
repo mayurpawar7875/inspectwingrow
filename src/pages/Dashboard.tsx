@@ -6,9 +6,11 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { toast } from 'sonner';
 import { NotificationBell } from '@/components/NotificationBell';
+import { useIsMobile } from '@/hooks/use-mobile';
 import {
   LogOut,
   Clock,
@@ -69,6 +71,7 @@ interface SessionSummary {
 export default function Dashboard() {
   const { user, signOut, currentRole, loading: authLoading } = useAuth();
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const [todaySession, setTodaySession] = useState<Session | null>(null);
   const [sessionSummary, setSessionSummary] = useState<SessionSummary | null>(null);
   const [loading, setLoading] = useState(true);
@@ -1023,17 +1026,32 @@ export default function Dashboard() {
         </DialogContent>
       </Dialog>
 
-      {/* Reimbursement Request Dialog */}
-      <Dialog open={reimbursementDialog} onOpenChange={setReimbursementDialog}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Reimbursement Request</DialogTitle>
-          </DialogHeader>
-          <Suspense fallback={<div className="p-6 text-center text-muted-foreground">Loading form...</div>}>
-            <ReimbursementForm />
-          </Suspense>
-        </DialogContent>
-      </Dialog>
+      {/* Reimbursement Request Dialog/Sheet */}
+      {isMobile ? (
+        <Sheet open={reimbursementDialog} onOpenChange={setReimbursementDialog}>
+          <SheetContent side="bottom" className="h-[100vh] overflow-y-auto p-0">
+            <SheetHeader className="p-4 border-b">
+              <SheetTitle className="text-base">Reimbursement Request</SheetTitle>
+            </SheetHeader>
+            <div className="p-4">
+              <Suspense fallback={<div className="py-8 text-center text-sm text-muted-foreground">Loading form...</div>}>
+                <ReimbursementForm />
+              </Suspense>
+            </div>
+          </SheetContent>
+        </Sheet>
+      ) : (
+        <Dialog open={reimbursementDialog} onOpenChange={setReimbursementDialog}>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Reimbursement Request</DialogTitle>
+            </DialogHeader>
+            <Suspense fallback={<div className="p-6 text-center text-muted-foreground">Loading form...</div>}>
+              <ReimbursementForm />
+            </Suspense>
+          </DialogContent>
+        </Dialog>
+      )}
 
       {/* View Details Dialog */}
       <Dialog open={viewDialog !== null} onOpenChange={() => setViewDialog(null)}>
