@@ -69,13 +69,11 @@ export function OrganiserOnDuty({ marketId, marketDate, isToday }: Props) {
   const fetchOrganiser = async () => {
     setLoading(true);
     
-    // Fetch sessions (status can be: active, finalized, locked)
-    // Match by market_date OR session_date to handle older sessions without market_date set
     const { data: s, error: sErr } = await supabase
       .from('sessions')
       .select('id, user_id, punch_in_time, punch_out_time, status')
       .eq('market_id', marketId)
-      .or(`market_date.eq.${marketDate},session_date.eq.${marketDate}`)
+      .eq('session_date', marketDate)
       .order('punch_in_time', { ascending: false });
 
     if (sErr) console.error(sErr);
@@ -83,7 +81,6 @@ export function OrganiserOnDuty({ marketId, marketDate, isToday }: Props) {
     let selectedUserId: string | null = null;
     let sessionData: any = null;
 
-    // Pick organiser = active session first, else latest
     const organiserSession = (s ?? []).sort((a, b) => 
       (a.status === 'active' ? -1 : 1) || 
       (new Date(b.punch_in_time || 0).getTime() - new Date(a.punch_in_time || 0).getTime())
@@ -93,14 +90,12 @@ export function OrganiserOnDuty({ marketId, marketDate, isToday }: Props) {
       selectedUserId = organiserSession.user_id;
       sessionData = organiserSession;
     } else {
-      // Fallback: find employee with most uploads for this market/date
       const { data: uploads } = await supabase
         .from('media')
         .select('session_id')
         .eq('market_id', marketId);
 
       if (uploads && uploads.length > 0) {
-        // Get sessions to map to user_id
         const sessionIds = [...new Set(uploads.map(u => u.session_id).filter(Boolean))];
         const { data: sessions } = await supabase
           .from('sessions')
@@ -111,7 +106,6 @@ export function OrganiserOnDuty({ marketId, marketDate, isToday }: Props) {
         if (sessions && sessions.length > 0) {
           const sessionUserMap = Object.fromEntries(sessions.map((s: any) => [s.id, s.user_id]));
           
-          // Count uploads per user
           const uploadCounts: Record<string, number> = {};
           uploads.forEach(u => {
             const userId = sessionUserMap[u.session_id];
@@ -120,7 +114,6 @@ export function OrganiserOnDuty({ marketId, marketDate, isToday }: Props) {
             }
           });
 
-          // Find user with most uploads
           const mostActiveUser = Object.entries(uploadCounts)
             .sort(([, a], [, b]) => b - a)[0];
           
@@ -132,7 +125,6 @@ export function OrganiserOnDuty({ marketId, marketDate, isToday }: Props) {
     }
 
     if (selectedUserId) {
-      // Fetch the employee profile
       const { data: emp } = await supabase
         .from('employees')
         .select('id, full_name, phone')
@@ -149,7 +141,6 @@ export function OrganiserOnDuty({ marketId, marketDate, isToday }: Props) {
           }
         } as any);
 
-        // Fetch last activity - get sessions for this user first
         const { data: userSessions } = await supabase
           .from('sessions')
           .select('id')
@@ -158,7 +149,7 @@ export function OrganiserOnDuty({ marketId, marketDate, isToday }: Props) {
           .eq('market_id', marketId);
 
         if (userSessions && userSessions.length > 0) {
-          const { data: mediaData } = await supabase
+          const { data: lastMedia } = await supabase
             .from('media')
             .select('captured_at')
             .in('session_id', userSessions.map(s => s.id))
@@ -166,13 +157,9 @@ export function OrganiserOnDuty({ marketId, marketDate, isToday }: Props) {
             .limit(1)
             .maybeSingle();
 
-          if (mediaData) {
-            setLastActivity(mediaData.captured_at);
+          if (lastMedia) {
+            setLastActivity(lastMedia.captured_at);
           }
-        }
-
-        if (mediaData) {
-          setLastActivity(mediaData.captured_at);
         }
       } else {
         setOrganiser(null);
@@ -205,7 +192,7 @@ export function OrganiserOnDuty({ marketId, marketDate, isToday }: Props) {
         </CardHeader>
         <CardContent>
           <div className="text-center text-muted-foreground">
-            No session for this market/date. Ensure Punch-In created a session for ({marketId}, {marketDate}).
+            No session for this market/date
           </div>
         </CardContent>
       </Card>
