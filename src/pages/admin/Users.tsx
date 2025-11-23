@@ -86,21 +86,29 @@ export default function Users() {
           .eq('user_id', userId)
           .eq('role', role as any);
 
-        if (error) throw error;
+        if (error) {
+          console.error('Delete role error:', error);
+          toast.error(`Failed to remove role: ${error.message}`);
+          return;
+        }
         toast.success(`${role} role removed`);
       } else {
         const { error } = await (supabase as any)
           .from('user_roles')
           .insert({ user_id: userId, role: role as any });
 
-        if (error) throw error;
+        if (error) {
+          console.error('Insert role error:', error);
+          toast.error(`Failed to assign role: ${error.message}`);
+          return;
+        }
         toast.success(`${role} role granted`);
       }
 
       fetchUsers();
     } catch (error: any) {
-      toast.error('Failed to update user role');
-      console.error(error);
+      console.error('Toggle role error:', error);
+      toast.error(`Failed to update user role: ${error.message || 'Unknown error'}`);
     }
   };
 
