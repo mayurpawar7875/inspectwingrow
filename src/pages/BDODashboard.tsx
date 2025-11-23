@@ -174,6 +174,20 @@ export default function BDODashboard() {
     }
   }, [currentRole, navigate, selectedDate, authLoading]);
 
+  // Real-time subscription for live markets
+  useEffect(() => {
+    const channel = supabase
+      .channel('live-markets-updates')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'sessions' }, fetchMarketSummaries)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'media' }, fetchMarketSummaries)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'market_schedule' }, fetchMarketSummaries)
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
   const fetchDistrictStats = async () => {
     try {
       setLoading(true);
