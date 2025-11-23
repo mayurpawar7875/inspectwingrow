@@ -21,19 +21,19 @@ export function AdminLayout({
     await signOut();
     navigate('/auth');
   };
-  return <SidebarProvider>
+  return <SidebarProvider defaultOpen={false}>
       <div className="min-h-screen flex w-full">
         <AdminSidebar />
         <div className="flex-1 flex flex-col">
           <header className="h-14 border-b bg-card flex items-center px-2 sm:px-4 gap-2 sm:gap-3">
-            <SidebarTrigger />
+            <SidebarTrigger className="btn-touch" />
             <div className="flex-1 min-w-0">
               <h1 className="text-base sm:text-lg font-semibold truncate">Admin Panel</h1>
               <p className="text-xs text-muted-foreground truncate hidden sm:block">{user?.email}</p>
             </div>
             <div className="flex gap-2">
               <NotificationBell />
-              <Button variant="outline" size="sm" onClick={handleSignOut}>
+              <Button variant="outline" size="sm" onClick={handleSignOut} className="btn-touch">
                 <LogOut className="h-4 w-4 sm:mr-2" />
                 <span className="hidden sm:inline">Sign Out</span>
               </Button>

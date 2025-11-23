@@ -154,4 +154,45 @@ All colors MUST be HSL.
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
   }
+
+  /* Mobile-first text sizes */
+  .text-responsive-xs {
+    @apply text-xs sm:text-sm;
+  }
+
+  .text-responsive-sm {
+    @apply text-sm sm:text-base;
+  }
+
+  .text-responsive-base {
+    @apply text-base sm:text-lg;
+  }
+
+  .text-responsive-lg {
+    @apply text-lg sm:text-xl;
+  }
+
+  /* Mobile-friendly spacing */
+  .space-y-responsive {
+    @apply space-y-3 sm:space-y-4;
+  }
+
+  .gap-responsive {
+    @apply gap-3 sm:gap-4;
+  }
+
+  /* Touch-friendly buttons */
+  .btn-touch {
+    @apply min-h-[44px] min-w-[44px];
+  }
+
+  /* Hide on mobile, show on desktop */
+  .hide-mobile {
+    @apply hidden sm:block;
+  }
+
+  /* Show on mobile, hide on desktop */
+  .show-mobile {
+    @apply block sm:hidden;
+  }
 }
