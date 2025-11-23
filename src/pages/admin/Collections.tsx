@@ -40,6 +40,7 @@ export default function Collections() {
   const [rows, setRows] = useState<StallRow[]>([]);
   const [manualEntries, setManualEntries] = useState<ManualEntry[]>([]);
   const [saving, setSaving] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   // Get IST date string for today
   const getISTDateString = (date: Date) => {
@@ -55,63 +56,118 @@ export default function Collections() {
       if (!user) return;
       setLoading(true);
       try {
-        // Find today's session using IST date
         const todayIST = getISTDateString(new Date());
-        const { data: session, error: sErr } = await supabase
-          .from('sessions')
-          .select('id, market_id, session_date, status')
+        
+        // Check if user is admin
+        const { data: userRole } = await supabase
+          .from('user_roles')
+          .select('role')
           .eq('user_id', user.id)
-          .eq('session_date', todayIST)
-          .maybeSingle();
+          .single();
 
-        if (sErr) throw sErr;
-        if (!session) {
-          toast.error('No active session for today');
-          setLoading(false);
-          return;
+        const adminUser = userRole?.role === 'admin';
+        setIsAdmin(adminUser);
+
+        if (adminUser) {
+          // For admin, fetch all collections for today across all markets
+          const dateStr = getISTDateString(new Date());
+          setSessionDate(dateStr);
+          
+          // Fetch all stall confirmations for today
+          const { data: stalls, error: stErr } = await supabase
+            .from('stall_confirmations')
+            .select('id, farmer_name, stall_name, market_id, rent_amount')
+            .eq('market_date', dateStr)
+            .order('created_at', { ascending: true });
+
+          if (stErr) throw stErr;
+
+          // Fetch all collections for today
+          const stallIds = (stalls || []).map(s => s.id);
+          const { data: existingCollections } = await supabase
+            .from('collections')
+            .select('stall_confirmation_id, amount, mode, screenshot_url')
+            .in('stall_confirmation_id', stallIds);
+
+          // Create a map of stall_confirmation_id -> collection data
+          const collectionsMap = new Map(
+            (existingCollections || []).map(c => [c.stall_confirmation_id, c])
+          );
+
+          // Build rows for admin view (read-only)
+          setRows(
+            (stalls || []).map((s) => {
+              const collection = collectionsMap.get(s.id);
+              return {
+                id: s.id,
+                farmer_name: s.farmer_name,
+                stall_name: s.stall_name,
+                expected_rent: s.rent_amount || 0,
+                actual_rent: collection?.amount?.toString() || '',
+                payment_mode: (collection?.mode as 'cash' | 'online') || 'cash',
+                screenshot_file: null,
+                screenshot_url: collection?.screenshot_url || undefined,
+              };
+            })
+          );
+        } else {
+          // For employees, find their session
+          const { data: session, error: sErr } = await supabase
+            .from('sessions')
+            .select('id, market_id, session_date, status')
+            .eq('user_id', user.id)
+            .eq('session_date', todayIST)
+            .maybeSingle();
+
+          if (sErr) throw sErr;
+          if (!session) {
+            toast.error('No active session for today');
+            setLoading(false);
+            return;
+          }
+
+          const marketId = session.market_id;
+          const dateStr = getISTDateString(new Date());
+          setSessionMarketId(marketId);
+          setSessionDate(dateStr);
+
+          // Fetch today's confirmed stalls for this employee
+          const { data: stalls, error: stErr } = await supabase
+            .from('stall_confirmations')
+            .select('id, farmer_name, stall_name, rent_amount')
+            .eq('market_id', marketId)
+            .eq('market_date', dateStr)
+            .eq('created_by', user.id)
+            .order('created_at', { ascending: true });
+
+          if (stErr) throw stErr;
+
+          // Fetch existing collections for these stalls
+          const stallIds = (stalls || []).map(s => s.id);
+          const { data: existingCollections } = await supabase
+            .from('collections')
+            .select('stall_confirmation_id, amount')
+            .in('stall_confirmation_id', stallIds)
+            .eq('collected_by', user.id);
+
+          // Create a map of stall_confirmation_id -> actual rent collected
+          const collectionsMap = new Map(
+            (existingCollections || []).map(c => [c.stall_confirmation_id, c.amount])
+          );
+
+          // Build rows with expected and actual rent
+          setRows(
+            (stalls || []).map((s) => ({
+              id: s.id,
+              farmer_name: s.farmer_name,
+              stall_name: s.stall_name,
+              expected_rent: s.rent_amount || 0,
+              actual_rent: collectionsMap.get(s.id)?.toString() || '',
+              payment_mode: 'cash' as const,
+              screenshot_file: null,
+            }))
+          );
         }
-
-        const marketId = session.market_id;
-        const dateStr = getISTDateString(new Date());
-        setSessionMarketId(marketId);
-        setSessionDate(dateStr);
-
-        // Fetch today's confirmed stalls
-        const { data: stalls, error: stErr } = await supabase
-          .from('stall_confirmations')
-          .select('id, farmer_name, stall_name')
-          .eq('market_id', marketId)
-          .eq('market_date', dateStr)
-          .eq('created_by', user.id)
-          .order('created_at', { ascending: true });
-
-        if (stErr) throw stErr;
-
-        // Fetch existing collections for these stalls
-        const stallIds = (stalls || []).map(s => s.id);
-        const { data: existingCollections } = await supabase
-          .from('collections')
-          .select('stall_confirmation_id, amount')
-          .in('stall_confirmation_id', stallIds)
-          .eq('collected_by', user.id);
-
-        // Create a map of stall_confirmation_id -> actual rent collected
-        const collectionsMap = new Map(
-          (existingCollections || []).map(c => [c.stall_confirmation_id, c.amount])
-        );
-
-        // Build rows with expected and actual rent
-        setRows(
-          (stalls || []).map((s) => ({
-            id: s.id,
-            farmer_name: s.farmer_name,
-            stall_name: s.stall_name,
-            expected_rent: (s as any).rent_amount || 0,
-            actual_rent: collectionsMap.get(s.id)?.toString() || '',
-            payment_mode: 'cash' as const,
-            screenshot_file: null,
-          }))
-        );
       } catch (e) {
         console.error(e);
         toast.error('Failed to load collections data');
@@ -310,10 +366,10 @@ export default function Collections() {
     );
   }
 
-  if (!sessionMarketId || !sessionDate) {
+  if (!sessionDate) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-muted-foreground">No active session found for today</div>
+        <div className="text-muted-foreground">No data available</div>
       </div>
     );
   }
@@ -429,19 +485,20 @@ export default function Collections() {
                   </Table>
                 </div>
 
-                {/* Manual Entry Section */}
-                <div className="mt-6 pt-4 border-t">
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-sm font-semibold">Manual Rent Collection</h3>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={addManualEntry}
-                      className="h-7 text-xs"
-                    >
-                      + Add Entry
-                    </Button>
-                  </div>
+                {/* Manual Entry Section - Only show for non-admin users */}
+                {!isAdmin && (
+                  <div className="mt-6 pt-4 border-t">
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="text-sm font-semibold">Manual Rent Collection</h3>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={addManualEntry}
+                        className="h-7 text-xs"
+                      >
+                        + Add Entry
+                      </Button>
+                    </div>
                   
                   {manualEntries.length > 0 && (
                     <div className="scroll-x-touch">
@@ -548,6 +605,7 @@ export default function Collections() {
                     </div>
                   )}
                 </div>
+                )}
 
                 {/* Totals Summary */}
                 <div className="mt-4 pt-4 border-t space-y-2">
@@ -576,12 +634,14 @@ export default function Collections() {
                   )}
                 </div>
 
-                {/* Save Button */}
-                <div className="mt-4 flex justify-end">
-                  <Button onClick={handleSave} disabled={saving} className="h-8 text-xs px-4">
-                    {saving ? 'Saving…' : 'Save Collections'}
-                  </Button>
-                </div>
+                {/* Save Button - Only show for non-admin users */}
+                {!isAdmin && (
+                  <div className="mt-4 flex justify-end">
+                    <Button onClick={handleSave} disabled={saving} className="h-8 text-xs px-4">
+                      {saving ? 'Saving…' : 'Save Collections'}
+                    </Button>
+                  </div>
+                )}
               </>
             )}
           </CardContent>
