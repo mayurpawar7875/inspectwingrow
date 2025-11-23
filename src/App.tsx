@@ -38,6 +38,7 @@ import AttendanceReporting from "./pages/admin/AttendanceReporting";
 import MyAttendance from "./pages/MyAttendance";
 import AssetRequests from "./pages/AssetRequests";
 import { AssetManagement } from "./components/admin/AssetManagement";
+import RequestsManagement from "./pages/admin/RequestsManagement";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -74,6 +75,7 @@ const App = () => (
               <Route path="/my-sessions" element={<ProtectedRoute><MySessions /></ProtectedRoute>} />
               <Route path="/asset-requests" element={<ProtectedRoute><AssetRequests /></ProtectedRoute>} />
               <Route path="/admin" element={<ProtectedRoute><AdminLayout><AdminDashboard /></AdminLayout></ProtectedRoute>} />
+              <Route path="/admin/requests" element={<ProtectedRoute><AdminLayout><RequestsManagement /></AdminLayout></ProtectedRoute>} />
               <Route path="/admin/asset-management" element={<ProtectedRoute><AdminLayout><AssetManagement /></AdminLayout></ProtectedRoute>} />
               <Route path="/admin/bdo-reporting" element={<ProtectedRoute><AdminLayout><BDOReporting /></AdminLayout></ProtectedRoute>} />
               <Route path="/admin/employee-reporting" element={<ProtectedRoute><AdminLayout><EmployeeCitySelection /></AdminLayout></ProtectedRoute>} />
