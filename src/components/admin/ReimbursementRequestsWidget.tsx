@@ -56,29 +56,43 @@ export function ReimbursementRequestsWidget() {
       // Fetch employee names from both profiles and employees tables
       const employeeIds = [...new Set(data?.map(r => r.employee_id) || [])];
       
-      const { data: profiles } = await supabase
+      const { data: profiles, error: profilesError } = await supabase
         .from("profiles")
         .select("id, full_name")
         .in("id", employeeIds);
 
-      const { data: employees } = await supabase
+      if (profilesError) {
+        console.error("Error fetching profiles:", profilesError);
+      }
+
+      const { data: employees, error: employeesError } = await supabase
         .from("employees")
         .select("id, full_name")
         .in("id", employeeIds);
 
+      if (employeesError) {
+        console.error("Error fetching employees:", employeesError);
+      }
+
       const nameMap: Record<string, string> = {};
       
       // Prioritize profiles table
-      profiles?.forEach(p => {
-        nameMap[p.id] = p.full_name;
-      });
+      if (profiles) {
+        profiles.forEach(p => {
+          if (p.full_name) {
+            nameMap[p.id] = p.full_name;
+          }
+        });
+      }
       
       // Fallback to employees table
-      employees?.forEach(e => {
-        if (!nameMap[e.id] && e.full_name) {
-          nameMap[e.id] = e.full_name;
-        }
-      });
+      if (employees) {
+        employees.forEach(e => {
+          if (!nameMap[e.id] && e.full_name) {
+            nameMap[e.id] = e.full_name;
+          }
+        });
+      }
       
       setEmployeeNames(nameMap);
     } catch (error: any) {
