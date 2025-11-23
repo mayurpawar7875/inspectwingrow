@@ -69,7 +69,20 @@ export default function MediaUpload() {
     try {
       const today = new Date().toISOString().split('T')[0];
       
-      // Fetch media for today with market name
+      // Fetch media for sessions user created
+      const { data: sessionsData } = await supabase
+        .from('sessions')
+        .select('id')
+        .eq('user_id', user.id);
+      
+      const sessionIds = (sessionsData || []).map(s => s.id);
+      
+      if (sessionIds.length === 0) {
+        setMedia([]);
+        setLoading(false);
+        return;
+      }
+
       const { data: mediaData, error: mediaError } = await supabase
         .from('media')
         .select(`
@@ -79,8 +92,7 @@ export default function MediaUpload() {
             name
           )
         `)
-        .eq('user_id', user.id)
-        .eq('market_date', today)
+        .in('session_id', sessionIds)
         .order('created_at', { ascending: false });
 
       if (mediaError) throw mediaError;
@@ -167,12 +179,47 @@ export default function MediaUpload() {
 
       if (uploadError) throw uploadError;
 
-      // Insert media - trigger will handle session creation and metadata
+      // Get or create session for today
+      const today = new Date().toISOString().split('T')[0];
+      let sessionId: string | null = null;
+      
+      const { data: existingSession } = await supabase
+        .from('sessions')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('market_id', marketId)
+        .eq('session_date', today)
+        .maybeSingle();
+      
+      if (existingSession) {
+        sessionId = existingSession.id;
+      } else {
+        const { data: newSession } = await supabase
+          .from('sessions')
+          .insert({
+            user_id: user.id,
+            market_id: marketId,
+            session_date: today,
+            status: 'active',
+          })
+          .select('id')
+          .single();
+        
+        if (newSession) {
+          sessionId = newSession.id;
+        }
+      }
+
+      if (!sessionId) {
+        throw new Error('Failed to create or find session');
+      }
+
+      // Insert media
       const { error: insertError } = await supabase.from('media').insert({
-        user_id: user.id,
+        session_id: sessionId,
         market_id: marketId,
         media_type: mediaType,
-        file_url: fileName, // Store path, not full URL
+        file_url: fileName,
         file_name: file.name,
         content_type: file.type,
         gps_lat: gpsLat || null,
@@ -390,21 +437,14 @@ export default function MediaUpload() {
 
           // Insert media
           const mediaPayload: any = {
-            user_id: user.id,
-            market_date: today,
+            session_id: sessionId || undefined,
+            market_id: marketId || undefined,
             media_type: 'market_video',
-            file_url: fileName, // Store path, not full URL
+            file_url: fileName,
             file_name: marketData.videoFile.name,
             content_type: marketData.videoFile.type,
             captured_at: new Date().toISOString(),
           };
-
-          if (marketId) {
-            mediaPayload.market_id = marketId;
-          }
-          if (sessionId) {
-            mediaPayload.session_id = sessionId;
-          }
 
           const { error: insertError } = await supabase.from('media').insert(mediaPayload);
 

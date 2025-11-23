@@ -103,16 +103,10 @@ export default function AdminDashboard() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'market_schedule' }, fetchLiveMarkets)
       .subscribe();
 
-    const taskStatusChannel = supabase
-      .channel('live-markets-task-status')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'task_status' }, fetchLiveMarkets)
-      .subscribe();
-
     return () => {
       supabase.removeChannel(statsChannel);
       supabase.removeChannel(stallsChannel);
       supabase.removeChannel(scheduleChannel);
-      supabase.removeChannel(taskStatusChannel);
     };
   }, [isAdmin, navigate]);
 
@@ -131,25 +125,31 @@ export default function AdminDashboard() {
         .eq('market_id', marketId)
         .eq('market_date', todayDate);
 
+      // Get session IDs for this market today
+      const { data: marketSessions } = await supabase
+        .from('sessions')
+        .select('id')
+        .eq('market_id', marketId)
+        .eq('session_date', todayDate);
+      
+      const sessionIds = (marketSessions || []).map(s => s.id);
+
       const { count: marketVideoCount } = await supabase
         .from('media')
         .select('*', { count: 'exact', head: true })
-        .eq('market_id', marketId)
-        .eq('market_date', todayDate)
-        .eq('media_type', 'market_video');
+        .in('session_id', sessionIds)
+        .eq('media_type', 'market_video' as any);
 
       const { count: cleaningVideoCount } = await supabase
         .from('media')
         .select('*', { count: 'exact', head: true })
-        .eq('market_id', marketId)
-        .eq('market_date', todayDate)
-        .eq('media_type', 'cleaning_video');
+        .in('session_id', sessionIds)
+        .eq('media_type', 'cleaning_video' as any);
 
       const { count: selfieGpsCount } = await supabase
         .from('media')
         .select('*', { count: 'exact', head: true })
-        .eq('market_id', marketId)
-        .eq('market_date', todayDate)
+        .in('session_id', sessionIds)
         .eq('media_type', 'selfie_gps');
 
       const { count: offersCount } = await supabase
@@ -173,19 +173,19 @@ export default function AdminDashboard() {
       const { count: inspectionsCount } = await supabase
         .from('stall_inspections')
         .select('*', { count: 'exact', head: true })
-        .eq('market_id', marketId)
-        .eq('market_date', todayDate);
+        .eq('market_id', marketId);
 
     const { count: planningCount } = await supabase
       .from('next_day_planning')
       .select('*', { count: 'exact', head: true })
-      .eq('current_market_date', todayDate);
+      .eq('market_id', marketId)
+      .eq('market_date', todayDate);
 
     const { count: collectionsCount } = await supabase
       .from('collections')
       .select('*', { count: 'exact', head: true })
       .eq('market_id', marketId)
-      .eq('market_date', todayDate);
+      .eq('collection_date', todayDate);
 
     return {
       attendance: attendanceCount || 0,
@@ -623,58 +623,46 @@ export default function AdminDashboard() {
         case 'inspections':
           const { data: inspectionsData } = await supabase
             .from('stall_inspections')
-            .select('*')
+            .select('*, sessions!inner(user_id)')
             .eq('market_id', marketId)
-            .eq('market_date', todayDate)
             .order('created_at', { ascending: false });
           
           if (inspectionsData && inspectionsData.length > 0) {
-            const userIds = [...new Set(inspectionsData.map(i => i.user_id).filter(Boolean))];
+            const userIds = [...new Set(inspectionsData.map((i: any) => i.sessions?.user_id).filter(Boolean))];
             const { data: employeesData } = await supabase
               .from('employees')
               .select('id, full_name')
               .in('id', userIds);
             
             const employeeMap = new Map(employeesData?.map(e => [e.id, e.full_name]) || []);
-            data = inspectionsData.map(i => ({
+            data = inspectionsData.map((i: any) => ({
               ...i,
-              employees: { full_name: employeeMap.get(i.user_id) }
+              employees: { full_name: employeeMap.get(i.sessions?.user_id) }
             }));
           }
           console.log(`[${taskType}] Found ${data.length} records`);
           break;
 
         case 'planning':
-          // Get users who have sessions at this market on this date
-          const { data: marketSessionsForPlanning } = await supabase
-            .from('sessions')
-            .select('user_id')
+          const { data: planningData } = await supabase
+            .from('next_day_planning')
+            .select('*')
             .eq('market_id', marketId)
-            .eq('session_date', todayDate);
-          
-          const sessionUserIds = marketSessionsForPlanning?.map(s => s.user_id).filter(Boolean) || [];
-          
-          if (sessionUserIds.length > 0) {
-            const { data: planningData } = await supabase
-              .from('next_day_planning')
-              .select('*')
-              .eq('current_market_date', todayDate)
-              .in('user_id', sessionUserIds)
-              .order('created_at', { ascending: false });
+            .eq('market_date', todayDate)
+            .order('created_at', { ascending: false });
             
-            if (planningData && planningData.length > 0) {
-              const userIds = [...new Set(planningData.map(p => p.user_id).filter(Boolean))];
-              const { data: employeesData } = await supabase
-                .from('employees')
-                .select('id, full_name')
-                .in('id', userIds);
-              
-              const employeeMap = new Map(employeesData?.map(e => [e.id, e.full_name]) || []);
-              data = planningData.map(p => ({
-                ...p,
-                employees: { full_name: employeeMap.get(p.user_id) }
-              }));
-            }
+          if (planningData && planningData.length > 0) {
+            const userIds = [...new Set(planningData.map(p => p.user_id).filter(Boolean))];
+            const { data: employeesData } = await supabase
+              .from('employees')
+              .select('id, full_name')
+              .in('id', userIds);
+            
+            const employeeMap = new Map(employeesData?.map(e => [e.id, e.full_name]) || []);
+            data = planningData.map(p => ({
+              ...p,
+              employees: { full_name: employeeMap.get(p.user_id) }
+            }));
           }
           console.log(`[${taskType}] Found ${data.length} records`);
           break;
@@ -682,23 +670,22 @@ export default function AdminDashboard() {
         case 'market_video':
           const { data: marketVideosData } = await supabase
             .from('media')
-            .select('*')
-            .eq('market_id', marketId)
-            .eq('market_date', todayDate)
-            .eq('media_type', 'market_video')
+            .select('*, sessions!inner(user_id, market_id)')
+            .eq('sessions.market_id', marketId)
+            .eq('media_type', 'market_video' as any)
             .order('created_at', { ascending: false });
           
           if (marketVideosData && marketVideosData.length > 0) {
-            const userIds = [...new Set(marketVideosData.map(m => m.user_id).filter(Boolean))];
+            const userIds = [...new Set(marketVideosData.map((m: any) => m.sessions?.user_id).filter(Boolean))];
             const { data: employeesData } = await supabase
               .from('employees')
               .select('id, full_name')
               .in('id', userIds);
             
             const employeeMap = new Map(employeesData?.map(e => [e.id, e.full_name]) || []);
-            data = marketVideosData.map(m => ({
+            data = marketVideosData.map((m: any) => ({
               ...m,
-              employees: { full_name: employeeMap.get(m.user_id) }
+              employees: { full_name: employeeMap.get(m.sessions?.user_id) }
             }));
           }
           console.log(`[${taskType}] Found ${data.length} records`);
@@ -707,23 +694,22 @@ export default function AdminDashboard() {
         case 'cleaning_video':
           const { data: cleaningVideosData } = await supabase
             .from('media')
-            .select('*')
-            .eq('market_id', marketId)
-            .eq('market_date', todayDate)
-            .eq('media_type', 'cleaning_video')
+            .select('*, sessions!inner(user_id, market_id)')
+            .eq('sessions.market_id', marketId)
+            .eq('media_type', 'cleaning_video' as any)
             .order('created_at', { ascending: false });
           
           if (cleaningVideosData && cleaningVideosData.length > 0) {
-            const userIds = [...new Set(cleaningVideosData.map(m => m.user_id).filter(Boolean))];
+            const userIds = [...new Set(cleaningVideosData.map((m: any) => m.sessions?.user_id).filter(Boolean))];
             const { data: employeesData } = await supabase
               .from('employees')
               .select('id, full_name')
               .in('id', userIds);
             
             const employeeMap = new Map(employeesData?.map(e => [e.id, e.full_name]) || []);
-            data = cleaningVideosData.map(m => ({
+            data = cleaningVideosData.map((m: any) => ({
               ...m,
-              employees: { full_name: employeeMap.get(m.user_id) }
+              employees: { full_name: employeeMap.get(m.sessions?.user_id) }
             }));
           }
           console.log(`[${taskType}] Found ${data.length} records`);
@@ -758,44 +744,30 @@ export default function AdminDashboard() {
             .from('collections')
             .select('*')
             .eq('market_id', marketId)
-            .eq('market_date', todayDate)
+            .eq('collection_date', todayDate)
             .order('created_at', { ascending: false });
           
-          if (collectionsData && collectionsData.length > 0) {
-            const userIds = [...new Set(collectionsData.map(c => c.collected_by).filter(Boolean))];
-            const { data: employeesData } = await supabase
-              .from('employees')
-              .select('id, full_name')
-              .in('id', userIds);
-            
-            const employeeMap = new Map(employeesData?.map(e => [e.id, e.full_name]) || []);
-            data = collectionsData.map(c => ({
-              ...c,
-              employees: { full_name: employeeMap.get(c.collected_by) }
-            }));
-          }
+          data = collectionsData || [];
           console.log(`[${taskType}] Found ${data.length} records`);
           break;
 
         case 'selfie_gps':
           const { data: selfieData } = await supabase
             .from('media')
-            .select('*')
-            .eq('market_id', marketId)
-            .eq('market_date', todayDate)
+            .select('*, sessions!inner(user_id, market_id)')
+            .eq('sessions.market_id', marketId)
             .eq('media_type', 'selfie_gps')
             .order('created_at', { ascending: false });
           
           if (selfieData && selfieData.length > 0) {
-            const userIds = [...new Set(selfieData.map(m => m.user_id).filter(Boolean))];
+            const userIds = [...new Set(selfieData.map((m: any) => m.sessions?.user_id).filter(Boolean))];
             const { data: employeesData } = await supabase
               .from('employees')
               .select('id, full_name')
               .in('id', userIds);
             
             const employeeMap = new Map(employeesData?.map(e => [e.id, e.full_name]) || []);
-            data = selfieData.map(m => {
-              // Convert storage path to full URL
+            data = selfieData.map((m: any) => {
               const { data: { publicUrl } } = supabase.storage
                 .from('employee-media')
                 .getPublicUrl(m.file_url);
@@ -803,7 +775,7 @@ export default function AdminDashboard() {
               return {
                 ...m,
                 file_url: publicUrl,
-                employees: { full_name: employeeMap.get(m.user_id) }
+                employees: { full_name: employeeMap.get(m.sessions?.user_id) }
               };
             });
           }

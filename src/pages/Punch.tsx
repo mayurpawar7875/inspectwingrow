@@ -184,7 +184,7 @@ export default function Punch() {
 
       console.log('Inserting media record...');
       const { error: insertMediaErr } = await supabase.from('media').insert({
-        user_id: user!.id,
+        session_id: session.id,
         market_id: session.market_id,
         media_type: 'selfie_gps',
         file_url: fileName,
@@ -201,7 +201,7 @@ export default function Punch() {
       }
       console.log('Media record inserted');
 
-      // Update session
+      // Update session with punch in time
       console.log('Updating session...');
       const { error: sessionError } = await supabase
         .from('sessions')
@@ -214,36 +214,18 @@ export default function Punch() {
       }
       console.log('Session updated');
 
-      // Create task event
-      console.log('Creating task event...');
-      const { data: eventData, error: eventError } = await supabase
-        .from('task_events')
-        .insert({
-          session_id: session.id,
-          task_type: 'punch',
-          payload: { action: 'punch_in', timestamp: now, gps_lat: gpsLat, gps_lng: gpsLng, gps_accuracy: gpsAccuracy, selfie_url: fileName },
-          created_at: now,
-        })
-        .select()
-        .single();
-
-      if (eventError) {
-        console.error('Task event error:', eventError);
-        throw eventError;
-      }
-      console.log('Task event created');
-
-      // Update task status
-      console.log('Updating task status...');
-      await supabase
-        .from('task_status')
-        .upsert({
-          session_id: session.id,
-          task_type: 'punch',
-          status: 'in_progress',
-          latest_event_id: eventData.id,
-          updated_at: now,
-        });
+      // Create attendance record
+      console.log('Creating attendance record...');
+      await supabase.from('attendance_records').insert({
+        user_id: user!.id,
+        session_id: session.id,
+        attendance_date: now.split('T')[0],
+        punch_in_time: now,
+        punch_in_lat: gpsLat,
+        punch_in_lng: gpsLng,
+        selfie_url: fileName,
+        status: 'present',
+      });
       
       console.log('Punch in completed successfully');
       toast.success('Punched in successfully!');
@@ -276,30 +258,14 @@ export default function Punch() {
 
       if (sessionError) throw sessionError;
 
-      // Create task event
-      const { data: eventData, error: eventError } = await supabase
-        .from('task_events')
-        .insert({
-          session_id: session.id,
-          task_type: 'punch',
-          payload: { action: 'punch_out', timestamp: now },
-          created_at: now,
-        })
-        .select()
-        .single();
-
-      if (eventError) throw eventError;
-
-      // Update task status
+      // Update attendance record with punch out
       await supabase
-        .from('task_status')
-        .upsert({
-          session_id: session.id,
-          task_type: 'punch',
-          status: 'submitted',
-          latest_event_id: eventData.id,
-          updated_at: now,
-        });
+        .from('attendance_records')
+        .update({
+          punch_out_time: now,
+        })
+        .eq('session_id', session.id)
+        .eq('user_id', user!.id);
 
       toast.success('Session completed! Your report has been finalized.');
       

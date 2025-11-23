@@ -18,7 +18,6 @@ const stallSchema = z.object({
   farmer_name: z.string().trim().min(1, 'Farmer name is required').max(200, 'Farmer name must be less than 200 characters'),
   stall_name: z.string().trim().min(1, 'Stall name is required').max(200, 'Stall name must be less than 200 characters'),
   stall_no: z.string().trim().min(1, 'Stall number is required').max(50, 'Stall number must be less than 50 characters'),
-  rent_amount: z.string().min(1, 'Rent amount is required'),
 });
 
 interface Stall {
@@ -26,7 +25,6 @@ interface Stall {
   farmer_name: string;
   stall_name: string;
   stall_no: string;
-  rent_amount: number | null;
 }
 
 export default function Stalls() {
@@ -44,7 +42,6 @@ export default function Stalls() {
       farmer_name: '',
       stall_name: '',
       stall_no: '',
-      rent_amount: '',
     },
   });
 
@@ -122,7 +119,6 @@ export default function Stalls() {
             farmer_name: data.farmer_name,
             stall_name: data.stall_name,
             stall_no: data.stall_no,
-            rent_amount: parseFloat(data.rent_amount),
           })
           .eq('id', editingStall.id);
 
@@ -140,7 +136,6 @@ export default function Stalls() {
           farmer_name: data.farmer_name,
           stall_name: data.stall_name,
           stall_no: data.stall_no,
-          rent_amount: parseFloat(data.rent_amount),
           created_by: user.id,
           market_id: marketId,
           market_date: getISTDateString(new Date()),
@@ -178,7 +173,6 @@ export default function Stalls() {
       farmer_name: stall.farmer_name,
       stall_name: stall.stall_name,
       stall_no: stall.stall_no,
-      rent_amount: stall.rent_amount?.toString() || '0',
     });
     setDialogOpen(true);
   };
@@ -290,25 +284,6 @@ export default function Stalls() {
                           </FormItem>
                         )}
                       />
-                      <FormField
-                        control={form.control}
-                        name="rent_amount"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Stall Rent Amount</FormLabel>
-                            <FormControl>
-                              <Input
-                                type="number"
-                                min="0"
-                                inputMode="decimal"
-                                placeholder="Enter rent amount"
-                                {...field}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
                       <div className="flex gap-2">
                         <Button type="submit" className="flex-1">
                           {editingStall ? 'Update' : 'Add'} Stall
@@ -338,7 +313,6 @@ export default function Stalls() {
                           <h3 className="font-semibold">{stall.stall_name}</h3>
                           <p className="text-sm text-muted-foreground">Farmer: {stall.farmer_name}</p>
                           <p className="text-sm text-muted-foreground">Stall No: {stall.stall_no}</p>
-                          <p className="text-sm font-medium mt-1">Rent: ₹{stall.rent_amount ?? 0}</p>
                         </div>
                         <div className="flex gap-2">
                           <Button variant="ghost" size="icon" onClick={() => handleEdit(stall)}>
