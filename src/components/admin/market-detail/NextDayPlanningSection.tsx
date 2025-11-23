@@ -56,7 +56,7 @@ export function NextDayPlanningSection({ marketId, marketDate, isToday }: Props)
 
   const fetchPlannings = async () => {
     try {
-      const { data, error } = await supabase
+      const result: any = await (supabase as any)
         .from('next_day_planning')
         .select(`
           id,
@@ -67,6 +67,9 @@ export function NextDayPlanningSection({ marketId, marketDate, isToday }: Props)
         `)
         .eq('current_market_date', marketDate)
         .order('created_at', { ascending: false });
+      
+      const data: any = result.data;
+      const error: any = result.error;
 
       if (error) throw error;
 

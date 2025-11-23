@@ -161,16 +161,20 @@ export default function LiveMarkets() {
         const dow = istNow.getDay(); // 0=Sun..1=Mon..6=Sat
 
         // Auto by weekday (excluding Monday handled by DB, but we won't exclude here)
+        const byWeekdayPromise: any = (supabase as any)
+          .from('markets')
+          .select('id, name, city')
+          .eq('is_active', true)
+          .eq('day_of_week', dow);
+        
+        const scheduleRowsPromise: any = (supabase as any)
+          .from('market_schedule')
+          .select('market_id')
+          .eq('schedule_date', istDateStr);
+        
         const [byWeekday, scheduleRows] = await Promise.all([
-          supabase
-            .from('markets')
-            .select('id, name, city')
-            .eq('is_active', true)
-            .eq('day_of_week', dow),
-          supabase
-            .from('market_schedule')
-            .select('market_id')
-            .eq('schedule_date', istDateStr),
+          byWeekdayPromise,
+          scheduleRowsPromise,
         ]);
 
         const map = new Map<string, LiveMarket>();

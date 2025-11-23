@@ -109,11 +109,14 @@ export default function MySessions() {
       if (marketError) throw marketError;
 
       // Fetch BDO media uploads
-      const { data: mediaUploads, error: mediaError } = await supabase
+      const mediaResult: any = await (supabase as any)
         .from('media')
         .select('*')
         .eq('user_id', user.id)
-        .order('captured_at', { ascending: false }) as any;
+        .order('captured_at', { ascending: false });
+      
+      const mediaUploads: any = mediaResult.data;
+      const mediaError: any = mediaResult.error;
 
       if (mediaError) throw mediaError;
 

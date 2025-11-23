@@ -306,11 +306,13 @@ export default function AdminDashboard() {
               .eq('market_date', todayDate);
             
             // Fetch media uploads by type
-            const { data: mediaData } = await supabase
+            const mediaResult: any = await (supabase as any)
               .from('media')
               .select('user_id, media_type, market_date')
               .eq('market_id', market.market_id)
               .eq('market_date', todayDate);
+            
+            const { data: mediaData } = mediaResult;
             
             // Fetch offers
             const { data: offersData } = await supabase
@@ -334,11 +336,13 @@ export default function AdminDashboard() {
               .eq('market_date', todayDate);
             
             // Fetch stall inspections
-            const { data: inspectionsData } = await supabase
+            const inspectionsResult: any = await (supabase as any)
               .from('stall_inspections')
               .select('user_id, market_date')
               .eq('market_id', market.market_id)
-              .eq('market_date', todayDate) as any;
+              .eq('market_date', todayDate);
+            
+            const { data: inspectionsData } = inspectionsResult;
 
             // All 11 tasks that need to be completed
             const totalTasksCount = 11;
@@ -418,11 +422,11 @@ export default function AdminDashboard() {
               .eq('market_id', market.id)
               .eq('market_date', todayDate);
 
-            const { count: mediaCount } = await supabase
+            const { count: mediaCount } = await (supabase as any)
               .from('media')
               .select('*', { count: 'exact', head: true })
               .eq('market_id', market.id)
-              .eq('market_date', todayDate) as any;
+              .eq('market_date', todayDate);
             
             return {
               market_id: market.id,
