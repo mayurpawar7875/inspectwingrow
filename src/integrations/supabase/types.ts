@@ -23,7 +23,14 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      media_type: "outside_rates" | "selfie_gps" | "cash_deposit"
+      session_status: "active" | "finalized" | "locked" | "completed"
+      user_role:
+        | "employee"
+        | "admin"
+        | "market_manager"
+        | "bms_executive"
+        | "bdo"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +157,16 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      media_type: ["outside_rates", "selfie_gps", "cash_deposit"],
+      session_status: ["active", "finalized", "locked", "completed"],
+      user_role: [
+        "employee",
+        "admin",
+        "market_manager",
+        "bms_executive",
+        "bdo",
+      ],
+    },
   },
 } as const
