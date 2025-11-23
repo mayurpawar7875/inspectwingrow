@@ -101,8 +101,8 @@ export default function EmployeeMarketsList() {
             market_name: market.name,
             city: market.city,
             active_sessions: live?.active_sessions || 0,
-            active_employees: live?.active_employees || 0,
-            media_uploads_count: live?.media_uploads_count || 0,
+            active_employees: (live as any)?.active_employees || 0,
+            media_uploads_count: (live as any)?.media_uploads_count || 0,
             last_upload_time: live?.last_upload_time || null,
           };
         });

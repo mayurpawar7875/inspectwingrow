@@ -801,10 +801,10 @@ export default function AttendanceReporting() {
       filtered = filtered.filter((r) => r.status === selectedStatus);
     }
 
-    setRecords(filtered);
+    setRecords(filtered as any);
 
     const map = new Map<string, DayData>();
-    filtered.forEach((record) => {
+    filtered.forEach((record: any) => {
       const dateStr = record.attendance_date;
       if (!map.has(dateStr)) {
         map.set(dateStr, {

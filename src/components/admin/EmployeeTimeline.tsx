@@ -2,10 +2,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Clock, AlertCircle } from 'lucide-react';
 
 interface EmployeeTimelineProps {
-  employeeId: string;
+  employeeId?: string;
+  marketId?: string;
 }
 
-export default function EmployeeTimeline({ employeeId }: EmployeeTimelineProps) {
+export default function EmployeeTimeline({ employeeId, marketId }: EmployeeTimelineProps) {
   return (
     <Card>
       <CardHeader>

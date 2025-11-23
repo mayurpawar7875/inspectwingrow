@@ -338,7 +338,7 @@ export default function AdminDashboard() {
               .from('stall_inspections')
               .select('user_id, market_date')
               .eq('market_id', market.market_id)
-              .eq('market_date', todayDate);
+              .eq('market_date', todayDate) as any;
 
             // All 11 tasks that need to be completed
             const totalTasksCount = 11;
@@ -422,7 +422,7 @@ export default function AdminDashboard() {
               .from('media')
               .select('*', { count: 'exact', head: true })
               .eq('market_id', market.id)
-              .eq('market_date', todayDate);
+              .eq('market_date', todayDate) as any;
             
             return {
               market_id: market.id,
