@@ -14,6 +14,183 @@ export type Database = {
   }
   public: {
     Tables: {
+      asset_inventory: {
+        Row: {
+          asset_name: string
+          available_quantity: number
+          created_at: string
+          description: string | null
+          id: string
+          issued_quantity: number
+          total_quantity: number
+          unit_price: number | null
+          updated_at: string
+        }
+        Insert: {
+          asset_name: string
+          available_quantity?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          issued_quantity?: number
+          total_quantity?: number
+          unit_price?: number | null
+          updated_at?: string
+        }
+        Update: {
+          asset_name?: string
+          available_quantity?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          issued_quantity?: number
+          total_quantity?: number
+          unit_price?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      asset_payments: {
+        Row: {
+          amount_received: number
+          asset_id: string
+          created_at: string
+          id: string
+          payment_date: string
+          payment_mode: string
+          payment_proof_url: string | null
+          request_id: string
+          requester_id: string
+          updated_at: string
+          verification_notes: string | null
+          verification_status: string
+          verified_at: string | null
+          verified_by: string | null
+        }
+        Insert: {
+          amount_received: number
+          asset_id: string
+          created_at?: string
+          id?: string
+          payment_date: string
+          payment_mode: string
+          payment_proof_url?: string | null
+          request_id: string
+          requester_id: string
+          updated_at?: string
+          verification_notes?: string | null
+          verification_status?: string
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Update: {
+          amount_received?: number
+          asset_id?: string
+          created_at?: string
+          id?: string
+          payment_date?: string
+          payment_mode?: string
+          payment_proof_url?: string | null
+          request_id?: string
+          requester_id?: string
+          updated_at?: string
+          verification_notes?: string | null
+          verification_status?: string
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asset_payments_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "asset_inventory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asset_payments_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "asset_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      asset_requests: {
+        Row: {
+          actual_return_date: string | null
+          approval_date: string | null
+          approved_by: string | null
+          asset_id: string
+          created_at: string
+          expected_return_date: string | null
+          id: string
+          market_id: string | null
+          purpose: string
+          quantity: number
+          rejection_reason: string | null
+          remarks: string | null
+          request_date: string
+          requester_id: string
+          requester_role: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          actual_return_date?: string | null
+          approval_date?: string | null
+          approved_by?: string | null
+          asset_id: string
+          created_at?: string
+          expected_return_date?: string | null
+          id?: string
+          market_id?: string | null
+          purpose: string
+          quantity: number
+          rejection_reason?: string | null
+          remarks?: string | null
+          request_date?: string
+          requester_id: string
+          requester_role: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          actual_return_date?: string | null
+          approval_date?: string | null
+          approved_by?: string | null
+          asset_id?: string
+          created_at?: string
+          expected_return_date?: string | null
+          id?: string
+          market_id?: string | null
+          purpose?: string
+          quantity?: number
+          rejection_reason?: string | null
+          remarks?: string | null
+          request_date?: string
+          requester_id?: string
+          requester_role?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asset_requests_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "asset_inventory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asset_requests_market_id_fkey"
+            columns: ["market_id"]
+            isOneToOne: false
+            referencedRelation: "markets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       assets_money_recovery: {
         Row: {
           created_at: string
@@ -108,6 +285,143 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      bdo_market_submissions: {
+        Row: {
+          created_at: string
+          customer_reach: string | null
+          documents_status: string | null
+          documents_uploaded_at: string | null
+          flats_occupancy: string | null
+          google_map_location: string
+          id: string
+          location_type: string
+          market_id: string | null
+          market_name: string
+          market_opening_date: string | null
+          rent: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          service_agreement_url: string | null
+          stalls_accommodation_count: number | null
+          status: string
+          submission_date: string
+          submission_metadata: Json | null
+          submitted_by: string
+          updated_at: string
+          video_file_name: string | null
+          video_url: string | null
+        }
+        Insert: {
+          created_at?: string
+          customer_reach?: string | null
+          documents_status?: string | null
+          documents_uploaded_at?: string | null
+          flats_occupancy?: string | null
+          google_map_location: string
+          id?: string
+          location_type: string
+          market_id?: string | null
+          market_name: string
+          market_opening_date?: string | null
+          rent?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          service_agreement_url?: string | null
+          stalls_accommodation_count?: number | null
+          status?: string
+          submission_date?: string
+          submission_metadata?: Json | null
+          submitted_by: string
+          updated_at?: string
+          video_file_name?: string | null
+          video_url?: string | null
+        }
+        Update: {
+          created_at?: string
+          customer_reach?: string | null
+          documents_status?: string | null
+          documents_uploaded_at?: string | null
+          flats_occupancy?: string | null
+          google_map_location?: string
+          id?: string
+          location_type?: string
+          market_id?: string | null
+          market_name?: string
+          market_opening_date?: string | null
+          rent?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          service_agreement_url?: string | null
+          stalls_accommodation_count?: number | null
+          status?: string
+          submission_date?: string
+          submission_metadata?: Json | null
+          submitted_by?: string
+          updated_at?: string
+          video_file_name?: string | null
+          video_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bdo_market_submissions_market_id_fkey"
+            columns: ["market_id"]
+            isOneToOne: false
+            referencedRelation: "markets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bdo_stall_submissions: {
+        Row: {
+          address: string
+          contact_number: string
+          created_at: string
+          date_of_starting_markets: string
+          farmer_name: string
+          id: string
+          review_notes: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          stall_name: string
+          status: string
+          submitted_at: string
+          submitted_by: string
+          updated_at: string
+        }
+        Insert: {
+          address: string
+          contact_number: string
+          created_at?: string
+          date_of_starting_markets: string
+          farmer_name: string
+          id?: string
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          stall_name: string
+          status?: string
+          submitted_at?: string
+          submitted_by: string
+          updated_at?: string
+        }
+        Update: {
+          address?: string
+          contact_number?: string
+          created_at?: string
+          date_of_starting_markets?: string
+          farmer_name?: string
+          id?: string
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          stall_name?: string
+          status?: string
+          submitted_at?: string
+          submitted_by?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       bms_stall_feedbacks: {
         Row: {
