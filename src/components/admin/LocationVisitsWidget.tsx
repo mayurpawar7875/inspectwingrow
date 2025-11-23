@@ -35,6 +35,7 @@ export default function LocationVisitsWidget() {
   const [reviewNotes, setReviewNotes] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
   const [selfieUrl, setSelfieUrl] = useState<string | null>(null);
+  const [employeeNames, setEmployeeNames] = useState<Record<string, string>>({});
 
   useEffect(() => {
     fetchVisits();
@@ -60,6 +61,49 @@ export default function LocationVisitsWidget() {
 
       if (error) throw error;
       setVisits(data || []);
+
+      // Fetch employee names from both profiles and employees tables
+      const employeeIds = [...new Set(data?.map(v => v.employee_id) || [])];
+      
+      const { data: profiles, error: profilesError } = await supabase
+        .from("profiles")
+        .select("id, full_name")
+        .in("id", employeeIds);
+
+      if (profilesError) {
+        console.error("Error fetching profiles:", profilesError);
+      }
+
+      const { data: employees, error: employeesError } = await supabase
+        .from("employees")
+        .select("id, full_name")
+        .in("id", employeeIds);
+
+      if (employeesError) {
+        console.error("Error fetching employees:", employeesError);
+      }
+
+      const nameMap: Record<string, string> = {};
+      
+      // Prioritize profiles table
+      if (profiles) {
+        profiles.forEach(p => {
+          if (p.full_name) {
+            nameMap[p.id] = p.full_name;
+          }
+        });
+      }
+      
+      // Fallback to employees table
+      if (employees) {
+        employees.forEach(e => {
+          if (!nameMap[e.id] && e.full_name) {
+            nameMap[e.id] = e.full_name;
+          }
+        });
+      }
+      
+      setEmployeeNames(nameMap);
     } catch (error: any) {
       console.error('Error fetching visits:', error);
       toast.error('Failed to load location visits');
@@ -132,6 +176,10 @@ export default function LocationVisitsWidget() {
                       <MapPin className="w-4 h-4 text-muted-foreground" />
                       <span className="font-medium">{visit.location_name}</span>
                     </div>
+                    <div className="text-sm text-muted-foreground flex items-center gap-2">
+                      <User className="w-3 h-3" />
+                      {employeeNames[visit.employee_id] || 'Unknown Employee'}
+                    </div>
                     <div className="text-sm text-muted-foreground">
                       {visit.location_type === 'residential_complex' ? 'Residential Complex' : 'Open Space'}
                     </div>
@@ -168,6 +216,15 @@ export default function LocationVisitsWidget() {
                   <img src={selfieUrl} alt="Location selfie" className="w-full max-w-md rounded-lg border mt-2" />
                 </div>
               )}
+
+              {/* Employee */}
+              <div>
+                <Label className="flex items-center gap-2">
+                  <User className="w-4 h-4" />
+                  Employee
+                </Label>
+                <p className="text-sm mt-1">{employeeNames[selectedVisit.employee_id] || 'Unknown Employee'}</p>
+              </div>
 
               {/* GPS Coordinates */}
               <div>
