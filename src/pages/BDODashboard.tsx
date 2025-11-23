@@ -186,65 +186,52 @@ export default function BDODashboard() {
 
       if (marketsError) throw marketsError;
 
-      // Fetch live markets (active today) - with fallback
-      let liveMarkets: any[] = [];
-      const { data: liveMarketsData, error: liveError } = await supabase
-        .from('live_markets_today')
-        .select('market_id, active_sessions, active_employees, media_uploads_count');
+      // Query directly from markets and sessions
+      const { data: sessionsForDay, error: sessionsErr } = await supabase
+        .from('sessions')
+        .select('id, market_id, user_id, status')
+        .eq('session_date', dateStr);
 
-      if (liveError) {
-        console.error('Error fetching from live_markets_today view:', liveError);
-        // Fallback: Query directly from markets and sessions
-        const { data: sessionsForDay, error: sessionsErr } = await supabase
-          .from('sessions')
-          .select('id, market_id, user_id, status')
-          .eq('session_date', dateStr);
+      if (sessionsErr) throw sessionsErr;
 
-        if (sessionsErr) throw sessionsErr;
+      const { data: mediaFiles, error: mediaErr } = await supabase
+        .from('media')
+        .select('id, market_id, session_id')
+        .in('session_id', sessionsForDay?.map(s => s.id) || []);
 
-        const { data: mediaFiles, error: mediaErr } = await supabase
-          .from('media')
-          .select('id, market_id')
-          .eq('market_date', dateStr);
-
-        if (mediaErr) throw mediaErr;
-
-        // Aggregate by market
-        const marketAgg = new Map<string, any>();
-        sessionsForDay?.forEach(s => {
-          const existing = marketAgg.get(s.market_id) || {
-            market_id: s.market_id,
-            active_sessions: 0,
-            active_employees: new Set<string>(),
-            media_uploads_count: 0,
-          };
-          if (s.status === 'active') existing.active_sessions++;
-          if (['active', 'finalized'].includes(s.status)) {
-            existing.active_employees.add(s.user_id);
-          }
-          marketAgg.set(s.market_id, existing);
-        });
-
-        mediaFiles?.forEach(m => {
-          const existing = marketAgg.get(m.market_id) || {
-            market_id: m.market_id,
-            active_sessions: 0,
-            active_employees: new Set<string>(),
-            media_uploads_count: 0,
-          };
-          existing.media_uploads_count++;
-          marketAgg.set(m.market_id, existing);
-        });
-
-        liveMarkets = Array.from(marketAgg.values()).map(m => ({
-          market_id: m.market_id,
-          active_sessions: m.active_sessions || 0,
-          active_employees: m.active_employees?.size || 0,
-          media_uploads_count: m.media_uploads_count || 0,
-        }));
-      } else {
-        liveMarkets = liveMarketsData || [];
+      if (mediaErr) {
+        console.error('Error fetching media:', mediaErr);
       }
+
+      // Aggregate by market
+      const marketAgg = new Map<string, any>();
+      sessionsForDay?.forEach(s => {
+        const existing = marketAgg.get(s.market_id) || {
+          market_id: s.market_id,
+          active_sessions: 0,
+          active_employees: new Set<string>(),
+          media_uploads_count: 0,
+        };
+        if (s.status === 'active') existing.active_sessions++;
+        if (['active', 'finalized'].includes(s.status)) {
+          existing.active_employees.add(s.user_id);
+        }
+        marketAgg.set(s.market_id, existing);
+      });
+
+      mediaFiles?.forEach(m => {
+        const existing = marketAgg.get(m.market_id);
+        if (existing) {
+          existing.media_uploads_count++;
+        }
+      });
+
+      const liveMarkets = Array.from(marketAgg.values()).map(m => ({
+        market_id: m.market_id,
+        active_sessions: m.active_sessions || 0,
+        active_employees: m.active_employees?.size || 0,
+        media_uploads_count: m.media_uploads_count || 0,
+      }));
 
       // Fetch total employees
       const { data: employees, error: employeesError } = await supabase
@@ -266,19 +253,29 @@ export default function BDODashboard() {
       const { data: collections, error: collectionsError } = await supabase
         .from('collections')
         .select('amount')
-        .eq('market_date', dateStr);
+        .eq('collection_date', dateStr);
 
       if (collectionsError) throw collectionsError;
 
-      // Fetch BDO's own media uploads (for market submissions)
-      const { data: bdoMedia, error: bdoMediaError } = await supabase
-        .from('media')
+      // Fetch BDO's own media uploads via sessions
+      const { data: bdoSessions, error: bdoSessionsError } = await supabase
+        .from('sessions')
         .select('id')
         .eq('user_id', user?.id)
-        .eq('market_date', dateStr);
+        .eq('session_date', dateStr);
 
-      if (bdoMediaError) {
-        console.error('Error fetching BDO media:', bdoMediaError);
+      let bdoMedia: any[] = [];
+      if (!bdoSessionsError && bdoSessions && bdoSessions.length > 0) {
+        const { data, error: bdoMediaError } = await supabase
+          .from('media')
+          .select('id')
+          .in('session_id', bdoSessions.map(s => s.id));
+        
+        if (bdoMediaError) {
+          console.error('Error fetching BDO media:', bdoMediaError);
+        } else {
+          bdoMedia = data || [];
+        }
       }
 
       // Calculate totals
@@ -334,27 +331,40 @@ export default function BDODashboard() {
 
   const fetchMarketSummaries = async () => {
     try {
-      const { data, error } = await supabase
-        .from('live_markets_today')
-        .select('market_id, market_name, city, active_sessions, active_employees, media_uploads_count');
-
-      if (error) {
-        console.error('Error fetching market summaries:', error);
-        // Fallback: set empty array
-        setMarketSummaries([]);
-        return;
-      }
-
       const dateStr = getISTDateString(new Date(selectedDate));
+
+      // Fetch active markets
+      const { data: markets, error: marketsError } = await supabase
+        .from('markets')
+        .select('id, name, city')
+        .eq('is_active', true);
+
+      if (marketsError) throw marketsError;
+
+      // Fetch sessions for today
+      const { data: sessions, error: sessionsError } = await supabase
+        .from('sessions')
+        .select('id, market_id, user_id, status')
+        .eq('session_date', dateStr);
+
+      if (sessionsError) throw sessionsError;
 
       // Fetch collections for each market
       const { data: collections, error: collectionsError } = await supabase
         .from('collections')
         .select('market_id, amount')
-        .eq('market_date', dateStr);
+        .eq('collection_date', dateStr);
 
       if (collectionsError) throw collectionsError;
 
+      // Get media count per market
+      const sessionIds = sessions?.map(s => s.id) || [];
+      const { data: mediaFiles } = await supabase
+        .from('media')
+        .select('market_id, session_id')
+        .in('session_id', sessionIds);
+
+      // Build maps for aggregation
       const collectionsMap = new Map<string, number>();
       collections?.forEach((item: any) => {
         const marketId = item.market_id;
@@ -362,15 +372,45 @@ export default function BDODashboard() {
         collectionsMap.set(marketId, existing + Number(item.amount || 0));
       });
 
-      const summaries: MarketSummary[] = (data || []).map((market: any) => ({
-        market_id: market.market_id,
-        market_name: market.market_name,
-        city: market.city || 'N/A',
-        active_sessions: market.active_sessions || 0,
-        active_employees: market.active_employees || 0,
-        media_uploads: market.media_uploads_count || 0,
-        collections_total: collectionsMap.get(market.market_id) || 0,
-      }));
+      const marketSessionsMap = new Map<string, Set<string>>();
+      const marketEmployeesMap = new Map<string, Set<string>>();
+      const marketMediaMap = new Map<string, number>();
+
+      sessions?.forEach((s: any) => {
+        if (!marketSessionsMap.has(s.market_id)) {
+          marketSessionsMap.set(s.market_id, new Set());
+          marketEmployeesMap.set(s.market_id, new Set());
+        }
+        if (s.status === 'active') {
+          marketSessionsMap.get(s.market_id)?.add(s.id);
+        }
+        if (['active', 'finalized'].includes(s.status)) {
+          marketEmployeesMap.get(s.market_id)?.add(s.user_id);
+        }
+      });
+
+      mediaFiles?.forEach((m: any) => {
+        const marketId = m.market_id;
+        if (marketId) {
+          marketMediaMap.set(marketId, (marketMediaMap.get(marketId) || 0) + 1);
+        }
+      });
+
+      const summaries: MarketSummary[] = (markets || [])
+        .filter((market: any) => 
+          marketSessionsMap.has(market.id) || 
+          marketMediaMap.has(market.id) || 
+          collectionsMap.has(market.id)
+        )
+        .map((market: any) => ({
+          market_id: market.id,
+          market_name: market.name,
+          city: market.city || 'N/A',
+          active_sessions: marketSessionsMap.get(market.id)?.size || 0,
+          active_employees: marketEmployeesMap.get(market.id)?.size || 0,
+          media_uploads: marketMediaMap.get(market.id) || 0,
+          collections_total: collectionsMap.get(market.id) || 0,
+        }));
 
       setMarketSummaries(summaries || []);
     } catch (error: any) {
@@ -677,36 +717,20 @@ export default function BDODashboard() {
     try {
       const today = getISTDateString(new Date());
       
+      // BDOs use the regular sessions table, not a separate bdo_sessions table
       const { data: sessionData, error: sessionError } = await supabase
-        .from('bdo_sessions')
+        .from('sessions')
         .select('*')
         .eq('user_id', user.id)
         .eq('session_date', today)
         .maybeSingle();
 
-      if (sessionError && sessionError.code !== 'PGRST116') throw sessionError;
-
-      if (sessionData) {
-        const { data: punchInData } = await supabase
-          .from('bdo_punchin')
-          .select('*')
-          .eq('session_id', sessionData.id)
-          .maybeSingle();
-
-        const { data: punchOutData } = await supabase
-          .from('bdo_punchout')
-          .select('*')
-          .eq('session_id', sessionData.id)
-          .maybeSingle();
-
-        setBdoSession({
-          ...sessionData,
-          punch_in: punchInData || undefined,
-          punch_out: punchOutData || undefined,
-        });
-      } else {
-        setBdoSession(null);
+      if (sessionError && sessionError.code !== 'PGRST116') {
+        console.error('Session fetch error:', sessionError);
+        return;
       }
+
+      setBdoSession(sessionData || null);
     } catch (error: any) {
       console.error('Error fetching session:', error);
     }
@@ -792,8 +816,8 @@ export default function BDODashboard() {
   };
 
   const handlePunchIn = async () => {
-    if (!user || !sessionLocation || !selfieFile) {
-      toast.error('Please capture selfie and wait for location');
+    if (!user || !sessionLocation) {
+      toast.error('Please wait for location');
       return;
     }
 
@@ -801,49 +825,21 @@ export default function BDODashboard() {
     try {
       const today = getISTDateString(new Date());
 
-      let sessionId = bdoSession?.id;
-      if (!sessionId) {
-        const { data: newSession, error: sessionError } = await supabase
-          .from('bdo_sessions')
-          .insert({
-            user_id: user.id,
-            session_date: today,
-            status: 'active',
-          })
-          .select()
-          .single();
-
-        if (sessionError) throw sessionError;
-        sessionId = newSession.id;
-      }
-
-      const fileExt = selfieFile.name.split('.').pop();
-      const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
-      const filePath = `bdo-selfies/${fileName}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from('media')
-        .upload(filePath, selfieFile);
-
-      if (uploadError) throw uploadError;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('media')
-        .getPublicUrl(filePath);
-
-      const { error: punchInError } = await supabase
-        .from('bdo_punchin')
+      // BDOs don't need to select a market - they work across multiple markets
+      // Create session without market_id requirement
+      const { error: sessionError } = await supabase
+        .from('sessions')
         .insert({
-          session_id: sessionId,
-          gps_lat: sessionLocation.lat,
-          gps_lng: sessionLocation.lng,
-          selfie_url: publicUrl,
+          user_id: user.id,
+          session_date: today,
+          market_id: '00000000-0000-0000-0000-000000000000', // Placeholder for BDO sessions
+          status: 'active',
+          punch_in_time: new Date().toISOString(),
         });
 
-      if (punchInError) throw punchInError;
+      if (sessionError) throw sessionError;
 
       toast.success('Punched in successfully!');
-      clearPhoto();
       fetchBDOSession();
     } catch (error: any) {
       console.error('Punch in error:', error);
@@ -859,47 +855,20 @@ export default function BDODashboard() {
       return;
     }
 
-    if (!selfieFile) {
-      toast.error('Please capture your selfie for punch-out');
-      return;
-    }
-
     setSessionLoading(true);
     try {
-      // Upload selfie
-      try {
-        validateImage(selfieFile);
-      } catch (validationError) {
-        setSessionLoading(false);
-        return;
-      }
-
-      const fileName = generateUploadPath(user?.id || '', selfieFile.name);
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('employee-media')
-        .upload(fileName, selfieFile);
-
-      if (uploadError) throw uploadError;
-
-      // Insert punch-out with selfie (store path, not full URL)
+      // Update session to completed
       const { error } = await supabase
-        .from('bdo_punchout')
-        .insert({
-          session_id: bdoSession.id,
-          gps_lat: sessionLocation.lat,
-          gps_lng: sessionLocation.lng,
-          selfie_url: fileName,
-        });
+        .from('sessions')
+        .update({ 
+          status: 'completed',
+          punch_out_time: new Date().toISOString()
+        })
+        .eq('id', bdoSession.id);
 
       if (error) throw error;
 
-      await supabase
-        .from('bdo_sessions')
-        .update({ status: 'completed' })
-        .eq('id', bdoSession.id);
-
       toast.success('Punched out successfully!');
-      clearPhoto();
       fetchBDOSession();
     } catch (error: any) {
       console.error('Punch out error:', error);
