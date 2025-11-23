@@ -153,12 +153,20 @@ export default function MediaUpload() {
 
     setUploading(true);
     try {
-      // Get market info from dashboard state (or default)
-      const dashboardState = JSON.parse(localStorage.getItem('dashboardState') || '{}');
-      const marketId = dashboardState.selectedMarketId;
+      // Get market from today's active session
+      const today = new Date().toISOString().split('T')[0];
+      const { data: sessionData } = await supabase
+        .from('sessions')
+        .select('id, market_id')
+        .eq('user_id', user.id)
+        .eq('session_date', today)
+        .maybeSingle();
       
-      if (!marketId) {
-        toast.error('Please select a market from the dashboard first');
+      const marketId = sessionData?.market_id;
+      const sessionId = sessionData?.id;
+      
+      if (!marketId || !sessionId) {
+        toast.error('No active session found. Please start a session from the dashboard first');
         navigate('/dashboard');
         return;
       }
@@ -178,41 +186,6 @@ export default function MediaUpload() {
         .upload(fileName, file);
 
       if (uploadError) throw uploadError;
-
-      // Get or create session for today
-      const today = new Date().toISOString().split('T')[0];
-      let sessionId: string | null = null;
-      
-      const { data: existingSession } = await supabase
-        .from('sessions')
-        .select('id')
-        .eq('user_id', user.id)
-        .eq('market_id', marketId)
-        .eq('session_date', today)
-        .maybeSingle();
-      
-      if (existingSession) {
-        sessionId = existingSession.id;
-      } else {
-        const { data: newSession } = await supabase
-          .from('sessions')
-          .insert({
-            user_id: user.id,
-            market_id: marketId,
-            session_date: today,
-            status: 'active',
-          })
-          .select('id')
-          .single();
-        
-        if (newSession) {
-          sessionId = newSession.id;
-        }
-      }
-
-      if (!sessionId) {
-        throw new Error('Failed to create or find session');
-      }
 
       // Insert media
       const { error: insertError } = await supabase.from('media').insert({
