@@ -1,18 +1,13 @@
 import { useState, useEffect } from 'react';
-import { z } from 'zod';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Loader2, Plus, Trash2 } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
-
-const inspectionSchema = z.object({
-  farmer_name: z.string().trim().min(1, 'Farmer name is required').max(200, 'Farmer name must be less than 200 characters'),
-});
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
 
 interface Props {
   sessionId: string;
@@ -22,61 +17,103 @@ interface Props {
   onSuccess?: () => void;
 }
 
+interface StallConfirmation {
+  id: string;
+  farmer_name: string;
+  stall_name: string;
+  stall_no: string;
+}
+
 interface Inspection {
   id: string;
   farmer_name: string;
   stall_name: string;
   stall_no: string | null;
-  rating: number | null;
-  feedback: string | null;
+  has_table: boolean;
+  has_tent: boolean;
+  has_mat: boolean;
+  has_flex: boolean;
+  has_cap: boolean;
+  has_apron: boolean;
+  has_display: boolean;
+  has_rateboard: boolean;
   session_id: string;
   market_id: string;
   created_at: string;
 }
 
 export default function StallInspectionForm({ sessionId, marketId, marketDate, userId, onSuccess }: Props) {
-  const [farmerName, setFarmerName] = useState('');
-  const [stallName, setStallName] = useState('');
-  const [stallNo, setStallNo] = useState('');
-  const [rating, setRating] = useState('');
-  const [feedback, setFeedback] = useState('');
+  const [stallConfirmations, setStallConfirmations] = useState<StallConfirmation[]>([]);
+  const [selectedFarmerId, setSelectedFarmerId] = useState('');
+  const [selectedStall, setSelectedStall] = useState<StallConfirmation | null>(null);
+  const [hasTable, setHasTable] = useState(false);
+  const [hasTent, setHasTent] = useState(false);
+  const [hasMat, setHasMat] = useState(false);
+  const [hasFlex, setHasFlex] = useState(false);
+  const [hasCap, setHasCap] = useState(false);
+  const [hasApron, setHasApron] = useState(false);
+  const [hasDisplay, setHasDisplay] = useState(false);
+  const [hasRateboard, setHasRateboard] = useState(false);
   const [inspections, setInspections] = useState<Inspection[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    fetchInspections();
-  }, [sessionId]);
+    fetchData();
+  }, [sessionId, marketId, marketDate]);
 
-  const fetchInspections = async () => {
+  const fetchData = async () => {
     try {
-      const { data, error } = await supabase
+      // Fetch stall confirmations
+      const { data: confirmations, error: confirmError } = await supabase
+        .from('stall_confirmations')
+        .select('*')
+        .eq('market_id', marketId)
+        .eq('market_date', marketDate)
+        .order('farmer_name', { ascending: true });
+
+      if (confirmError) throw confirmError;
+      setStallConfirmations(confirmations || []);
+
+      // Fetch inspections
+      const { data: inspectionData, error: inspectionError } = await supabase
         .from('stall_inspections')
         .select('*')
         .eq('session_id', sessionId)
         .eq('market_id', marketId)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      setInspections(data || []);
+      if (inspectionError) throw inspectionError;
+      setInspections(inspectionData || []);
     } catch (error: any) {
-      console.error('Error fetching inspections:', error);
+      console.error('Error fetching data:', error);
+      toast.error('Failed to load data');
     } finally {
       setLoading(false);
     }
   };
 
+  const handleFarmerSelect = (confirmationId: string) => {
+    setSelectedFarmerId(confirmationId);
+    const stall = stallConfirmations.find(s => s.id === confirmationId);
+    setSelectedStall(stall || null);
+    // Reset checkboxes
+    setHasTable(false);
+    setHasTent(false);
+    setHasMat(false);
+    setHasFlex(false);
+    setHasCap(false);
+    setHasApron(false);
+    setHasDisplay(false);
+    setHasRateboard(false);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validate input
-    try {
-      inspectionSchema.parse({ farmer_name: farmerName });
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        toast.error(error.errors[0].message);
-        return;
-      }
+    if (!selectedStall) {
+      toast.error('Please select a farmer');
+      return;
     }
 
     setSaving(true);
@@ -86,25 +123,36 @@ export default function StallInspectionForm({ sessionId, marketId, marketDate, u
         .insert({
           session_id: sessionId,
           market_id: marketId,
-          farmer_name: farmerName.trim(),
-          stall_name: stallName.trim(),
-          stall_no: stallNo.trim() || null,
-          rating: rating ? Number(rating) : null,
-          feedback: feedback.trim() || null,
+          farmer_name: selectedStall.farmer_name,
+          stall_name: selectedStall.stall_name,
+          stall_no: selectedStall.stall_no,
+          has_table: hasTable,
+          has_tent: hasTent,
+          has_mat: hasMat,
+          has_flex: hasFlex,
+          has_cap: hasCap,
+          has_apron: hasApron,
+          has_display: hasDisplay,
+          has_rateboard: hasRateboard,
         });
 
       if (error) throw error;
 
-      toast.success(`Inspection submitted for ${farmerName}`);
+      toast.success(`Inspection submitted for ${selectedStall.farmer_name}`);
       
       // Reset form
-      setFarmerName('');
-      setStallName('');
-      setStallNo('');
-      setRating('');
-      setFeedback('');
+      setSelectedFarmerId('');
+      setSelectedStall(null);
+      setHasTable(false);
+      setHasTent(false);
+      setHasMat(false);
+      setHasFlex(false);
+      setHasCap(false);
+      setHasApron(false);
+      setHasDisplay(false);
+      setHasRateboard(false);
       
-      await fetchInspections();
+      await fetchData();
       onSuccess?.();
     } catch (error: any) {
       console.error('Error saving inspection:', error);
@@ -125,7 +173,7 @@ export default function StallInspectionForm({ sessionId, marketId, marketDate, u
       if (error) throw error;
 
       toast.success(`Inspection deleted for ${farmerName}`);
-      await fetchInspections();
+      await fetchData();
       onSuccess?.();
     } catch (error: any) {
       console.error('Error deleting inspection:', error);
@@ -155,71 +203,114 @@ export default function StallInspectionForm({ sessionId, marketId, marketDate, u
           <CardDescription>Inspect and record details for each stall</CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="farmer-name">Farmer Name *</Label>
-                <Input
-                  id="farmer-name"
-                  placeholder="Enter farmer name"
-                  value={farmerName}
-                  onChange={(e) => setFarmerName(e.target.value)}
-                  disabled={saving}
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="stall-name">Stall Name *</Label>
-                <Input
-                  id="stall-name"
-                  placeholder="Enter stall name"
-                  value={stallName}
-                  onChange={(e) => setStallName(e.target.value)}
-                  disabled={saving}
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="stall-no">Stall Number</Label>
-                <Input
-                  id="stall-no"
-                  placeholder="Enter stall number"
-                  value={stallNo}
-                  onChange={(e) => setStallNo(e.target.value)}
-                  disabled={saving}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="rating">Rating (1-5)</Label>
-                <Input
-                  id="rating"
-                  type="number"
-                  min="1"
-                  max="5"
-                  placeholder="Rate the stall"
-                  value={rating}
-                  onChange={(e) => setRating(e.target.value)}
-                  disabled={saving}
-                />
-              </div>
-            </div>
-
+          <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2">
-              <Label htmlFor="feedback">Feedback</Label>
-              <Textarea
-                id="feedback"
-                placeholder="Enter inspection feedback..."
-                value={feedback}
-                onChange={(e) => setFeedback(e.target.value)}
-                disabled={saving}
-                rows={3}
-              />
+              <Label htmlFor="farmer-select">Select Farmer *</Label>
+              <Select value={selectedFarmerId} onValueChange={handleFarmerSelect} disabled={saving}>
+                <SelectTrigger id="farmer-select">
+                  <SelectValue placeholder="Choose a farmer from stall confirmations" />
+                </SelectTrigger>
+                <SelectContent>
+                  {stallConfirmations.map((stall) => (
+                    <SelectItem key={stall.id} value={stall.id}>
+                      {stall.farmer_name} - {stall.stall_name} (#{stall.stall_no})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
-            <Button type="submit" disabled={saving}>
+            {selectedStall && (
+              <>
+                <Separator />
+                <div className="space-y-4">
+                  <Label className="text-base font-semibold">Check Items Available</Label>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="table"
+                        checked={hasTable}
+                        onCheckedChange={(checked) => setHasTable(checked as boolean)}
+                        disabled={saving}
+                      />
+                      <Label htmlFor="table" className="cursor-pointer">Table</Label>
+                    </div>
+
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="tent"
+                        checked={hasTent}
+                        onCheckedChange={(checked) => setHasTent(checked as boolean)}
+                        disabled={saving}
+                      />
+                      <Label htmlFor="tent" className="cursor-pointer">Tent</Label>
+                    </div>
+
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="mat"
+                        checked={hasMat}
+                        onCheckedChange={(checked) => setHasMat(checked as boolean)}
+                        disabled={saving}
+                      />
+                      <Label htmlFor="mat" className="cursor-pointer">Mat</Label>
+                    </div>
+
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="flex"
+                        checked={hasFlex}
+                        onCheckedChange={(checked) => setHasFlex(checked as boolean)}
+                        disabled={saving}
+                      />
+                      <Label htmlFor="flex" className="cursor-pointer">Flex</Label>
+                    </div>
+
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="cap"
+                        checked={hasCap}
+                        onCheckedChange={(checked) => setHasCap(checked as boolean)}
+                        disabled={saving}
+                      />
+                      <Label htmlFor="cap" className="cursor-pointer">Cap</Label>
+                    </div>
+
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="apron"
+                        checked={hasApron}
+                        onCheckedChange={(checked) => setHasApron(checked as boolean)}
+                        disabled={saving}
+                      />
+                      <Label htmlFor="apron" className="cursor-pointer">Apron</Label>
+                    </div>
+
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="display"
+                        checked={hasDisplay}
+                        onCheckedChange={(checked) => setHasDisplay(checked as boolean)}
+                        disabled={saving}
+                      />
+                      <Label htmlFor="display" className="cursor-pointer">Display</Label>
+                    </div>
+
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="rateboard"
+                        checked={hasRateboard}
+                        onCheckedChange={(checked) => setHasRateboard(checked as boolean)}
+                        disabled={saving}
+                      />
+                      <Label htmlFor="rateboard" className="cursor-pointer">Rateboard</Label>
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
+
+            <Button type="submit" disabled={saving || !selectedStall}>
               {saving ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -227,7 +318,7 @@ export default function StallInspectionForm({ sessionId, marketId, marketDate, u
                 </>
               ) : (
                 <>
-                  <Plus className="mr-2 h-4 w-4" />
+                  <Plus className="mr-2 h-4 w-4 animate-spin" />
                   Submit Inspection
                 </>
               )}
@@ -266,19 +357,17 @@ export default function StallInspectionForm({ sessionId, marketId, marketDate, u
                 <Separator />
                 
                 <div className="space-y-2">
-                  {inspection.rating && (
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium">Rating:</span>
-                      <span className="text-sm">{'⭐'.repeat(inspection.rating)}</span>
-                    </div>
-                  )}
-                  {inspection.feedback && (
-                    <div>
-                      <span className="text-sm font-medium">Feedback:</span>
-                      <p className="text-sm text-muted-foreground mt-1">{inspection.feedback}</p>
-                    </div>
-                  )}
-                  <p className="text-xs text-muted-foreground">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                    {inspection.has_table && <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded">✓ Table</span>}
+                    {inspection.has_tent && <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded">✓ Tent</span>}
+                    {inspection.has_mat && <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded">✓ Mat</span>}
+                    {inspection.has_flex && <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded">✓ Flex</span>}
+                    {inspection.has_cap && <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded">✓ Cap</span>}
+                    {inspection.has_apron && <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded">✓ Apron</span>}
+                    {inspection.has_display && <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded">✓ Display</span>}
+                    {inspection.has_rateboard && <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded">✓ Rateboard</span>}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-2">
                     {new Date(inspection.created_at).toLocaleString('en-IN', {
                       timeZone: 'Asia/Kolkata',
                     })}

@@ -200,7 +200,7 @@ export default function LiveMarket() {
       const dateStr = format(selectedDate, 'yyyy-MM-dd');
       
       // Direct filtering using market_id and market_date with IST timezone
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('media')
         .select(`
           id,
@@ -251,13 +251,13 @@ export default function LiveMarket() {
         .eq('market_date', dateStr);
 
       // Media uploads - direct filtering using new columns
-      const { count: totalMedia } = await supabase
+      const { count: totalMedia } = await (supabase as any)
         .from('media')
         .select('*', { count: 'exact', head: true })
         .eq('market_id', selectedMarket)
         .eq('market_date', dateStr);
 
-      const { count: lateMedia } = await supabase
+      const { count: lateMedia } = await (supabase as any)
         .from('media')
         .select('*', { count: 'exact', head: true })
         .eq('market_id', selectedMarket)

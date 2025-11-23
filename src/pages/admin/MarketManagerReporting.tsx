@@ -49,7 +49,7 @@ export default function MarketManagerReporting() {
           .from('stall_confirmations')
           .select('id', { count: 'exact', head: true })
           .eq('market_date', today),
-        supabase.from('media').select('id', { count: 'exact', head: true }).eq('market_date', today),
+        (supabase as any).from('media').select('id', { count: 'exact', head: true }).eq('market_date', today),
       ]);
 
       const liveMarkets = liveMarketsRes.data || [];
