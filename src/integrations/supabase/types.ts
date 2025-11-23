@@ -949,23 +949,38 @@ export type Database = {
       }
       markets: {
         Row: {
+          address: string | null
           city: string | null
           created_at: string
+          day_of_week: number | null
           id: string
+          is_active: boolean | null
+          lat: number | null
+          lng: number | null
           location: string
           name: string
         }
         Insert: {
+          address?: string | null
           city?: string | null
           created_at?: string
+          day_of_week?: number | null
           id?: string
+          is_active?: boolean | null
+          lat?: number | null
+          lng?: number | null
           location: string
           name: string
         }
         Update: {
+          address?: string | null
           city?: string | null
           created_at?: string
+          day_of_week?: number | null
           id?: string
+          is_active?: boolean | null
+          lat?: number | null
+          lng?: number | null
           location?: string
           name?: string
         }
