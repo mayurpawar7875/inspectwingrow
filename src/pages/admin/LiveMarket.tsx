@@ -128,25 +128,8 @@ export default function LiveMarket() {
 
       const employeeData = await Promise.all(
         (sessions || []).map(async (session: any) => {
-          // Get completed tasks count from task_status
-          const { data: taskStatuses } = await supabase
-            .from('task_status')
-            .select('status')
-            .eq('session_id', session.id);
-
-          // Count tasks that are submitted
-          const tasksCompleted = (taskStatuses || []).filter(
-            (task: any) => task.status === 'submitted'
-          ).length;
-
-          // Get last activity from task_status
-          const { data: lastTask } = await supabase
-            .from('task_status')
-            .select('updated_at')
-            .eq('session_id', session.id)
-            .order('updated_at', { ascending: false })
-            .limit(1)
-            .single();
+          // Tasks completed count - placeholder until task tracking is implemented
+          const tasksCompleted = 0;
 
           // Get last media upload
           const { data: lastMedia } = await supabase
@@ -155,12 +138,9 @@ export default function LiveMarket() {
             .eq('session_id', session.id)
             .order('created_at', { ascending: false })
             .limit(1)
-            .single();
+            .maybeSingle();
 
-          const lastActivity = [lastTask?.updated_at, lastMedia?.created_at]
-            .filter(Boolean)
-            .sort()
-            .reverse()[0] || null;
+          const lastActivity = lastMedia?.created_at || null;
 
           return {
             employee_id: session.user_id,

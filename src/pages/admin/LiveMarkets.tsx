@@ -86,23 +86,11 @@ export default function LiveMarkets() {
         .select('*', { count: 'exact', head: true })
         .eq('market_id', marketId)
         .eq('market_date', todayDate)
-        .eq('media_type', 'market_video');
+        .eq('media_type', 'selfie_gps' as any);
 
-      // Fetch cleaning videos
-      const { count: cleaningVideoCount } = await supabase
-        .from('media')
-        .select('*', { count: 'exact', head: true })
-        .eq('market_id', marketId)
-        .eq('market_date', todayDate)
-        .eq('media_type', 'cleaning_video');
-
-      // Fetch other media types
-      const { count: otherCount } = await supabase
-        .from('media')
-        .select('*', { count: 'exact', head: true })
-        .eq('market_id', marketId)
-        .eq('market_date', todayDate)
-        .not('media_type', 'in', '(market_video,cleaning_video)');
+      // Fetch other media types (placeholder for future video types)
+      const cleaningVideoCount = 0;
+      const otherCount = 0;
 
       return {
         attendance: attendanceCount || 0,

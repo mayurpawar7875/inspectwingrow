@@ -7,7 +7,11 @@ import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
-export function NotificationsTab() {
+interface NotificationsTabProps {
+  onChangeMade?: () => void;
+}
+
+export function NotificationsTab({ onChangeMade }: NotificationsTabProps = {}) {
   const [sendTitle, setSendTitle] = useState('');
   const [sendBody, setSendBody] = useState('');
   const [sending, setSending] = useState(false);

@@ -100,7 +100,7 @@ export default function MarketDetail() {
         if (uploads && uploads.length > 0) {
           const uploadCounts: Record<string, number> = {};
           uploads.forEach(u => {
-            if (u.user_id) uploadCounts[u.user_id] = (uploadCounts[u.user_id] || 0) + 1;
+            if ((u as any).user_id) uploadCounts[(u as any).user_id] = (uploadCounts[(u as any).user_id] || 0) + 1;
           });
           const mostActiveUser = Object.entries(uploadCounts).sort(([, a], [, b]) => b - a)[0];
           if (mostActiveUser) selectedUserId = mostActiveUser[0];

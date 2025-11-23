@@ -53,7 +53,7 @@ export default function MarketManagerReporting() {
       ]);
 
       const liveMarkets = liveMarketsRes.data || [];
-      const activeEmployees = liveMarkets.reduce((sum, m) => sum + (m.active_employees || 0), 0);
+      const activeEmployees = liveMarkets.reduce((sum, m) => sum + ((m as any).active_employees || 0), 0);
 
       setStats({
         liveMarkets: liveMarkets.length,

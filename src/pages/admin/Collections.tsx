@@ -106,7 +106,7 @@ export default function Collections() {
             id: s.id,
             farmer_name: s.farmer_name,
             stall_name: s.stall_name,
-            expected_rent: s.rent_amount || 0,
+            expected_rent: (s as any).rent_amount || 0,
             actual_rent: collectionsMap.get(s.id)?.toString() || '',
             payment_mode: 'cash' as const,
             screenshot_file: null,
@@ -257,14 +257,14 @@ export default function Collections() {
         .delete()
         .is('stall_confirmation_id', null)
         .eq('collected_by', user.id)
-        .eq('market_date', sessionDate)
+        .eq('collection_date', sessionDate)
         .eq('market_id', sessionMarketId);
 
       // Prepare all collections with screenshot URLs
       const allPayload = allEntries.map((e, idx) => ({
         stall_confirmation_id: e.stall_confirmation_id || null,
         market_id: sessionMarketId,
-        market_date: sessionDate,
+        collection_date: sessionDate,
         amount: e.amount,
         mode: e.payment_mode,
         collected_by: user.id,

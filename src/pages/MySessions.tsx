@@ -113,7 +113,7 @@ export default function MySessions() {
         .from('media')
         .select('*')
         .eq('user_id', user.id)
-        .order('captured_at', { ascending: false });
+        .order('captured_at', { ascending: false }) as any;
 
       if (mediaError) throw mediaError;
 
