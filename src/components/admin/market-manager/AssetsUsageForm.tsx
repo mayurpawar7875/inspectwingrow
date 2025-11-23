@@ -7,8 +7,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { Package } from 'lucide-react';
-import { TaskHistoryView } from '../../../market-manager/TaskHistoryView';
-import { PreviewDialog } from '../../../market-manager/PreviewDialog';
+import { TaskHistoryView } from '../../market-manager/TaskHistoryView';
+import { PreviewDialog } from '../../market-manager/PreviewDialog';
 import { format } from 'date-fns';
 
 interface AssetsUsageFormProps {

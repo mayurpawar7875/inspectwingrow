@@ -68,18 +68,21 @@ export default function ApprovedMarketsDocuments() {
         .order('reviewed_at', { ascending: false });
 
       if (error) throw error;
-      setMarkets((data || []).map(d => ({
-        id: d.id,
-        name: d.market_name,
-        location: d.google_map_location,
-        address: d.submission_metadata?.address || '',
-        city: d.submission_metadata?.city || null,
-        opening_date: d.market_opening_date || '',
-        reviewed_at: d.reviewed_at,
-        documents_status: d.documents_status || 'pending',
-        service_agreement_url: d.service_agreement_url,
-        stalls_accommodation_count: d.stalls_accommodation_count,
-      })));
+      setMarkets((data || []).map(d => {
+        const metadata = typeof d.submission_metadata === 'object' && d.submission_metadata !== null ? d.submission_metadata : {};
+        return {
+          id: d.id,
+          name: d.market_name,
+          location: d.google_map_location,
+          address: (metadata as any)?.address || '',
+          city: (metadata as any)?.city || null,
+          opening_date: d.market_opening_date || '',
+          reviewed_at: d.reviewed_at,
+          documents_status: d.documents_status || 'pending',
+          service_agreement_url: d.service_agreement_url,
+          stalls_accommodation_count: d.stalls_accommodation_count,
+        };
+      }));
     } catch (error) {
       console.error('Error fetching approved markets:', error);
       toast.error('Failed to load approved markets');

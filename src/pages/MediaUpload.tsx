@@ -416,18 +416,20 @@ export default function MediaUpload() {
 
           // Save market submission details to bdo_market_submissions table
           const submissionData = {
-            name: marketNameTrimmed,
-            location: marketData.googleMapLocation.trim(),
-            address: marketData.googleMapLocation.trim(), // Using google map location as address for now
-            city: null,
-            contact_person_name: user.email || 'BDO User',
-            contact_phone: '',
-            contact_email: user.email || null,
-            opening_date: marketData.marketOpeningDate,
-            photo_url: fileName, // Store path, not full URL
+            market_name: marketNameTrimmed,
+            google_map_location: marketData.googleMapLocation.trim(),
+            location_type: marketData.locationType,
+            customer_reach: marketData.customerReach,
+            flats_occupancy: marketData.flatsOccupancy || null,
+            rent: marketData.rent || null,
+            market_opening_date: marketData.marketOpeningDate,
+            video_url: fileName,
             submitted_by: user.id,
-            status: 'pending',
-            submitted_at: new Date().toISOString(),
+            status: 'pending_review',
+            submission_date: new Date().toISOString().split('T')[0],
+            submission_metadata: {
+              contact_email: user.email || null,
+            },
           };
 
           const { error: submissionError } = await supabase

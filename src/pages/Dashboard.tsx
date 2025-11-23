@@ -46,7 +46,6 @@ const NextDayPlanningForm = lazy(() => import('@/components/NextDayPlanningForm'
 interface Session {
   id: string;
   session_date: string;
-  market_date: string | null;
   punch_in_time: string | null;
   punch_out_time: string | null;
   status: 'active' | 'completed' | 'finalized' | 'locked';
@@ -256,20 +255,7 @@ export default function Dashboard() {
         setStallsCount(0);
       }
       
-      // If session is completed, fetch summary
-      if (data && (data.status === 'completed' || data.status === 'finalized')) {
-        const { data: summary, error: summaryError } = await supabase
-          .from('session_summaries')
-          .select('*')
-          .eq('session_id', data.id)
-          .maybeSingle();
-        
-        if (summaryError) {
-          console.error('Error fetching session summary:', summaryError);
-        } else {
-          setSessionSummary(summary);
-        }
-      }
+      // Session summary is optional - we'll compute it from data we have
     } catch (error: any) {
       console.error('Error fetching session:', error);
       toast.error('Failed to load session data');
@@ -809,7 +795,7 @@ export default function Dashboard() {
               <TodaysOffersForm
                 sessionId={todaySession.id}
                 marketId={todaySession.market_id}
-                marketDate={todaySession.market_date || todaySession.session_date}
+                marketDate={todaySession.session_date}
                 userId={user!.id}
                 onSuccess={() => {
                   fetchTodaySession();
@@ -832,7 +818,7 @@ export default function Dashboard() {
               <NonAvailableCommoditiesForm
                 sessionId={todaySession.id}
                 marketId={todaySession.market_id}
-                marketDate={todaySession.market_date || todaySession.session_date}
+                marketDate={todaySession.session_date}
                 userId={user!.id}
                 onSuccess={() => {
                   fetchTodaySession();
@@ -855,7 +841,7 @@ export default function Dashboard() {
               <OrganiserFeedbackForm
                 sessionId={todaySession.id}
                 marketId={todaySession.market_id}
-                marketDate={todaySession.market_date || todaySession.session_date}
+                marketDate={todaySession.session_date}
                 userId={user!.id}
                 onSuccess={() => {
                   fetchTodaySession();
@@ -878,7 +864,7 @@ export default function Dashboard() {
               <StallInspectionForm
                 sessionId={todaySession.id}
                 marketId={todaySession.market_id}
-                marketDate={todaySession.market_date || todaySession.session_date}
+                marketDate={todaySession.session_date}
                 userId={user!.id}
                 onSuccess={() => {
                   fetchTodaySession();
@@ -900,7 +886,7 @@ export default function Dashboard() {
             {todaySession && (
               <NextDayPlanningForm
                 sessionId={todaySession.id}
-                marketDate={todaySession.market_date || todaySession.session_date}
+                marketDate={todaySession.session_date}
                 userId={user!.id}
                 onSuccess={() => {
                   fetchTodaySession();

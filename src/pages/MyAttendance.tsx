@@ -13,12 +13,10 @@ import { useNavigate } from 'react-router-dom';
 interface AttendanceRecord {
   id: string;
   attendance_date: string;
-  role: string;
-  market_id: string;
-  city: string;
-  total_tasks: number;
-  completed_tasks: number;
-  status: 'full_day' | 'half_day' | 'absent' | 'weekly_off';
+  status: 'full_day' | 'half_day' | 'absent' | 'weekly_off' | 'present';
+  punch_in_time: string | null;
+  punch_out_time: string | null;
+  session_id: string | null;
   market_name?: string;
 }
 
@@ -56,26 +54,27 @@ export default function MyAttendance() {
       return;
     }
     
-    // Fetch market names
+    // Fetch market names via sessions
     if (data && data.length > 0) {
-      const marketIds = [...new Set(data.map(r => r.market_id).filter(Boolean))];
+      const sessionIds = [...new Set(data.map(r => r.session_id).filter(Boolean))];
       
-      if (marketIds.length > 0) {
-        const { data: marketsData } = await supabase
-          .from('markets')
-          .select('id, name')
-          .in('id', marketIds);
+      if (sessionIds.length > 0) {
+        const { data: sessionsData } = await supabase
+          .from('sessions')
+          .select('id, market_id, markets(name)')
+          .in('id', sessionIds);
         
-        const marketMap = new Map(marketsData?.map(m => [m.id, m.name]) || []);
+        const sessionMarketMap = new Map(sessionsData?.map((s: any) => [s.id, s.markets?.name || 'N/A']) || []);
         
         const enrichedData = data.map(record => ({
           ...record,
-          market_name: record.market_id ? marketMap.get(record.market_id) || 'N/A' : 'N/A',
+          market_name: record.session_id ? sessionMarketMap.get(record.session_id) || 'N/A' : 'N/A',
+          status: (record.status || 'present') as 'full_day' | 'half_day' | 'absent' | 'weekly_off' | 'present',
         }));
         
         setRecords(enrichedData);
       } else {
-        setRecords(data);
+        setRecords(data.map(r => ({ ...r, status: (r.status || 'present') as 'full_day' | 'half_day' | 'absent' | 'weekly_off' | 'present' })));
       }
     } else {
       setRecords([]);
@@ -219,10 +218,9 @@ export default function MyAttendance() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Date</TableHead>
-                      <TableHead>Role</TableHead>
                       <TableHead>Market</TableHead>
-                      <TableHead>City</TableHead>
-                      <TableHead className="text-center">Tasks</TableHead>
+                      <TableHead>Punch In</TableHead>
+                      <TableHead>Punch Out</TableHead>
                       <TableHead>Status</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -232,12 +230,9 @@ export default function MyAttendance() {
                         <TableCell className="font-medium">
                           {format(new Date(record.attendance_date), 'MMM dd, yyyy (EEE)')}
                         </TableCell>
-                        <TableCell className="capitalize">{record.role.replace('_', ' ')}</TableCell>
                         <TableCell>{record.market_name || 'N/A'}</TableCell>
-                        <TableCell>{record.city || 'N/A'}</TableCell>
-                        <TableCell className="text-center">
-                          {record.completed_tasks} / {record.total_tasks}
-                        </TableCell>
+                        <TableCell>{record.punch_in_time ? format(new Date(record.punch_in_time), 'hh:mm a') : '-'}</TableCell>
+                        <TableCell>{record.punch_out_time ? format(new Date(record.punch_out_time), 'hh:mm a') : '-'}</TableCell>
                         <TableCell>{getStatusBadge(record.status)}</TableCell>
                       </TableRow>
                     ))}
