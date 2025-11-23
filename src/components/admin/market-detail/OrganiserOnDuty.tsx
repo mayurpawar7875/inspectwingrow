@@ -158,7 +158,7 @@ export function OrganiserOnDuty({ marketId, marketDate, isToday }: Props) {
           .eq('market_id', marketId);
 
         if (userSessions && userSessions.length > 0) {
-          const { data: mediaData } = await supabase
+          const { data: lastMedia } = await supabase
             .from('media')
             .select('captured_at')
             .in('session_id', userSessions.map(s => s.id))
@@ -166,13 +166,9 @@ export function OrganiserOnDuty({ marketId, marketDate, isToday }: Props) {
             .limit(1)
             .maybeSingle();
 
-          if (mediaData) {
-            setLastActivity(mediaData.captured_at);
+          if (lastMedia) {
+            setLastActivity(lastMedia.captured_at);
           }
-        }
-
-        if (mediaData) {
-          setLastActivity(mediaData.captured_at);
         }
       } else {
         setOrganiser(null);

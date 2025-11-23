@@ -51,7 +51,7 @@ export default function NextDayPlanningForm({ sessionId, marketDate, userId, onS
         .from('next_day_planning')
         .select('*')
         .eq('user_id', userId)
-        .eq('current_market_date', marketDate)
+        .eq('market_date', marketDate)
         .maybeSingle();
 
       if (error) throw error;
@@ -147,7 +147,8 @@ export default function NextDayPlanningForm({ sessionId, marketDate, userId, onS
           .insert({
             user_id: userId,
             session_id: sessionId,
-            current_market_date: marketDate,
+            market_date: marketDate,
+            market_id: marketData?.id || null,
             next_day_market_name: marketName.trim(),
             stall_list: stallListJson,
           });
