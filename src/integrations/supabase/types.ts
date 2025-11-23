@@ -977,6 +977,63 @@ export type Database = {
           },
         ]
       }
+      market_location_visits: {
+        Row: {
+          created_at: string
+          employee_id: string
+          id: string
+          latitude: number
+          location_name: string
+          location_type: string
+          longitude: number
+          nearby_population: string | null
+          nearest_local_mandi: string | null
+          occupied_flats: number | null
+          review_notes: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          selfie_url: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          employee_id: string
+          id?: string
+          latitude: number
+          location_name: string
+          location_type: string
+          longitude: number
+          nearby_population?: string | null
+          nearest_local_mandi?: string | null
+          occupied_flats?: number | null
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          selfie_url: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          employee_id?: string
+          id?: string
+          latitude?: number
+          location_name?: string
+          location_type?: string
+          longitude?: number
+          nearby_population?: string | null
+          nearest_local_mandi?: string | null
+          occupied_flats?: number | null
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          selfie_url?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       market_manager_punchin: {
         Row: {
           created_at: string

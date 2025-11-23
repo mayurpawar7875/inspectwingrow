@@ -42,6 +42,7 @@ const NonAvailableCommoditiesForm = lazy(() => import('@/components/NonAvailable
 const OrganiserFeedbackForm = lazy(() => import('@/components/OrganiserFeedbackForm'));
 const StallInspectionForm = lazy(() => import('@/components/StallInspectionForm'));
 const NextDayPlanningForm = lazy(() => import('@/components/NextDayPlanningForm'));
+const MarketLocationVisitForm = lazy(() => import('@/components/MarketLocationVisitForm'));
 
 interface Session {
   id: string;
@@ -76,6 +77,7 @@ export default function Dashboard() {
   const [feedbackDialog, setFeedbackDialog] = useState(false);
   const [inspectionDialog, setInspectionDialog] = useState(false);
   const [planningDialog, setPlanningDialog] = useState(false);
+  const [locationVisitDialog, setLocationVisitDialog] = useState(false);
   const [leaveDialog, setLeaveDialog] = useState(false);
   const [leaveDate, setLeaveDate] = useState<string>('');
   const [leaveReason, setLeaveReason] = useState('');
@@ -649,6 +651,15 @@ export default function Dashboard() {
                   </CardHeader>
                 </Card>
 
+                {/* Market Location Visit */}
+                <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setLocationVisitDialog(true)}>
+                  <CardHeader className="p-3 sm:p-4">
+                    <MapPin className="h-6 w-6 sm:h-7 sm:w-7 text-accent mb-1" />
+                    <CardTitle className="text-sm sm:text-base">Location Visit</CardTitle>
+                    <CardDescription className="text-xs">Market location</CardDescription>
+                  </CardHeader>
+                </Card>
+
                 {/* Collection Sheet */}
                 <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={handleOpenCollectionSheet}>
                   <CardHeader className="p-3 sm:p-4">
@@ -978,6 +989,18 @@ export default function Dashboard() {
                 }}
               />
             )}
+          </Suspense>
+        </DialogContent>
+      </Dialog>
+
+      {/* Market Location Visit Dialog */}
+      <Dialog open={locationVisitDialog} onOpenChange={setLocationVisitDialog}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Market Location Visit</DialogTitle>
+          </DialogHeader>
+          <Suspense fallback={<div className="p-6 text-center text-muted-foreground">Loading form...</div>}>
+            <MarketLocationVisitForm />
           </Suspense>
         </DialogContent>
       </Dialog>
