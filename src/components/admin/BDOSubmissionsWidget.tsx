@@ -440,18 +440,12 @@ export default function BDOSubmissionsWidget({ filter = 'all' }: BDOSubmissionsW
                   View on Map
                 </a>
               </div>
-              {selectedMarket.photo_url && (
+              {selectedMarket.video_url && (
                 <div>
-                  <p className="text-sm font-medium mb-2">Photo</p>
-                  <img
-                    src={
-                      selectedMarket.photo_url.startsWith('http') 
-                        ? selectedMarket.photo_url 
-                        : supabase.storage.from('employee-media').getPublicUrl(selectedMarket.photo_url).data.publicUrl
-                    }
-                    alt="Market location"
-                    className="max-h-64 rounded-lg"
-                  />
+                  <p className="text-sm font-medium mb-2">Video</p>
+                  <a href={selectedMarket.video_url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                    View submitted video
+                  </a>
                 </div>
               )}
               

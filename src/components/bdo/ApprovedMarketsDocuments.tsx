@@ -62,13 +62,24 @@ export default function ApprovedMarketsDocuments() {
 
       const { data, error } = await supabase
         .from('bdo_market_submissions')
-        .select('id, name, location, address, city, opening_date, reviewed_at, documents_status, service_agreement_url, stalls_accommodation_count')
+        .select('id, market_name, google_map_location, location_type, market_opening_date, reviewed_at, documents_status, service_agreement_url, stalls_accommodation_count, submission_metadata')
         .eq('submitted_by', user.id)
         .eq('status', 'approved')
         .order('reviewed_at', { ascending: false });
 
       if (error) throw error;
-      setMarkets(data || []);
+      setMarkets((data || []).map(d => ({
+        id: d.id,
+        name: d.market_name,
+        location: d.google_map_location,
+        address: d.submission_metadata?.address || '',
+        city: d.submission_metadata?.city || null,
+        opening_date: d.market_opening_date || '',
+        reviewed_at: d.reviewed_at,
+        documents_status: d.documents_status || 'pending',
+        service_agreement_url: d.service_agreement_url,
+        stalls_accommodation_count: d.stalls_accommodation_count,
+      })));
     } catch (error) {
       console.error('Error fetching approved markets:', error);
       toast.error('Failed to load approved markets');
