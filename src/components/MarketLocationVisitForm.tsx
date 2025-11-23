@@ -4,9 +4,21 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Separator } from '@/components/ui/separator';
+import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Camera, MapPin } from 'lucide-react';
+import { Camera, MapPin, CheckCircle, XCircle, Clock } from 'lucide-react';
+
+interface LocationVisit {
+  id: string;
+  location_name: string;
+  location_type: string;
+  status: string;
+  created_at: string;
+  reviewed_at: string | null;
+  review_notes: string | null;
+}
 
 export default function MarketLocationVisitForm() {
   const [loading, setLoading] = useState(false);
@@ -19,12 +31,33 @@ export default function MarketLocationVisitForm() {
   const [occupiedFlats, setOccupiedFlats] = useState('');
   const [nearbyPopulation, setNearbyPopulation] = useState('');
   const [nearestLocalMandi, setNearestLocalMandi] = useState('');
+  const [myVisits, setMyVisits] = useState<LocationVisit[]>([]);
   const cameraInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     // Auto-capture GPS on mount
     captureGPS();
+    // Fetch employee's location visits
+    fetchMyVisits();
   }, []);
+
+  const fetchMyVisits = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from('market_location_visits')
+        .select('id, location_name, location_type, status, created_at, reviewed_at, review_notes')
+        .eq('employee_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setMyVisits(data || []);
+    } catch (error) {
+      console.error('Error fetching visits:', error);
+    }
+  };
 
   const captureGPS = () => {
     if (navigator.geolocation) {
@@ -140,6 +173,7 @@ export default function MarketLocationVisitForm() {
         cameraInputRef.current.value = '';
       }
       captureGPS(); // Recapture GPS for next entry
+      fetchMyVisits(); // Refresh the list
     } catch (error: any) {
       console.error('Error submitting location visit:', error);
       toast.error('Failed to submit location visit');
@@ -288,6 +322,58 @@ export default function MarketLocationVisitForm() {
             {loading ? 'Submitting...' : 'Submit Location Visit'}
           </Button>
         </form>
+
+        {/* My Submissions Section */}
+        {myVisits.length > 0 && (
+          <>
+            <Separator className="my-6" />
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold">My Submitted Requests</h3>
+              <div className="space-y-3">
+                {myVisits.map((visit) => (
+                  <Card key={visit.id} className="p-4">
+                    <div className="flex justify-between items-start gap-3">
+                      <div className="flex-1 space-y-1">
+                        <p className="font-medium">{visit.location_name}</p>
+                        <p className="text-sm text-muted-foreground capitalize">
+                          {visit.location_type.replace('_', ' ')}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          Submitted: {new Date(visit.created_at).toLocaleDateString('en-IN')}
+                        </p>
+                        {visit.review_notes && (
+                          <p className="text-sm text-muted-foreground mt-2">
+                            <span className="font-medium">Notes:</span> {visit.review_notes}
+                          </p>
+                        )}
+                      </div>
+                      <div>
+                        {visit.status === 'pending' && (
+                          <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-300">
+                            <Clock className="w-3 h-3 mr-1" />
+                            Pending
+                          </Badge>
+                        )}
+                        {visit.status === 'approved' && (
+                          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-300">
+                            <CheckCircle className="w-3 h-3 mr-1" />
+                            Approved
+                          </Badge>
+                        )}
+                        {visit.status === 'rejected' && (
+                          <Badge variant="outline" className="bg-red-50 text-red-700 border-red-300">
+                            <XCircle className="w-3 h-3 mr-1" />
+                            Rejected
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          </>
+        )}
       </CardContent>
     </Card>
   );
