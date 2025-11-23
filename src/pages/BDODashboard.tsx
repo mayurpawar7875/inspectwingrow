@@ -933,6 +933,18 @@ export default function BDODashboard() {
 
               <Tooltip>
                 <TooltipTrigger asChild>
+                  <Button variant="outline" size="sm" onClick={() => navigate('/admin/live-markets')}>
+                    <MapPin className="h-4 w-4 sm:mr-2" />
+                    <span className="hidden sm:inline">Live Markets Today</span>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent className="sm:hidden">
+                  <p>Live Markets Today</p>
+                </TooltipContent>
+              </Tooltip>
+
+              <Tooltip>
+                <TooltipTrigger asChild>
                   <Button variant="outline" size="sm" onClick={() => navigate('/my-sessions')}>
                     <FileText className="h-4 w-4 sm:mr-2" />
                     <span className="hidden sm:inline">View Sessions</span>
