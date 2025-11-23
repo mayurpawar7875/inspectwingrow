@@ -19,25 +19,28 @@ import { toast } from 'sonner';
 
 interface BDOMarketSubmission {
   id: string;
-  name: string;
-  location: string;
-  address: string;
-  city: string | null;
-  contact_person_name: string;
-  contact_phone: string;
-  contact_email: string | null;
-  opening_date: string;
-  photo_url: string | null;
+  market_name: string;
+  google_map_location: string;
+  location_type: string;
+  rent: string | null;
+  customer_reach: string | null;
+  flats_occupancy: string | null;
+  video_url: string | null;
+  video_file_name: string | null;
   submitted_by: string;
-  submitted_at: string;
+  submission_date: string;
   status: string;
   reviewed_by: string | null;
   reviewed_at: string | null;
-  review_notes: string | null;
+  submission_metadata: any;
   service_agreement_url: string | null;
   stalls_accommodation_count: number | null;
   documents_status: string | null;
   documents_uploaded_at: string | null;
+  market_opening_date: string | null;
+  market_id: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
 interface BDOStallSubmission {

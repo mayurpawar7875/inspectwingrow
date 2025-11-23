@@ -47,11 +47,11 @@ export default function NextDayPlanningForm({ sessionId, marketDate, userId, onS
 
   const fetchExistingPlan = async () => {
     try {
-      const { data, error } = await supabase
+      const { data, error} = await supabase
         .from('next_day_planning')
         .select('*')
         .eq('user_id', userId)
-        .eq('current_market_date', marketDate)
+        .eq('market_date', marketDate)
         .maybeSingle();
 
       if (error) throw error;
