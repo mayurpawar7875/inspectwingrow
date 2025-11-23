@@ -947,20 +947,22 @@ export default function BDODashboard() {
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
-        {/* Session Status Card */}
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Clock className="h-5 w-5" />
-              Today's Session
-            </CardTitle>
-            <CardDescription>
-              {bdoSession?.punch_in && !bdoSession?.punch_out && 'Session in progress'}
-              {bdoSession?.punch_out && 'Session completed for today'}
-              {!bdoSession?.punch_in && 'Start your session by punching in'}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
+        {/* Top Section - Session & Live Markets */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+          {/* Session Status Card */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Clock className="h-5 w-5" />
+                Today's Session
+              </CardTitle>
+              <CardDescription>
+                {bdoSession?.punch_in && !bdoSession?.punch_out && 'Session in progress'}
+                {bdoSession?.punch_out && 'Session completed for today'}
+                {!bdoSession?.punch_in && 'Start your session by punching in'}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
             {!bdoSession?.punch_in ? (
               <div className="space-y-4">
                 {!selfiePreview ? (
@@ -1096,8 +1098,66 @@ export default function BDODashboard() {
                 )}
               </div>
             )}
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+
+          {/* Live Markets Today Card */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <MapPin className="h-5 w-5" />
+                Live Markets Today
+              </CardTitle>
+              <CardDescription>
+                Markets with active sessions
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {marketSummaries.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    No active markets today
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {marketSummaries.slice(0, 4).map((market) => (
+                      <div
+                        key={market.market_id}
+                        className="flex items-start justify-between p-3 border rounded-lg hover:bg-accent/50 transition-colors cursor-pointer"
+                        onClick={() => navigate(`/admin/market/${market.market_id}`)}
+                      >
+                        <div className="space-y-1 flex-1">
+                          <div className="flex items-center gap-2">
+                            <h4 className="font-semibold text-sm">{market.market_name}</h4>
+                            <Badge variant="default" className="text-xs">{market.active_sessions}</Badge>
+                          </div>
+                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                            <MapPin className="h-3 w-3" />
+                            <span>{market.city}</span>
+                          </div>
+                          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                            <span>👥 {market.active_employees} employees</span>
+                            <span>📸 {market.media_uploads} uploads</span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                    {marketSummaries.length > 4 && (
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="w-full"
+                        onClick={() => navigate('/admin/live-markets')}
+                      >
+                        View All {marketSummaries.length} Markets
+                      </Button>
+                    )}
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
 
         {/* Summary Cards - 2 columns on mobile, 4 on larger screens */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
