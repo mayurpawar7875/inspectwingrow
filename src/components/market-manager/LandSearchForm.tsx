@@ -35,10 +35,11 @@ export function LandSearchForm({ sessionId, onComplete }: LandSearchFormProps) {
 
     setLoading(true);
     const { error } = await supabase.from('market_land_search').insert({
+      session_id: sessionId,
       place_name: formData.placeName,
       address: formData.address,
       contact_name: formData.contactName,
-      contact_phone: formData.contactPhone || null,
+      contact_phone: formData.contactPhone || '',
       is_finalized: formData.isFinalized,
       opening_date: formData.isFinalized && formData.openingDate ? formData.openingDate : null,
     });

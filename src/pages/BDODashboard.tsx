@@ -529,7 +529,7 @@ export default function BDODashboard() {
             .insert({
               market_name: market.name.trim(),
               google_map_location: market.location.trim(),
-              location_type: market.locationType || 'urban',
+              location_type: 'urban',
               market_opening_date: market.openingDate,
               submission_metadata: {
                 address: market.address.trim(),
@@ -538,7 +538,7 @@ export default function BDODashboard() {
                 contact_phone: market.contactPhone.trim(),
                 contact_email: market.contactEmail?.trim() || null,
               },
-              video_url: videoUrl || null,
+              video_url: photoUrl || null,
               submitted_by: user.id,
               status: 'pending_review',
             });
