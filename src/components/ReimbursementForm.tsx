@@ -165,32 +165,32 @@ export function ReimbursementForm() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       <Card>
-        <CardHeader>
-          <CardTitle>Submit Reimbursement Request</CardTitle>
-          <CardDescription>
+        <CardHeader className="p-4 md:p-6">
+          <CardTitle className="text-base md:text-lg">Submit Reimbursement Request</CardTitle>
+          <CardDescription className="text-xs md:text-sm">
             Request reimbursement for overtime, expenses, or week-off working
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="request-type">Request Type *</Label>
+        <CardContent className="p-4 md:p-6">
+          <form onSubmit={handleSubmit} className="space-y-3 md:space-y-4">
+            <div className="space-y-1.5 md:space-y-2">
+              <Label htmlFor="request-type" className="text-xs md:text-sm">Request Type *</Label>
               <Select value={requestType} onValueChange={setRequestType}>
-                <SelectTrigger id="request-type">
+                <SelectTrigger id="request-type" className="text-xs md:text-sm h-9 md:h-10">
                   <SelectValue placeholder="Select request type" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="flex_overtime">Flex/Overtime</SelectItem>
-                  <SelectItem value="other_expenses">Other Expenses</SelectItem>
-                  <SelectItem value="week_off_working">Week Off Day Working</SelectItem>
+                  <SelectItem value="flex_overtime" className="text-xs md:text-sm">Flex/Overtime</SelectItem>
+                  <SelectItem value="other_expenses" className="text-xs md:text-sm">Other Expenses</SelectItem>
+                  <SelectItem value="week_off_working" className="text-xs md:text-sm">Week Off Day Working</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="amount">Amount (₹) *</Label>
+            <div className="space-y-1.5 md:space-y-2">
+              <Label htmlFor="amount" className="text-xs md:text-sm">Amount (₹) *</Label>
               <Input
                 id="amount"
                 type="number"
@@ -198,51 +198,53 @@ export function ReimbursementForm() {
                 placeholder="Enter amount"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
+                className="text-xs md:text-sm h-9 md:h-10"
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="description">Description</Label>
+            <div className="space-y-1.5 md:space-y-2">
+              <Label htmlFor="description" className="text-xs md:text-sm">Description</Label>
               <Textarea
                 id="description"
                 placeholder="Add details about your reimbursement request"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 rows={3}
+                className="text-xs md:text-sm"
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="receipt">Receipt Upload *</Label>
+            <div className="space-y-1.5 md:space-y-2">
+              <Label htmlFor="receipt" className="text-xs md:text-sm">Receipt Upload *</Label>
               <div className="flex items-center gap-2">
                 <Input
                   id="receipt"
                   type="file"
                   accept="image/jpeg,image/jpg,image/png,application/pdf"
                   onChange={handleFileChange}
-                  className="flex-1"
+                  className="flex-1 text-xs md:text-sm h-9 md:h-10"
                 />
                 {receiptFile && (
-                  <span className="text-sm text-muted-foreground">
+                  <span className="text-xs md:text-sm text-muted-foreground truncate max-w-[120px]">
                     {receiptFile.name}
                   </span>
                 )}
               </div>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-[10px] md:text-xs text-muted-foreground">
                 Upload JPG, PNG, or PDF (max 5MB)
               </p>
             </div>
 
-            <Button type="submit" disabled={submitting} className="w-full">
+            <Button type="submit" disabled={submitting} className="w-full text-xs md:text-sm h-9 md:h-10">
               {submitting ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Submitting...
+                  <Loader2 className="mr-1 md:mr-2 h-3 w-3 md:h-4 md:w-4 animate-spin" />
+                  <span className="text-xs md:text-sm">Submitting...</span>
                 </>
               ) : (
                 <>
-                  <Upload className="mr-2 h-4 w-4" />
-                  Submit Request
+                  <Upload className="mr-1 md:mr-2 h-3 w-3 md:h-4 md:w-4" />
+                  <span className="text-xs md:text-sm">Submit Request</span>
                 </>
               )}
             </Button>
@@ -251,49 +253,49 @@ export function ReimbursementForm() {
       </Card>
 
       <Card>
-        <CardHeader>
-          <CardTitle>My Reimbursement Requests</CardTitle>
-          <CardDescription>Track status of your submitted requests</CardDescription>
+        <CardHeader className="p-4 md:p-6">
+          <CardTitle className="text-base md:text-lg">My Reimbursement Requests</CardTitle>
+          <CardDescription className="text-xs md:text-sm">Track status of your submitted requests</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-4 md:p-6">
           {loading ? (
-            <div className="flex justify-center py-8">
-              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            <div className="flex justify-center py-6 md:py-8">
+              <Loader2 className="h-5 w-5 md:h-6 md:w-6 animate-spin text-muted-foreground" />
             </div>
           ) : myRequests.length === 0 ? (
-            <p className="text-center text-muted-foreground py-8">
+            <p className="text-center text-xs md:text-sm text-muted-foreground py-6 md:py-8">
               No reimbursement requests submitted yet
             </p>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-3 md:space-y-4">
               {myRequests.map((request) => (
                 <div
                   key={request.id}
-                  className="border rounded-lg p-4 space-y-2"
+                  className="border rounded-lg p-3 md:p-4 space-y-1.5 md:space-y-2"
                 >
-                  <div className="flex justify-between items-start">
+                  <div className="flex justify-between items-start gap-2">
                     <div>
-                      <p className="font-medium">
+                      <p className="font-medium text-xs md:text-sm">
                         {getRequestTypeLabel(request.request_type)}
                       </p>
-                      <p className="text-sm text-muted-foreground">
+                      <p className="text-[10px] md:text-xs text-muted-foreground">
                         Amount: ₹{request.amount.toFixed(2)}
                       </p>
                     </div>
                     {getStatusBadge(request.status)}
                   </div>
                   {request.description && (
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-[10px] md:text-xs text-muted-foreground">
                       {request.description}
                     </p>
                   )}
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-[10px] md:text-xs text-muted-foreground">
                     Submitted: {format(new Date(request.submitted_at), "PPp")}
                   </p>
                   {request.review_notes && (
-                    <div className="mt-2 p-2 bg-muted rounded">
-                      <p className="text-xs font-medium">Admin Notes:</p>
-                      <p className="text-xs text-muted-foreground">
+                    <div className="mt-1.5 md:mt-2 p-2 bg-muted rounded">
+                      <p className="text-[10px] md:text-xs font-medium">Admin Notes:</p>
+                      <p className="text-[10px] md:text-xs text-muted-foreground">
                         {request.review_notes}
                       </p>
                     </div>
