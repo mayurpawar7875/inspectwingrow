@@ -29,21 +29,18 @@ export function AdminSidebar() {
   const linkClass = ({ isActive }: { isActive: boolean }) =>
     [
       "flex w-full items-center gap-2 rounded-md px-2 py-2 transition",
-      isCollapsed ? "justify-center" : "",
       isActive
         ? "bg-accent text-accent-foreground font-medium"
         : "!text-neutral-900 dark:!text-neutral-100 hover:bg-accent/50",
     ].join(" ");
 
   return (
-    <Sidebar className={isCollapsed ? "w-16" : "w-64"} collapsible="icon">
+    <Sidebar className="w-64" collapsible="icon">
       <SidebarContent>
         <SidebarGroup>
-          {!isCollapsed && (
-            <SidebarGroupLabel className="!text-neutral-900 dark:!text-neutral-100">
-              Admin Panel
-            </SidebarGroupLabel>
-          )}
+          <SidebarGroupLabel className="!text-neutral-900 dark:!text-neutral-100">
+            Admin Panel
+          </SidebarGroupLabel>
 
           <SidebarGroupContent>
             <SidebarMenu>
@@ -52,11 +49,9 @@ export function AdminSidebar() {
                   <SidebarMenuButton asChild className="flex items-center gap-2">
                     <NavLink to={item.url} end className={linkClass}>
                       <item.icon className="h-4 w-4 flex-shrink-0 !text-neutral-900 dark:!text-neutral-100" />
-                      {!isCollapsed && (
-                        <span className="ml-1 !text-neutral-900 dark:!text-neutral-100">
-                          {item.title}
-                        </span>
-                      )}
+                      <span className="ml-1 !text-neutral-900 dark:!text-neutral-100">
+                        {item.title}
+                      </span>
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
