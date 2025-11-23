@@ -42,13 +42,8 @@ export default function CollectionsWidget({ marketId }: CollectionsWidgetProps) 
     try {
       let query = supabase
         .from('collections')
-        .select(`
-          id,
-          amount,
-          market_id,
-          markets (name)
-        `)
-        .eq('market_date', selectedDate);
+        .select('id, amount, market_id, collection_date')
+        .eq('collection_date', selectedDate);
 
       // Filter by market if marketId is provided
       if (marketId) {
@@ -56,6 +51,8 @@ export default function CollectionsWidget({ marketId }: CollectionsWidgetProps) 
       }
 
       const { data, error } = await query;
+
+      if (error) throw error;
 
       if (error) throw error;
 
