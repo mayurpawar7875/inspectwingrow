@@ -59,14 +59,22 @@ export function MediaUploadsSection({ marketId, marketDate, isToday }: Props) {
     // Fetch media uploads
     const { data: u, error: uErr } = await supabase
       .from('media')
-      .select('id, captured_at, media_type, is_late, file_url, user_id')
+      .select('id, captured_at, media_type, is_late, file_url, session_id')
       .eq('market_id', marketId)
-      .eq('market_date', marketDate)
       .order('captured_at', { ascending: false });
 
     if (uErr) console.error(uErr);
 
-    const uUserIds = [...new Set((u ?? []).map(r => r.user_id).filter(Boolean))];
+    // Get user IDs from sessions
+    const sessionIds = [...new Set((u ?? []).map(r => r.session_id).filter(Boolean))];
+    const { data: sessions } = await supabase
+      .from('sessions')
+      .select('id, user_id, session_date')
+      .in('id', sessionIds)
+      .eq('session_date', marketDate);
+
+    const sessionUserMap = Object.fromEntries((sessions || []).map((s: any) => [s.id, s.user_id]));
+    const uUserIds = [...new Set((u ?? []).map(r => sessionUserMap[r.session_id]).filter(Boolean))];
 
     // Fetch employees
     const { data: uEmps, error: uEmpErr } = await supabase
@@ -83,7 +91,7 @@ export function MediaUploadsSection({ marketId, marketDate, isToday }: Props) {
     // Merge data
     const media = (u ?? []).map(r => ({
       ...r,
-      profiles: { full_name: uEmpById[r.user_id] ?? '—' }
+      profiles: { full_name: uEmpById[sessionUserMap[r.session_id]] ?? '—' }
     }));
 
     setUploads(media as any);

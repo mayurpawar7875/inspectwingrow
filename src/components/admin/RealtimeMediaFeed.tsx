@@ -52,7 +52,7 @@ export default function RealtimeMediaFeed({ marketId }: RealtimeMediaFeedProps) 
           media_type,
           captured_at,
           is_late,
-          user_id,
+          session_id,
           market_id
         `)
         .order('captured_at', { ascending: false })
@@ -74,8 +74,15 @@ export default function RealtimeMediaFeed({ marketId }: RealtimeMediaFeedProps) 
         return;
       }
 
-      // Get unique user and market IDs
-      const userIds = [...new Set(uploads.map(u => u.user_id).filter(Boolean))];
+      // Get user IDs from sessions
+      const sessionIds = [...new Set(uploads.map(u => u.session_id).filter(Boolean))];
+      const { data: sessions } = await supabase
+        .from('sessions')
+        .select('id, user_id')
+        .in('id', sessionIds);
+
+      const sessionUserMap = Object.fromEntries((sessions || []).map((s: any) => [s.id, s.user_id]));
+      const userIds = [...new Set(uploads.map(u => sessionUserMap[u.session_id]).filter(Boolean))];
       const marketIds = [...new Set(uploads.map(u => u.market_id).filter(Boolean))];
 
       // Fetch employees and markets
@@ -89,7 +96,7 @@ export default function RealtimeMediaFeed({ marketId }: RealtimeMediaFeedProps) 
 
       const formattedUploads = uploads.map((item: any) => ({
         id: item.id,
-        employee_name: empById[item.user_id] || 'Unknown',
+        employee_name: empById[sessionUserMap[item.session_id]] || 'Unknown',
         market_name: mktById[item.market_id] || 'Unknown',
         file_type: item.media_type.replace(/_/g, ' ').toUpperCase(),
         uploaded_at: item.captured_at,
