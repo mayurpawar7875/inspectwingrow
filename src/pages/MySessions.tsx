@@ -149,7 +149,6 @@ export default function MySessions() {
         .select(`
           id,
           session_date,
-          market_date,
           punch_in_time,
           punch_out_time,
           status,
@@ -163,7 +162,7 @@ export default function MySessions() {
 
       if (sessionsError) throw sessionsError;
 
-      const sessionList = (sessionsData || []) as Session[];
+      const sessionList = sessionsData || [];
 
       const todayIST = getISTDateString(new Date());
       

@@ -59,7 +59,7 @@ export default function Collections() {
         const todayIST = getISTDateString(new Date());
         const { data: session, error: sErr } = await supabase
           .from('sessions')
-          .select('id, market_id, session_date, market_date, status')
+          .select('id, market_id, session_date, status')
           .eq('user_id', user.id)
           .eq('session_date', todayIST)
           .maybeSingle();
@@ -76,10 +76,10 @@ export default function Collections() {
         setSessionMarketId(marketId);
         setSessionDate(dateStr);
 
-        // Fetch today's confirmed stalls with rent amounts
+        // Fetch today's confirmed stalls
         const { data: stalls, error: stErr } = await supabase
           .from('stall_confirmations')
-          .select('id, farmer_name, stall_name, rent_amount')
+          .select('id, farmer_name, stall_name')
           .eq('market_id', marketId)
           .eq('market_date', dateStr)
           .eq('created_by', user.id)

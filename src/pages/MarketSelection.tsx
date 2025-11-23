@@ -76,7 +76,8 @@ export default function MarketSelection() {
         supabase
           .from('market_schedule')
           .select('market_id')
-          .eq('schedule_date', istDateStr),
+          .eq('day_of_week', dow)
+          .eq('is_active', true),
       ]);
 
       const scheduleIds = (scheduleRows.data || []).map((r: any) => r.market_id).filter(Boolean);
