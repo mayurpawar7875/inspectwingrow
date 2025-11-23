@@ -16,6 +16,8 @@ import LiveMarketsWidget from '@/components/admin/LiveMarketsWidget';
 import TaskProgressWidget from '@/components/admin/TaskProgressWidget';
 import CollectionsWidget from '@/components/admin/CollectionsWidget';
 import ApprovedMarketsDocuments from '@/components/bdo/ApprovedMarketsDocuments';
+import AttendanceWidget from '@/components/admin/AttendanceWidget';
+import LeaveRequestsWidget from '@/components/admin/LeaveRequestsWidget';
 import { toast } from 'sonner';
 import { validateImage, generateUploadPath } from '@/lib/fileValidation';
 import {
@@ -1163,6 +1165,17 @@ export default function BDODashboard() {
         {/* Approved Markets Document Upload */}
         <div className="mb-6">
           <ApprovedMarketsDocuments />
+        </div>
+
+        {/* Live Markets and Attendance */}
+        <div className="grid gap-6 md:grid-cols-2 mb-6">
+          <LiveMarketsWidget />
+          <AttendanceWidget />
+        </div>
+
+        {/* Leave Requests */}
+        <div className="mb-6">
+          <LeaveRequestsWidget />
         </div>
 
       </main>
