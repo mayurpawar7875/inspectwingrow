@@ -24,8 +24,8 @@ export default function RequestsManagement() {
         .from("asset_requests")
         .select(`
           *,
-          asset:asset_inventory(asset_name),
-          requester:profiles!asset_requests_requester_id_fkey(full_name)
+          asset_inventory(asset_name),
+          markets(name)
         `)
         .order("request_date", { ascending: false });
 
@@ -149,11 +149,16 @@ export default function RequestsManagement() {
                       <div className="flex justify-between items-start">
                         <div className="space-y-1">
                           <p className="font-medium">
-                            {request.requester?.full_name || "Unknown Employee"}
+                            {request.requester_role} - {request.requester_id.slice(0, 8)}
                           </p>
                           <p className="text-sm text-muted-foreground">
-                            {request.asset?.asset_name || "Unknown Asset"} - Qty: {request.quantity}
+                            {request.asset_inventory?.asset_name || "Unknown Asset"} - Qty: {request.quantity}
                           </p>
+                          {request.markets?.name && (
+                            <p className="text-sm text-muted-foreground">
+                              Market: {request.markets.name}
+                            </p>
+                          )}
                           <p className="text-sm text-muted-foreground">
                             Purpose: {request.purpose}
                           </p>
