@@ -22,9 +22,6 @@ const menuItems = [
 ];
 
 export function AdminSidebar() {
-  const { state } = useSidebar();
-  const isCollapsed = state === "collapsed";
-
   // Force readable text for inactive links; keep theme colors for active
   const linkClass = ({ isActive }: { isActive: boolean }) =>
     [
@@ -35,7 +32,7 @@ export function AdminSidebar() {
     ].join(" ");
 
   return (
-    <Sidebar className="w-64" collapsible="icon">
+    <Sidebar className="w-64" collapsible="none">
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupLabel className="!text-neutral-900 dark:!text-neutral-100">
