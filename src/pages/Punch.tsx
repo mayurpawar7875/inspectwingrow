@@ -246,8 +246,35 @@ export default function Punch() {
     try {
       const now = new Date().toISOString();
       
+      // Define required tasks (media types that must be completed)
+      const requiredTasks: Array<'outside_rates' | 'market_video' | 'cleaning_video' | 'rate_board'> = [
+        'outside_rates', 
+        'market_video', 
+        'cleaning_video', 
+        'rate_board'
+      ];
+      const totalTasks = requiredTasks.length;
+      
+      // Count completed tasks by checking which media types exist for this session
+      const { data: mediaData, error: mediaError } = await supabase
+        .from('media')
+        .select('media_type')
+        .eq('session_id', session.id);
+      
+      if (mediaError) {
+        console.error('Error fetching media:', mediaError);
+      }
+      
+      // Get unique media types uploaded
+      const uploadedTypes = new Set(mediaData?.map(m => m.media_type) || []);
+      const completedTasks = requiredTasks.filter(task => uploadedTypes.has(task)).length;
+      
+      // Determine status based on task completion
+      const attendanceStatus = completedTasks === totalTasks ? 'present' : 'half_day';
+      
+      console.log('Task completion:', { completedTasks, totalTasks, status: attendanceStatus });
+      
       // Update session with punch_out_time and status='completed'
-      // This will trigger the finalize_session_on_punchout trigger
       const { error: sessionError } = await supabase
         .from('sessions')
         .update({ 
@@ -258,16 +285,23 @@ export default function Punch() {
 
       if (sessionError) throw sessionError;
 
-      // Update attendance record with punch out
+      // Update attendance record with punch out, tasks, and calculated status
       await supabase
         .from('attendance_records')
         .update({
           punch_out_time: now,
+          total_tasks: totalTasks,
+          completed_tasks: completedTasks,
+          status: attendanceStatus,
         })
         .eq('session_id', session.id)
         .eq('user_id', user!.id);
 
-      toast.success('Session completed! Your report has been finalized.');
+      const statusMessage = attendanceStatus === 'present' 
+        ? 'All tasks completed! Marked as full day present.'
+        : `${completedTasks}/${totalTasks} tasks completed. Marked as half day.`;
+      
+      toast.success(`Session completed! ${statusMessage}`);
       
       // Redirect to dashboard after a short delay
       setTimeout(() => {
