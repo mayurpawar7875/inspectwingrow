@@ -21,7 +21,7 @@ export function AdminLayout({
     await signOut();
     navigate('/auth');
   };
-  return <SidebarProvider defaultOpen={false}>
+  return <SidebarProvider defaultOpen={true}>
       <div className="min-h-screen flex w-full">
         <AdminSidebar />
         <div className="flex-1 flex flex-col">
