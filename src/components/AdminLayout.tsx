@@ -6,6 +6,7 @@ import { AdminSidebar } from './AdminSidebar';
 import { Button } from '@/components/ui/button';
 import { LogOut } from 'lucide-react';
 import { NotificationBell } from './NotificationBell';
+import { useIsMobile } from '@/hooks/use-mobile';
 interface AdminLayoutProps {
   children: ReactNode;
 }
@@ -17,11 +18,13 @@ export function AdminLayout({
     user
   } = useAuth();
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
+  
   const handleSignOut = async () => {
     await signOut();
     navigate('/auth');
   };
-  return <SidebarProvider defaultOpen={false}>
+  return <SidebarProvider defaultOpen={!isMobile}>
       <div className="min-h-screen flex w-full">
         <AdminSidebar />
         <div className="flex-1 flex flex-col">
