@@ -11,6 +11,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { LayoutDashboard, Users, FileText, Settings, Package, ClipboardList } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const menuItems = [
   { title: "Dashboard", url: "/admin", icon: LayoutDashboard },
@@ -23,6 +24,7 @@ const menuItems = [
 
 export function AdminSidebar() {
   const { state } = useSidebar();
+  const isMobile = useIsMobile();
   const isCollapsed = state === "collapsed";
 
   const linkClass = ({ isActive }: { isActive: boolean }) =>
@@ -34,7 +36,10 @@ export function AdminSidebar() {
     ].join(" ");
 
   return (
-    <Sidebar className={isCollapsed ? "w-16" : "w-64"} collapsible="icon">
+    <Sidebar 
+      className={isCollapsed ? "w-16" : "w-64"} 
+      collapsible={isMobile ? "icon" : "none"}
+    >
       <SidebarContent>
         <SidebarGroup>
           {!isCollapsed && (
