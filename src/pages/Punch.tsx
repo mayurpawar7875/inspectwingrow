@@ -245,29 +245,75 @@ export default function Punch() {
     setActionLoading(true);
     try {
       const now = new Date().toISOString();
+      const totalTasks = 13;
       
-      // Define required tasks (media types that must be completed)
-      const requiredTasks: Array<'outside_rates' | 'market_video' | 'cleaning_video' | 'rate_board'> = [
-        'outside_rates', 
-        'market_video', 
-        'cleaning_video', 
-        'rate_board'
-      ];
-      const totalTasks = requiredTasks.length;
+      // Count completed tasks across all categories
+      let completedTasks = 0;
       
-      // Count completed tasks by checking which media types exist for this session
-      const { data: mediaData, error: mediaError } = await supabase
+      // 1. Check media uploads (5 required types)
+      const { data: mediaData } = await supabase
         .from('media')
         .select('media_type')
         .eq('session_id', session.id);
       
-      if (mediaError) {
-        console.error('Error fetching media:', mediaError);
-      }
-      
-      // Get unique media types uploaded
       const uploadedTypes = new Set(mediaData?.map(m => m.media_type) || []);
-      const completedTasks = requiredTasks.filter(task => uploadedTypes.has(task)).length;
+      const requiredMediaTypes: Array<'outside_rates' | 'rate_board' | 'market_video' | 'cleaning_video' | 'customer_feedback'> = [
+        'outside_rates', 'rate_board', 'market_video', 'cleaning_video', 'customer_feedback'
+      ];
+      completedTasks += requiredMediaTypes.filter(type => uploadedTypes.has(type)).length;
+      
+      // 2. Check stall confirmations
+      const { count: stallsCount } = await supabase
+        .from('stall_confirmations')
+        .select('*', { count: 'exact', head: true })
+        .eq('market_id', session.market_id)
+        .eq('market_date', session.session_date);
+      if (stallsCount && stallsCount > 0) completedTasks++;
+      
+      // 3. Check today's offers
+      const { count: offersCount } = await supabase
+        .from('offers')
+        .select('*', { count: 'exact', head: true })
+        .eq('session_id', session.id);
+      if (offersCount && offersCount > 0) completedTasks++;
+      
+      // 4. Check non-available commodities
+      const { count: commoditiesCount } = await supabase
+        .from('non_available_commodities')
+        .select('*', { count: 'exact', head: true })
+        .eq('session_id', session.id);
+      if (commoditiesCount && commoditiesCount > 0) completedTasks++;
+      
+      // 5. Check organiser feedback
+      const { count: feedbackCount } = await supabase
+        .from('organiser_feedback')
+        .select('*', { count: 'exact', head: true })
+        .eq('session_id', session.id);
+      if (feedbackCount && feedbackCount > 0) completedTasks++;
+      
+      // 6. Check stall inspections
+      const { count: inspectionsCount } = await supabase
+        .from('stall_inspections')
+        .select('*', { count: 'exact', head: true })
+        .eq('session_id', session.id);
+      if (inspectionsCount && inspectionsCount > 0) completedTasks++;
+      
+      // 7. Check next day planning
+      const { count: planningCount } = await supabase
+        .from('next_day_planning')
+        .select('*', { count: 'exact', head: true })
+        .eq('session_id', session.id);
+      if (planningCount && planningCount > 0) completedTasks++;
+      
+      // 8. Check collections
+      const { count: collectionsCount } = await supabase
+        .from('collections')
+        .select('*', { count: 'exact', head: true })
+        .eq('market_id', session.market_id)
+        .eq('collection_date', session.session_date);
+      if (collectionsCount && collectionsCount > 0) completedTasks++;
+      
+      // Note: Punch in (selfie_gps) is already done, counts as 1 task automatically
       
       // Determine status based on task completion
       const attendanceStatus = completedTasks === totalTasks ? 'present' : 'half_day';
