@@ -36,7 +36,7 @@ export default function Auth() {
       } else if (currentRole === 'market_manager') {
         navigate('/manager-dashboard');
       } else if (currentRole === 'bdo') {
-        navigate('/punch'); // BDO goes to punch in page first
+        navigate('/bdo-dashboard');
       } else {
         // employee, bms_executive, or other roles
         navigate('/dashboard');
