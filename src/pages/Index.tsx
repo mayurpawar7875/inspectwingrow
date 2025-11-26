@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/lib/auth';
 import { Button } from '@/components/ui/button';
-import { Building2 } from 'lucide-react';
+import wingrowLogo from '@/assets/wingrow-market-logo.png';
 
 const Index = () => {
   const { user, currentRole, loading } = useAuth();
@@ -31,8 +31,8 @@ const Index = () => {
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="text-center space-y-4 sm:space-y-6">
         <div className="flex justify-center">
-          <div className="p-3 sm:p-4 bg-accent/10 rounded-full">
-            <Building2 className="h-12 w-12 sm:h-16 sm:w-16 text-accent" />
+          <div className="p-3 sm:p-4">
+            <img src={wingrowLogo} alt="Wingrow Market" className="h-24 w-24 sm:h-32 sm:w-32 object-contain" />
           </div>
         </div>
         <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold">Market Reporting System</h1>
