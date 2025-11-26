@@ -1,8 +1,8 @@
-import { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/lib/auth';
-import { Button } from '@/components/ui/button';
-import wingrowLogo from '@/assets/wingrow-market-logo.png';
+import { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/lib/auth";
+import { Button } from "@/components/ui/button";
+import wingrowLogo from "@/assets/wingrow-market-logo.png";
 
 const Index = () => {
   const { user, currentRole, loading } = useAuth();
@@ -15,14 +15,14 @@ const Index = () => {
     }
 
     if (user && currentRole) {
-      if (currentRole === 'admin') {
-        navigate('/admin');
-      } else if (currentRole === 'market_manager') {
-        navigate('/manager-dashboard');
-      } else if (currentRole === 'bdo') {
-        navigate('/bdo-dashboard');
+      if (currentRole === "admin") {
+        navigate("/admin");
+      } else if (currentRole === "market_manager") {
+        navigate("/manager-dashboard");
+      } else if (currentRole === "bdo") {
+        navigate("/bdo-dashboard");
       } else {
-        navigate('/dashboard');
+        navigate("/dashboard");
       }
     }
   }, [user, currentRole, loading, navigate]);
@@ -35,11 +35,11 @@ const Index = () => {
             <img src={wingrowLogo} alt="Wingrow Market" className="h-24 w-24 sm:h-32 sm:w-32 object-contain" />
           </div>
         </div>
-        <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold">Market Reporting System</h1>
+        <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold">Wingrow Market Reporting System</h1>
         <p className="text-base sm:text-lg md:text-xl text-muted-foreground max-w-md px-4">
-          Daily reporting platform for market activities and stall management
+          Daily Reporting Platform for Wingrow Market activities and Stall Management
         </p>
-        <Button size="lg" onClick={() => navigate('/auth')}>
+        <Button size="lg" onClick={() => navigate("/auth")}>
           Get Started
         </Button>
       </div>
