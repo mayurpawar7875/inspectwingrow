@@ -23,7 +23,13 @@ interface LiveMarket {
     stall_confirmations: number;
     market_video: number;
     cleaning_video: number;
-    other: number;
+    selfie_gps: number;
+    offers: number;
+    commodities: number;
+    feedback: number;
+    inspections: number;
+    planning: number;
+    collections: number;
   };
 }
 
@@ -66,7 +72,6 @@ export default function LiveMarkets() {
 
   const fetchTaskStats = async (marketId: string, todayDate: string) => {
     try {
-      // Fetch attendance (sessions with punch_in_time today)
       const { count: attendanceCount } = await supabase
         .from('sessions')
         .select('*', { count: 'exact', head: true })
@@ -74,32 +79,86 @@ export default function LiveMarkets() {
         .eq('session_date', todayDate)
         .not('punch_in_time', 'is', null);
 
-      // Fetch stall confirmations
       const { count: stallsCount } = await supabase
         .from('stall_confirmations')
         .select('*', { count: 'exact', head: true })
         .eq('market_id', marketId)
         .eq('market_date', todayDate);
 
-      // Fetch market videos
-      const { count: marketVideoCount } = await (supabase as any)
+      // Get session IDs for this market today
+      const { data: marketSessions } = await supabase
+        .from('sessions')
+        .select('id')
+        .eq('market_id', marketId)
+        .eq('session_date', todayDate);
+      
+      const sessionIds = (marketSessions || []).map(s => s.id);
+
+      const { count: marketVideoCount } = await supabase
         .from('media')
         .select('*', { count: 'exact', head: true })
-        .eq('market_id', marketId)
-        .gte('captured_at', `${todayDate}T00:00:00`)
-        .lte('captured_at', `${todayDate}T23:59:59`)
+        .in('session_id', sessionIds)
+        .eq('media_type', 'market_video' as any);
+
+      const { count: cleaningVideoCount } = await supabase
+        .from('media')
+        .select('*', { count: 'exact', head: true })
+        .in('session_id', sessionIds)
+        .eq('media_type', 'cleaning_video' as any);
+
+      const { count: selfieGpsCount } = await supabase
+        .from('media')
+        .select('*', { count: 'exact', head: true })
+        .in('session_id', sessionIds)
         .eq('media_type', 'selfie_gps');
 
-      // Fetch other media types (placeholder for future video types)
-      const cleaningVideoCount = 0;
-      const otherCount = 0;
+      const { count: offersCount } = await supabase
+        .from('offers')
+        .select('*', { count: 'exact', head: true })
+        .eq('market_id', marketId)
+        .eq('market_date', todayDate);
+
+      const { count: commoditiesCount } = await supabase
+        .from('non_available_commodities')
+        .select('*', { count: 'exact', head: true })
+        .eq('market_id', marketId)
+        .eq('market_date', todayDate);
+
+      const { count: feedbackCount } = await supabase
+        .from('organiser_feedback')
+        .select('*', { count: 'exact', head: true })
+        .eq('market_id', marketId)
+        .eq('market_date', todayDate);
+
+      const { count: inspectionsCount } = await supabase
+        .from('stall_inspections')
+        .select('*', { count: 'exact', head: true })
+        .eq('market_id', marketId);
+
+      const { count: planningCount } = await supabase
+        .from('next_day_planning')
+        .select('*', { count: 'exact', head: true })
+        .eq('market_id', marketId)
+        .eq('market_date', todayDate);
+
+      const { count: collectionsCount } = await supabase
+        .from('collections')
+        .select('*', { count: 'exact', head: true })
+        .eq('market_id', marketId)
+        .eq('collection_date', todayDate);
 
       return {
         attendance: attendanceCount || 0,
         stall_confirmations: stallsCount || 0,
         market_video: marketVideoCount || 0,
         cleaning_video: cleaningVideoCount || 0,
-        other: otherCount || 0,
+        selfie_gps: selfieGpsCount || 0,
+        offers: offersCount || 0,
+        commodities: commoditiesCount || 0,
+        feedback: feedbackCount || 0,
+        inspections: inspectionsCount || 0,
+        planning: planningCount || 0,
+        collections: collectionsCount || 0,
       };
     } catch (error) {
       console.error('Error fetching task stats:', error);
@@ -108,7 +167,13 @@ export default function LiveMarkets() {
         stall_confirmations: 0,
         market_video: 0,
         cleaning_video: 0,
-        other: 0,
+        selfie_gps: 0,
+        offers: 0,
+        commodities: 0,
+        feedback: 0,
+        inspections: 0,
+        planning: 0,
+        collections: 0,
       };
     }
   };
@@ -290,31 +355,55 @@ export default function LiveMarkets() {
   const renderTaskChecklist = (market: LiveMarket) => {
     const tasks = [
       { 
-        label: 'Punch-in Time', 
-        completed: !!market.last_punch_in,
-        value: market.last_punch_in ? formatTime(market.last_punch_in) : null
+        label: 'Employees Checked In', 
+        completed: market.task_stats ? market.task_stats.attendance > 0 : false,
+        value: market.task_stats && market.task_stats.attendance > 0 ? `${market.task_stats.attendance} checked in` : null
       },
       { 
-        label: 'Selfie Uploaded', 
-        completed: market.task_stats ? market.task_stats.attendance > 0 : false 
+        label: 'Stall Confirmation', 
+        completed: market.task_stats ? market.task_stats.stall_confirmations > 0 : false,
+        value: market.task_stats && market.task_stats.stall_confirmations > 0 ? `${market.task_stats.stall_confirmations} confirmed` : null
       },
       { 
-        label: 'Stall Confirmations', 
-        completed: market.stall_confirmations_count > 0,
-        value: market.stall_confirmations_count > 0 ? `${market.stall_confirmations_count} stalls` : null
+        label: 'Selfie GPS', 
+        completed: market.task_stats ? market.task_stats.selfie_gps > 0 : false,
+        value: market.task_stats && market.task_stats.selfie_gps > 0 ? `${market.task_stats.selfie_gps} uploaded` : null
+      },
+      { 
+        label: 'Today\'s Offer', 
+        completed: market.task_stats ? market.task_stats.offers > 0 : false,
+        value: market.task_stats && market.task_stats.offers > 0 ? `${market.task_stats.offers} items` : null
+      },
+      { 
+        label: 'Non-Available Commodities', 
+        completed: market.task_stats ? market.task_stats.commodities > 0 : false,
+        value: market.task_stats && market.task_stats.commodities > 0 ? `${market.task_stats.commodities} items` : null
+      },
+      { 
+        label: 'Organiser Feedback', 
+        completed: market.task_stats ? market.task_stats.feedback > 0 : false
+      },
+      { 
+        label: 'Stall Inspection', 
+        completed: market.task_stats ? market.task_stats.inspections > 0 : false,
+        value: market.task_stats && market.task_stats.inspections > 0 ? `${market.task_stats.inspections} stalls` : null
+      },
+      { 
+        label: 'Next Day Planning', 
+        completed: market.task_stats ? market.task_stats.planning > 0 : false
       },
       { 
         label: 'Market Video', 
-        completed: market.task_stats ? market.task_stats.market_video > 0 : false 
+        completed: market.task_stats ? market.task_stats.market_video > 0 : false
       },
       { 
         label: 'Cleaning Video', 
-        completed: market.task_stats ? market.task_stats.cleaning_video > 0 : false 
+        completed: market.task_stats ? market.task_stats.cleaning_video > 0 : false
       },
       { 
-        label: 'Media Uploads', 
-        completed: market.media_uploads_count > 0,
-        value: market.media_uploads_count > 0 ? `${market.media_uploads_count} files` : null
+        label: 'Collection', 
+        completed: market.task_stats ? market.task_stats.collections > 0 : false,
+        value: market.task_stats && market.task_stats.collections > 0 ? `${market.task_stats.collections} collected` : null
       },
     ];
 
