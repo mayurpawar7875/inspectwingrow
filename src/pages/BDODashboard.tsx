@@ -130,7 +130,6 @@ export default function BDODashboard() {
   const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
   const [showCamera, setShowCamera] = useState(false);
   const videoRef = useRef<HTMLVideoElement | null>(null);
-  const liveMarketsRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (cameraStream && videoRef.current) {
@@ -936,9 +935,7 @@ export default function BDODashboard() {
 
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button variant="outline" size="sm" onClick={() => {
-                    liveMarketsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                  }}>
+                  <Button variant="outline" size="sm" onClick={() => navigate('/bdo/live-markets')}>
                     <MapPin className="h-4 w-4 sm:mr-2" />
                     <span className="hidden sm:inline">Live Markets Today</span>
                   </Button>
@@ -1194,7 +1191,7 @@ export default function BDODashboard() {
         </div>
 
         {/* Widgets Section */}
-        <div ref={liveMarketsRef} className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
           <LiveMarketsWidget />
           <LeaveRequestsWidget />
           <LocationVisitsWidget />
