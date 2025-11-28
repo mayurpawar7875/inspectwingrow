@@ -1932,6 +1932,12 @@ export type Database = {
       }
     }
     Functions: {
+      get_employee_id_by_username: {
+        Args: { lookup_username: string }
+        Returns: {
+          user_id: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["user_role"]
