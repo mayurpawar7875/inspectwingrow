@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
-import wingrowLogo from "@/assets/wingrow-market-logo.png";
+import wingrowLogo from "@/assets/wingrow-logo-optimized.png";
 
 const Index = () => {
   const { user, currentRole, loading } = useAuth();
