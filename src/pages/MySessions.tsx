@@ -17,7 +17,16 @@ import {
 } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { toast } from 'sonner';
-import { ArrowLeft, Calendar, Clock, MapPin, Eye, Filter, Search } from 'lucide-react';
+import { ArrowLeft, Calendar, Clock, MapPin, Eye, Filter, Search, Image, Video } from 'lucide-react';
+
+interface MediaFile {
+  id: string;
+  file_name: string;
+  file_url: string;
+  media_type: string;
+  captured_at: string;
+  content_type: string;
+}
 
 interface Session {
   id: string;
@@ -30,6 +39,7 @@ interface Session {
   market: { name: string; location: string } | null;
   stalls_count?: number;
   media_count?: number;
+  media_files?: MediaFile[];
   tasks_completed?: number;
   tasks_total?: number;
   all_tasks_completed?: boolean;
@@ -172,7 +182,7 @@ export default function MySessions() {
       // Fetch additional stats for each session
       const sessionsWithStats = await Promise.all(
         sessionList.map(async (session) => {
-          const [stallsResult, mediaResult] = await Promise.all([
+          const [stallsResult, mediaResult, attendanceResult] = await Promise.all([
             supabase
               .from('stall_confirmations')
               .select('id', { count: 'exact', head: true })
@@ -180,8 +190,14 @@ export default function MySessions() {
               .eq('market_date', session.session_date),
             supabase
               .from('media')
-              .select('id', { count: 'exact', head: true })
+              .select('id, file_name, file_url, media_type, captured_at, content_type')
               .eq('session_id', session.id),
+            supabase
+              .from('attendance_records')
+              .select('total_tasks, completed_tasks')
+              .eq('user_id', user.id)
+              .eq('attendance_date', session.session_date)
+              .maybeSingle(),
           ]);
 
           // Simple session status based on finalized_at
@@ -206,7 +222,10 @@ export default function MySessions() {
             ...session,
             status: finalStatus,
             stalls_count: stallsResult.count || 0,
-            media_count: mediaResult.count || 0,
+            media_count: mediaResult.data?.length || 0,
+            media_files: mediaResult.data || [],
+            tasks_completed: attendanceResult.data?.completed_tasks || 0,
+            tasks_total: attendanceResult.data?.total_tasks || 0,
           };
         })
       );
@@ -855,9 +874,23 @@ export default function MySessions() {
                   </div>
                   <div>
                     <Label className="text-muted-foreground">Media Uploads</Label>
-                    <p className="font-medium">
-                      {selectedSession.media_count || 0}
-                    </p>
+                    <Button
+                      variant="link"
+                      className="h-auto p-0 font-medium"
+                      onClick={() => {
+                        if (selectedSession.media_files && selectedSession.media_files.length > 0) {
+                          // Show media files in a simple alert for now
+                          const mediaList = selectedSession.media_files.map((m, i) => 
+                            `${i + 1}. ${m.media_type}: ${m.file_name}`
+                          ).join('\n');
+                          toast.info(`Media Files (${selectedSession.media_count}):\n${mediaList}`);
+                        } else {
+                          toast.info('No media files uploaded for this session');
+                        }
+                      }}
+                    >
+                      {selectedSession.media_count || 0} file{selectedSession.media_count !== 1 ? 's' : ''}
+                    </Button>
                   </div>
                   <div>
                     <Label className="text-muted-foreground">Tasks Completion</Label>
@@ -871,6 +904,48 @@ export default function MySessions() {
                     )}
                   </div>
                 </div>
+
+                {/* Media Files Section */}
+                {selectedSession.media_files && selectedSession.media_files.length > 0 && (
+                  <div className="mt-6 pt-6 border-t">
+                    <Label className="text-muted-foreground mb-3 block">Media Files</Label>
+                    <div className="grid grid-cols-2 gap-3">
+                      {selectedSession.media_files.map((media) => (
+                        <Card key={media.id} className="overflow-hidden">
+                          <CardContent className="p-3">
+                            <div className="flex items-start gap-3">
+                              <div className="flex-shrink-0">
+                                {media.content_type.startsWith('video/') ? (
+                                  <Video className="h-5 w-5 text-muted-foreground" />
+                                ) : (
+                                  <Image className="h-5 w-5 text-muted-foreground" />
+                                )}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium truncate">{media.media_type}</p>
+                                <p className="text-xs text-muted-foreground truncate">{media.file_name}</p>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  {new Date(media.captured_at).toLocaleString('en-IN')}
+                                </p>
+                                <Button
+                                  variant="link"
+                                  size="sm"
+                                  className="h-auto p-0 mt-1 text-xs"
+                                  onClick={() => {
+                                    const url = `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/media/${media.file_url}`;
+                                    window.open(url, '_blank');
+                                  }}
+                                >
+                                  View File
+                                </Button>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </DialogContent>
           </Dialog>
