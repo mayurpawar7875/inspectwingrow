@@ -182,7 +182,15 @@ export default function MySessions() {
       // Fetch additional stats for each session
       const sessionsWithStats = await Promise.all(
         sessionList.map(async (session) => {
-          const [stallsResult, mediaResult, attendanceResult] = await Promise.all([
+          const [
+            stallsResult, 
+            mediaResult, 
+            offersResult,
+            nonAvailableResult,
+            stallInspectionsResult,
+            organiserFeedbackResult,
+            nextDayPlanningResult
+          ] = await Promise.all([
             supabase
               .from('stall_confirmations')
               .select('id', { count: 'exact', head: true })
@@ -193,12 +201,76 @@ export default function MySessions() {
               .select('id, file_name, file_url, media_type, captured_at, content_type')
               .eq('session_id', session.id),
             supabase
-              .from('attendance_records')
-              .select('total_tasks, completed_tasks')
-              .eq('user_id', user.id)
-              .eq('attendance_date', session.session_date)
-              .maybeSingle(),
+              .from('offers')
+              .select('id', { count: 'exact', head: true })
+              .eq('session_id', session.id),
+            supabase
+              .from('non_available_commodities')
+              .select('id', { count: 'exact', head: true })
+              .eq('session_id', session.id),
+            supabase
+              .from('stall_inspections')
+              .select('id', { count: 'exact', head: true })
+              .eq('session_id', session.id),
+            supabase
+              .from('organiser_feedback')
+              .select('id', { count: 'exact', head: true })
+              .eq('session_id', session.id),
+            supabase
+              .from('next_day_planning')
+              .select('id', { count: 'exact', head: true })
+              .eq('session_id', session.id),
           ]);
+
+          // Calculate task completion based on actual activities
+          // Total expected tasks: 13
+          const totalTasks = 13;
+          let completedTasks = 0;
+
+          // Task 1: Punch In
+          if (session.punch_in_time) completedTasks++;
+          
+          // Task 2: Punch Out
+          if (session.punch_out_time) completedTasks++;
+          
+          // Task 3: Stall Confirmations (at least 1)
+          if ((stallsResult.count || 0) > 0) completedTasks++;
+          
+          // Task 4: Media Uploads - Selfie GPS
+          const selfieGPS = mediaResult.data?.find(m => m.media_type === 'selfie_gps');
+          if (selfieGPS) completedTasks++;
+          
+          // Task 5: Media Uploads - Outside Rates
+          const outsideRates = mediaResult.data?.find(m => m.media_type === 'outside_rates');
+          if (outsideRates) completedTasks++;
+          
+          // Task 6: Media Uploads - Market Video
+          const marketVideo = mediaResult.data?.find(m => m.media_type === 'market_video');
+          if (marketVideo) completedTasks++;
+          
+          // Task 7: Media Uploads - Cleaning Video
+          const cleaningVideo = mediaResult.data?.find(m => m.media_type === 'cleaning_video');
+          if (cleaningVideo) completedTasks++;
+          
+          // Task 8: Media Uploads - Rate Board
+          const rateBoard = mediaResult.data?.find(m => m.media_type === 'rate_board');
+          if (rateBoard) completedTasks++;
+          
+          // Task 9: Media Uploads - Customer Feedback
+          const customerFeedback = mediaResult.data?.find(m => m.media_type === 'customer_feedback');
+          if (customerFeedback) completedTasks++;
+          
+          // Task 10: Today's Offers
+          if ((offersResult.count || 0) > 0) completedTasks++;
+          
+          // Task 11: Non-Available Commodities
+          if ((nonAvailableResult.count || 0) > 0) completedTasks++;
+          
+          // Task 12: Stall Inspections
+          if ((stallInspectionsResult.count || 0) > 0) completedTasks++;
+          
+          // Task 13: Organiser Feedback or Next Day Planning (either one counts)
+          if ((organiserFeedbackResult.count || 0) > 0 || (nextDayPlanningResult.count || 0) > 0) completedTasks++;
 
           // Simple session status based on finalized_at
           const sessionDate = session.session_date;
@@ -224,8 +296,8 @@ export default function MySessions() {
             stalls_count: stallsResult.count || 0,
             media_count: mediaResult.data?.length || 0,
             media_files: mediaResult.data || [],
-            tasks_completed: attendanceResult.data?.completed_tasks || 0,
-            tasks_total: attendanceResult.data?.total_tasks || 0,
+            tasks_completed: completedTasks,
+            tasks_total: totalTasks,
           };
         })
       );
