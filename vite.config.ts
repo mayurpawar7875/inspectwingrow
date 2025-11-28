@@ -69,7 +69,10 @@ export default defineConfig(({ mode }) => ({
               }
             }
           }
-        ]
+        ],
+        navigateFallback: null,
+        skipWaiting: true,
+        clientsClaim: true
       }
     })
   ].filter(Boolean),
