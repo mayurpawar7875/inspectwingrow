@@ -763,9 +763,27 @@ export default function Dashboard() {
               </CardContent>
             </Card>
 
-            {/* Action Cards - Show until punch out */}
-            {!todaySession.punch_out_time && (
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-1.5 sm:gap-3">
+            {/* Action Cards - Show until midnight */}
+            {(() => {
+              const sessionDate = todaySession.session_date;
+              const currentDateTime = new Date();
+              const sessionDateTime = new Date(sessionDate + 'T23:59:59');
+              const canUploadTasks = currentDateTime <= sessionDateTime;
+              
+              return canUploadTasks && (
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-1.5 sm:gap-3">
+                  {!todaySession.punch_out_time && (
+                    <Card className="col-span-full bg-info/10 border-info/20">
+                      <CardHeader className="p-3 sm:p-4">
+                        <div className="flex items-center gap-2">
+                          <AlertCircle className="h-4 w-4 sm:h-5 sm:w-5 text-info" />
+                          <CardDescription className="text-xs sm:text-sm text-info-foreground">
+                            You can complete tasks until midnight (11:59 PM) even after punch out
+                          </CardDescription>
+                        </div>
+                      </CardHeader>
+                    </Card>
+                  )}
                 {/* Punch In */}
                 {!todaySession.punch_in_time && (
                   <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate('/punch')}>
@@ -900,18 +918,17 @@ export default function Dashboard() {
                           const { latitude, longitude } = position.coords;
                           
                           try {
-                            // Update session with punch out time
+                            // Update session with punch out time only
                             const { error: sessionError } = await supabase
                               .from('sessions')
                               .update({ 
-                                punch_out_time: new Date().toISOString(),
-                                status: 'completed'
+                                punch_out_time: new Date().toISOString()
                               })
                               .eq('id', todaySession.id);
 
                             if (sessionError) throw sessionError;
 
-                            toast.success('Punched out successfully! Session completed.');
+                            toast.success('Punched out successfully! You can continue uploading tasks until midnight.');
                             
                             // Refresh the session data
                             fetchTodaySession();
@@ -934,8 +951,33 @@ export default function Dashboard() {
                     </CardHeader>
                   </Card>
                 )}
-              </div>
-            )}
+                </div>
+              );
+            })()}
+            
+            {/* Message when tasks are locked after midnight */}
+            {(() => {
+              const sessionDate = todaySession.session_date;
+              const currentDateTime = new Date();
+              const sessionDateTime = new Date(sessionDate + 'T23:59:59');
+              const isExpired = currentDateTime > sessionDateTime;
+              
+              return isExpired && todaySession.computed_status === 'incomplete_expired' && (
+                <Card className="bg-destructive/10 border-destructive/20">
+                  <CardHeader className="p-3 sm:p-4">
+                    <div className="flex items-center gap-2">
+                      <AlertCircle className="h-5 w-5 text-destructive" />
+                      <div>
+                        <CardTitle className="text-sm sm:text-base text-destructive">Session Expired</CardTitle>
+                        <CardDescription className="text-xs sm:text-sm text-destructive/80 mt-1">
+                          The deadline for completing tasks has passed. This session is now marked as incomplete and expired.
+                        </CardDescription>
+                      </div>
+                    </div>
+                  </CardHeader>
+                </Card>
+              );
+            })()}
 
             {/* Session Summary - Show after completion */}
             {(todaySession.status === 'completed' || todaySession.status === 'finalized') && sessionSummary && (
