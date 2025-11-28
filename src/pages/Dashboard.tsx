@@ -57,6 +57,9 @@ interface Session {
   market_id: string;
   market: { name: string; location: string };
   media: any[];
+  total_tasks?: number;
+  completed_tasks?: number;
+  computed_status?: string;
 }
 
 interface SessionSummary {
@@ -242,23 +245,112 @@ export default function Dashboard() {
         console.error('Error fetching session:', error);
         throw error;
       }
-      setTodaySession(data);
       
-      // Also compute stalls count from stall_confirmations using IST date to match triggers
+      // Calculate task completion and status
       if (data) {
-        const dateStr = getISTDateString(new Date());
-        const { count, error: countError } = await supabase
+        const todayIST = getISTDateString(new Date());
+        const dateStr = todayIST;
+        
+        // Task 1: Punch In
+        let totalTasks = 13;
+        let completedTasks = 0;
+        if (data.punch_in_time) completedTasks++;
+        
+        // Task 2: Stall Confirmations (at least 1)
+        const { count: stallCount, error: stallCountError } = await supabase
           .from('stall_confirmations')
           .select('*', { count: 'exact', head: true })
           .eq('market_id', data.market_id)
           .eq('market_date', dateStr);
         
-        if (countError) {
-          console.error('Error fetching stalls count:', countError);
+        if (!stallCountError) {
+          setStallsCount(stallCount || 0);
+          if ((stallCount || 0) > 0) completedTasks++;
         } else {
-          setStallsCount(count || 0);
+          setStallsCount(0);
         }
+        
+        // Task 3-8: Media uploads (6 types)
+        const mediaTypes: Array<'outside_rates' | 'rate_board' | 'market_video' | 'cleaning_video' | 'customer_feedback' | 'selfie_gps'> = 
+          ['outside_rates', 'rate_board', 'market_video', 'cleaning_video', 'customer_feedback', 'selfie_gps'];
+        for (const mediaType of mediaTypes) {
+          const { count: mediaCount } = await supabase
+            .from('media')
+            .select('*', { count: 'exact', head: true })
+            .eq('session_id', data.id)
+            .eq('media_type', mediaType);
+          if ((mediaCount || 0) > 0) completedTasks++;
+        }
+        
+        // Task 9: Today's Offers
+        const { count: offersCount } = await supabase
+          .from('offers')
+          .select('*', { count: 'exact', head: true })
+          .eq('market_id', data.market_id)
+          .eq('market_date', dateStr)
+          .eq('session_id', data.id);
+        if ((offersCount || 0) > 0) completedTasks++;
+        
+        // Task 10: Non-Available Commodities
+        const { count: commoditiesCount } = await supabase
+          .from('non_available_commodities')
+          .select('*', { count: 'exact', head: true })
+          .eq('market_id', data.market_id)
+          .eq('market_date', dateStr)
+          .eq('session_id', data.id);
+        if ((commoditiesCount || 0) > 0) completedTasks++;
+        
+        // Task 11: Stall Inspections (at least 1)
+        const { count: inspectionsCount } = await supabase
+          .from('stall_inspections')
+          .select('*', { count: 'exact', head: true })
+          .eq('session_id', data.id);
+        if ((inspectionsCount || 0) > 0) completedTasks++;
+        
+        // Task 12: Punch Out
+        if (data.punch_out_time) completedTasks++;
+        
+        // Task 13: Organiser Feedback or Next Day Planning (either one counts)
+        const { count: feedbackCount } = await supabase
+          .from('organiser_feedback')
+          .select('*', { count: 'exact', head: true })
+          .eq('market_id', data.market_id)
+          .eq('market_date', dateStr)
+          .eq('session_id', data.id);
+        
+        const { count: planningCount } = await supabase
+          .from('next_day_planning')
+          .select('*', { count: 'exact', head: true })
+          .eq('market_id', data.market_id)
+          .eq('market_date', dateStr)
+          .eq('session_id', data.id);
+        
+        if ((feedbackCount || 0) > 0 || (planningCount || 0) > 0) completedTasks++;
+        
+        // Determine status based on task completion and expiration
+        const sessionDate = data.session_date;
+        const currentDateTime = new Date();
+        const sessionDateTime = new Date(sessionDate + 'T23:59:59');
+        
+        let computedStatus = 'incomplete';
+        
+        if (completedTasks === totalTasks) {
+          computedStatus = 'completed';
+        } else if (currentDateTime > sessionDateTime) {
+          computedStatus = 'incomplete_expired';
+        } else {
+          computedStatus = 'incomplete';
+        }
+        
+        // Set session with computed values
+        setTodaySession({
+          ...data,
+          total_tasks: totalTasks,
+          completed_tasks: completedTasks,
+          computed_status: computedStatus
+        });
       } else {
+        setTodaySession(data);
         setStallsCount(0);
       }
       
@@ -328,11 +420,22 @@ export default function Dashboard() {
       completed: 'bg-success text-success-foreground',
       finalized: 'bg-success text-success-foreground',
       locked: 'bg-muted text-muted-foreground',
+      incomplete: 'bg-warning text-warning-foreground',
+      incomplete_expired: 'bg-destructive text-destructive-foreground',
+    };
+
+    const labels: Record<string, string> = {
+      active: 'Active',
+      completed: 'Completed',
+      finalized: 'Finalized',
+      locked: 'Locked',
+      incomplete: 'Incomplete',
+      incomplete_expired: 'Incomplete & Expired',
     };
 
     return (
-      <Badge className={colors[status as keyof typeof colors]}>
-        {status.charAt(0).toUpperCase() + status.slice(1)}
+      <Badge className={colors[status as keyof typeof colors] || 'bg-muted'}>
+        {labels[status as keyof typeof labels] || status.charAt(0).toUpperCase() + status.slice(1)}
       </Badge>
     );
   };
@@ -519,7 +622,7 @@ export default function Dashboard() {
                     </CardDescription>
                   </div>
                   <div className="flex-shrink-0">
-                    {getStatusBadge(todaySession.status)}
+                    {getStatusBadge(todaySession.computed_status || todaySession.status)}
                   </div>
                 </div>
               </CardHeader>
