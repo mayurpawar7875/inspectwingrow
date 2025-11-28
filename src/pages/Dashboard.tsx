@@ -704,21 +704,57 @@ export default function Dashboard() {
                 {todaySession.total_tasks !== undefined && todaySession.completed_tasks !== undefined && (
                   <div className="mt-4 pt-4 border-t">
                     <div className="space-y-3">
-                      {/* Progress Bar */}
-                      <div className="space-y-1.5">
-                        <div className="flex justify-between items-center">
-                          <span className="text-xs sm:text-sm font-medium text-muted-foreground">
-                            Task Completion
-                          </span>
-                          <span className="text-xs sm:text-sm font-bold text-foreground">
-                            {todaySession.completed_tasks} / {todaySession.total_tasks}
-                          </span>
+                      {/* Circular Progress */}
+                      <div className="flex flex-col sm:flex-row items-center gap-4">
+                        {/* Circular Progress Indicator */}
+                        <div className="relative flex items-center justify-center">
+                          <svg className="transform -rotate-90" width="120" height="120">
+                            {/* Background circle */}
+                            <circle
+                              cx="60"
+                              cy="60"
+                              r="50"
+                              stroke="hsl(var(--muted))"
+                              strokeWidth="10"
+                              fill="none"
+                            />
+                            {/* Progress circle */}
+                            <circle
+                              cx="60"
+                              cy="60"
+                              r="50"
+                              stroke="hsl(var(--primary))"
+                              strokeWidth="10"
+                              fill="none"
+                              strokeDasharray={`${2 * Math.PI * 50}`}
+                              strokeDashoffset={`${2 * Math.PI * 50 * (1 - todaySession.completed_tasks / todaySession.total_tasks)}`}
+                              strokeLinecap="round"
+                              className="transition-all duration-500 ease-out"
+                            />
+                          </svg>
+                          {/* Center text */}
+                          <div className="absolute inset-0 flex flex-col items-center justify-center">
+                            <span className="text-2xl sm:text-3xl font-bold text-foreground">
+                              {todaySession.completed_tasks}
+                            </span>
+                            <span className="text-xs text-muted-foreground">of {todaySession.total_tasks}</span>
+                            <span className="text-xs font-medium text-primary mt-0.5">
+                              {Math.round((todaySession.completed_tasks / todaySession.total_tasks) * 100)}%
+                            </span>
+                          </div>
                         </div>
-                        <div className="h-2 bg-muted rounded-full overflow-hidden">
-                          <div 
-                            className="h-full bg-primary transition-all duration-500 ease-out"
-                            style={{ width: `${(todaySession.completed_tasks / todaySession.total_tasks) * 100}%` }}
-                          />
+                        
+                        {/* Task Status Summary */}
+                        <div className="flex-1 text-center sm:text-left">
+                          <h4 className="text-sm sm:text-base font-semibold text-foreground mb-1">
+                            Task Completion
+                          </h4>
+                          <p className="text-xs sm:text-sm text-muted-foreground">
+                            {todaySession.completed_tasks === todaySession.total_tasks 
+                              ? "All tasks completed! Great job!" 
+                              : `${todaySession.total_tasks - todaySession.completed_tasks} task${todaySession.total_tasks - todaySession.completed_tasks > 1 ? 's' : ''} remaining`
+                            }
+                          </p>
                         </div>
                       </div>
                       
