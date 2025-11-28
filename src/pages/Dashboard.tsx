@@ -1092,7 +1092,7 @@ export default function Dashboard() {
 
       {/* Today's Offers Dialog */}
       <Dialog open={offersDialog} onOpenChange={setOffersDialog}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="w-screen h-screen max-w-full max-h-full overflow-y-auto p-4 sm:p-6">
           <DialogHeader>
             <DialogTitle>Today's Offers</DialogTitle>
           </DialogHeader>
@@ -1115,7 +1115,7 @@ export default function Dashboard() {
 
       {/* Non-Available Commodities Dialog */}
       <Dialog open={commoditiesDialog} onOpenChange={setCommoditiesDialog}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="w-screen h-screen max-w-full max-h-full overflow-y-auto p-4 sm:p-6">
           <DialogHeader>
             <DialogTitle>Non-Available Commodities</DialogTitle>
           </DialogHeader>
