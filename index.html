@@ -29,5 +29,26 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+    <script>
+      // Async service worker registration
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js', { scope: '/' })
+            .catch(() => {});
+        });
+      }
+      
+      // Defer non-critical CSS loading
+      const loadDeferredStyles = () => {
+        const links = document.querySelectorAll('link[rel="stylesheet"][media="print"]');
+        links.forEach(link => link.media = 'all');
+      };
+      
+      if (window.requestIdleCallback) {
+        requestIdleCallback(loadDeferredStyles);
+      } else {
+        setTimeout(loadDeferredStyles, 1);
+      }
+    </script>
   </body>
 </html>
