@@ -931,9 +931,21 @@ export default function MySessions() {
                                   variant="link"
                                   size="sm"
                                   className="h-auto p-0 mt-1 text-xs"
-                                  onClick={() => {
-                                    const url = `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/media/${media.file_url}`;
-                                    window.open(url, '_blank');
+                                  onClick={async () => {
+                                    try {
+                                      const { data, error } = await supabase
+                                        .storage
+                                        .from('employee-media')
+                                        .createSignedUrl(media.file_url, 3600); // 1 hour expiry
+                                      
+                                      if (error) throw error;
+                                      if (data?.signedUrl) {
+                                        window.open(data.signedUrl, '_blank');
+                                      }
+                                    } catch (error) {
+                                      console.error('Error generating signed URL:', error);
+                                      toast.error('Failed to open media file');
+                                    }
                                   }}
                                 >
                                   View File
