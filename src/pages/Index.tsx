@@ -32,7 +32,15 @@ const Index = () => {
       <div className="text-center space-y-4 sm:space-y-6">
         <div className="flex justify-center">
           <div className="p-3 sm:p-4">
-            <img src={wingrowLogo} alt="Wingrow Market" className="h-24 w-24 sm:h-32 sm:w-32 object-contain" />
+            <img 
+              src={wingrowLogo} 
+              alt="Wingrow Market" 
+              className="h-24 w-24 sm:h-32 sm:w-32 object-contain"
+              width="128"
+              height="128"
+              fetchPriority="high"
+              decoding="async"
+            />
           </div>
         </div>
         <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold">Wingrow Market Reporting System</h1>
