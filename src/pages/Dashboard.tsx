@@ -48,6 +48,12 @@ const NextDayPlanningForm = lazy(() => import('@/components/NextDayPlanningForm'
 const MarketLocationVisitForm = lazy(() => import('@/components/MarketLocationVisitForm'));
 const ReimbursementForm = lazy(() => import('@/components/ReimbursementForm'));
 
+interface TaskStatus {
+  name: string;
+  completed: boolean;
+  icon: any;
+}
+
 interface Session {
   id: string;
   session_date: string;
@@ -60,6 +66,7 @@ interface Session {
   total_tasks?: number;
   completed_tasks?: number;
   computed_status?: string;
+  task_details?: TaskStatus[];
 }
 
 interface SessionSummary {
@@ -254,7 +261,11 @@ export default function Dashboard() {
         // Task 1: Punch In
         let totalTasks = 13;
         let completedTasks = 0;
-        if (data.punch_in_time) completedTasks++;
+        const taskDetails: TaskStatus[] = [];
+        
+        const punchInCompleted = !!data.punch_in_time;
+        if (punchInCompleted) completedTasks++;
+        taskDetails.push({ name: 'Punch In', completed: punchInCompleted, icon: Clock });
         
         // Task 2: Stall Confirmations (at least 1)
         const { count: stallCount, error: stallCountError } = await supabase
@@ -263,23 +274,34 @@ export default function Dashboard() {
           .eq('market_id', data.market_id)
           .eq('market_date', dateStr);
         
+        const stallsCompleted = !stallCountError && (stallCount || 0) > 0;
         if (!stallCountError) {
           setStallsCount(stallCount || 0);
-          if ((stallCount || 0) > 0) completedTasks++;
+          if (stallsCompleted) completedTasks++;
         } else {
           setStallsCount(0);
         }
+        taskDetails.push({ name: 'Stall Confirmations', completed: stallsCompleted, icon: FileText });
         
         // Task 3-8: Media uploads (6 types)
-        const mediaTypes: Array<'outside_rates' | 'rate_board' | 'market_video' | 'cleaning_video' | 'customer_feedback' | 'selfie_gps'> = 
-          ['outside_rates', 'rate_board', 'market_video', 'cleaning_video', 'customer_feedback', 'selfie_gps'];
+        const mediaTypes: Array<{type: 'outside_rates' | 'rate_board' | 'market_video' | 'cleaning_video' | 'customer_feedback' | 'selfie_gps', label: string, icon: any}> = [
+          { type: 'outside_rates', label: 'Outside Rates', icon: Upload },
+          { type: 'rate_board', label: 'Rate Board Photo', icon: ImageIcon },
+          { type: 'market_video', label: 'Market Video', icon: Video },
+          { type: 'cleaning_video', label: 'Cleaning Video', icon: Sparkles },
+          { type: 'customer_feedback', label: 'Customer Feedback', icon: MessageSquare },
+          { type: 'selfie_gps', label: 'Selfie with GPS', icon: Camera },
+        ];
+        
         for (const mediaType of mediaTypes) {
           const { count: mediaCount } = await supabase
             .from('media')
             .select('*', { count: 'exact', head: true })
             .eq('session_id', data.id)
-            .eq('media_type', mediaType);
-          if ((mediaCount || 0) > 0) completedTasks++;
+            .eq('media_type', mediaType.type);
+          const mediaCompleted = (mediaCount || 0) > 0;
+          if (mediaCompleted) completedTasks++;
+          taskDetails.push({ name: mediaType.label, completed: mediaCompleted, icon: mediaType.icon });
         }
         
         // Task 9: Today's Offers
@@ -289,7 +311,9 @@ export default function Dashboard() {
           .eq('market_id', data.market_id)
           .eq('market_date', dateStr)
           .eq('session_id', data.id);
-        if ((offersCount || 0) > 0) completedTasks++;
+        const offersCompleted = (offersCount || 0) > 0;
+        if (offersCompleted) completedTasks++;
+        taskDetails.push({ name: "Today's Offers", completed: offersCompleted, icon: FileText });
         
         // Task 10: Non-Available Commodities
         const { count: commoditiesCount } = await supabase
@@ -298,17 +322,23 @@ export default function Dashboard() {
           .eq('market_id', data.market_id)
           .eq('market_date', dateStr)
           .eq('session_id', data.id);
-        if ((commoditiesCount || 0) > 0) completedTasks++;
+        const commoditiesCompleted = (commoditiesCount || 0) > 0;
+        if (commoditiesCompleted) completedTasks++;
+        taskDetails.push({ name: 'Non-Available Commodities', completed: commoditiesCompleted, icon: AlertCircle });
         
         // Task 11: Stall Inspections (at least 1)
         const { count: inspectionsCount } = await supabase
           .from('stall_inspections')
           .select('*', { count: 'exact', head: true })
           .eq('session_id', data.id);
-        if ((inspectionsCount || 0) > 0) completedTasks++;
+        const inspectionsCompleted = (inspectionsCount || 0) > 0;
+        if (inspectionsCompleted) completedTasks++;
+        taskDetails.push({ name: 'Stall Inspections', completed: inspectionsCompleted, icon: ClipboardCheck });
         
         // Task 12: Punch Out
-        if (data.punch_out_time) completedTasks++;
+        const punchOutCompleted = !!data.punch_out_time;
+        if (punchOutCompleted) completedTasks++;
+        taskDetails.push({ name: 'Punch Out', completed: punchOutCompleted, icon: LogOut });
         
         // Task 13: Organiser Feedback or Next Day Planning (either one counts)
         const { count: feedbackCount } = await supabase
@@ -325,7 +355,9 @@ export default function Dashboard() {
           .eq('market_date', dateStr)
           .eq('session_id', data.id);
         
-        if ((feedbackCount || 0) > 0 || (planningCount || 0) > 0) completedTasks++;
+        const feedbackCompleted = (feedbackCount || 0) > 0 || (planningCount || 0) > 0;
+        if (feedbackCompleted) completedTasks++;
+        taskDetails.push({ name: 'Feedback / Next Day Plan', completed: feedbackCompleted, icon: Calendar });
         
         // Determine status based on task completion and expiration
         const sessionDate = data.session_date;
@@ -347,7 +379,8 @@ export default function Dashboard() {
           ...data,
           total_tasks: totalTasks,
           completed_tasks: completedTasks,
-          computed_status: computedStatus
+          computed_status: computedStatus,
+          task_details: taskDetails
         });
       } else {
         setTodaySession(data);
@@ -666,6 +699,67 @@ export default function Dashboard() {
                     </div>
                   </div>
                 </div>
+                
+                {/* Task Progress Section */}
+                {todaySession.total_tasks !== undefined && todaySession.completed_tasks !== undefined && (
+                  <div className="mt-4 pt-4 border-t">
+                    <div className="space-y-3">
+                      {/* Progress Bar */}
+                      <div className="space-y-1.5">
+                        <div className="flex justify-between items-center">
+                          <span className="text-xs sm:text-sm font-medium text-muted-foreground">
+                            Task Completion
+                          </span>
+                          <span className="text-xs sm:text-sm font-bold text-foreground">
+                            {todaySession.completed_tasks} / {todaySession.total_tasks}
+                          </span>
+                        </div>
+                        <div className="h-2 bg-muted rounded-full overflow-hidden">
+                          <div 
+                            className="h-full bg-primary transition-all duration-500 ease-out"
+                            style={{ width: `${(todaySession.completed_tasks / todaySession.total_tasks) * 100}%` }}
+                          />
+                        </div>
+                      </div>
+                      
+                      {/* Task Details - Collapsible */}
+                      <details className="group">
+                        <summary className="cursor-pointer text-xs sm:text-sm text-primary hover:underline flex items-center gap-1">
+                          View Task Details
+                          <span className="transition-transform group-open:rotate-180">▼</span>
+                        </summary>
+                        <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          {todaySession.task_details?.map((task, index) => {
+                            const IconComponent = task.icon;
+                            return (
+                              <div 
+                                key={index}
+                                className={`flex items-center gap-2 p-2 rounded-lg border ${
+                                  task.completed 
+                                    ? 'bg-success/10 border-success/20' 
+                                    : 'bg-muted/50 border-border'
+                                }`}
+                              >
+                                <div className="flex-shrink-0">
+                                  {task.completed ? (
+                                    <CheckCircle className="h-4 w-4 text-success" />
+                                  ) : (
+                                    <IconComponent className="h-4 w-4 text-muted-foreground" />
+                                  )}
+                                </div>
+                                <span className={`text-xs flex-1 ${
+                                  task.completed ? 'text-foreground font-medium' : 'text-muted-foreground'
+                                }`}>
+                                  {task.name}
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </details>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
