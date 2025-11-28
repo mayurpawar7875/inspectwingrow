@@ -272,22 +272,22 @@ export default function MySessions() {
           // Task 13: Organiser Feedback or Next Day Planning (either one counts)
           if ((organiserFeedbackResult.count || 0) > 0 || (nextDayPlanningResult.count || 0) > 0) completedTasks++;
 
-          // Simple session status based on finalized_at
+          // Determine status based on task completion and expiration
           const sessionDate = session.session_date;
-          const isExpired = sessionDate < todayIST;
-          let finalStatus = session.status;
+          const currentDateTime = new Date();
+          const sessionDateTime = new Date(sessionDate + 'T23:59:59');
           
-          if (isExpired && session.status === 'active') {
-            // Session expired - update to completed in database
-            try {
-              await supabase
-                .from('sessions')
-                .update({ status: 'completed' })
-                .eq('id', session.id);
-              finalStatus = 'completed';
-            } catch (error) {
-              console.error('Error updating session status:', error);
-            }
+          let finalStatus = 'incomplete';
+          
+          // Check if all 13 tasks are completed
+          if (completedTasks === totalTasks) {
+            finalStatus = 'completed';
+          } else if (currentDateTime > sessionDateTime) {
+            // Past midnight of the session date and tasks are incomplete
+            finalStatus = 'incomplete_expired';
+          } else {
+            // Tasks incomplete but session date hasn't expired yet
+            finalStatus = 'incomplete';
           }
 
           return {
@@ -350,6 +350,7 @@ export default function MySessions() {
       completed: 'bg-success text-success-foreground',
       finalized: 'bg-success text-success-foreground',
       locked: 'bg-muted text-muted-foreground',
+      incomplete: 'bg-warning text-warning-foreground',
       incomplete_expired: 'bg-destructive text-destructive-foreground',
     };
 
@@ -358,6 +359,7 @@ export default function MySessions() {
       completed: 'Completed',
       finalized: 'Finalized',
       locked: 'Locked',
+      incomplete: 'Incomplete',
       incomplete_expired: 'Incomplete & Expired',
     };
 
@@ -785,6 +787,7 @@ export default function MySessions() {
                     <SelectItem value="all">All Status</SelectItem>
                     <SelectItem value="active">Active</SelectItem>
                     <SelectItem value="completed">Completed</SelectItem>
+                    <SelectItem value="incomplete">Incomplete</SelectItem>
                     <SelectItem value="finalized">Finalized</SelectItem>
                     <SelectItem value="locked">Locked</SelectItem>
                     <SelectItem value="incomplete_expired">Incomplete & Expired</SelectItem>
