@@ -13,10 +13,12 @@ import { useNavigate } from 'react-router-dom';
 interface AttendanceRecord {
   id: string;
   attendance_date: string;
-  status: 'full_day' | 'half_day' | 'absent' | 'weekly_off' | 'present';
+  status: 'full_day' | 'half_day' | 'absent' | 'weekly_off';
   punch_in_time: string | null;
   punch_out_time: string | null;
   session_id: string | null;
+  completed_tasks: number | null;
+  total_tasks: number | null;
   market_name?: string;
 }
 
@@ -32,6 +34,25 @@ export default function MyAttendance() {
       subscribeToUpdates();
     }
   }, [user]);
+
+  const calculateStatus = (completedTasks: number | null, totalTasks: number | null, dbStatus: string | null): 'full_day' | 'half_day' | 'absent' | 'weekly_off' => {
+    // If marked as weekly off in DB, respect that
+    if (dbStatus === 'weekly_off') {
+      return 'weekly_off';
+    }
+    
+    // Calculate based on task completion
+    const completed = completedTasks || 0;
+    const total = totalTasks || 13; // Default to 13 tasks
+    
+    if (completed === 0) {
+      return 'absent';
+    } else if (completed === total) {
+      return 'full_day';
+    } else {
+      return 'half_day';
+    }
+  };
 
   const fetchMyAttendance = async () => {
     if (!user) return;
@@ -69,12 +90,15 @@ export default function MyAttendance() {
         const enrichedData = data.map(record => ({
           ...record,
           market_name: record.session_id ? sessionMarketMap.get(record.session_id) || 'N/A' : 'N/A',
-          status: (record.status || 'present') as 'full_day' | 'half_day' | 'absent' | 'weekly_off' | 'present',
+          status: calculateStatus(record.completed_tasks, record.total_tasks, record.status),
         }));
         
         setRecords(enrichedData);
       } else {
-        setRecords(data.map(r => ({ ...r, status: (r.status || 'present') as 'full_day' | 'half_day' | 'absent' | 'weekly_off' | 'present' })));
+        setRecords(data.map(r => ({ 
+          ...r, 
+          status: calculateStatus(r.completed_tasks, r.total_tasks, r.status)
+        })));
       }
     } else {
       setRecords([]);
