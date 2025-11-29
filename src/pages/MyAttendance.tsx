@@ -41,15 +41,18 @@ export default function MyAttendance() {
       return 'weekly_off';
     }
     
-    // Calculate based on task completion
+    // Calculate based on task completion (13 tasks total)
     const completed = completedTasks || 0;
-    const total = totalTasks || 13; // Default to 13 tasks
+    const total = totalTasks || 13;
     
     if (completed === 0) {
+      // No tasks completed = Absent
       return 'absent';
     } else if (completed === total) {
+      // All 13 tasks completed = Full Day Present
       return 'full_day';
     } else {
+      // Partial tasks completed (1-12) = Half Day
       return 'half_day';
     }
   };
