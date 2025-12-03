@@ -289,13 +289,17 @@ export default function BDOSession() {
     );
   }
 
+  const getDashboardPath = () => {
+    return currentRole === 'market_manager' ? '/manager-dashboard' : '/bdo-dashboard';
+  };
+
   return (
     <div className="min-h-screen bg-background p-4 md:p-6">
       <div className="max-w-lg mx-auto space-y-6">
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => navigate('/bdo-dashboard')}
+          onClick={() => navigate(getDashboardPath())}
           className="gap-2"
         >
           <ArrowLeft className="h-4 w-4" />

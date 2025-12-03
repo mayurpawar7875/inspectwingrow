@@ -34,6 +34,7 @@ const MarketManagerDashboard = lazy(() => import("./pages/MarketManagerDashboard
 const MyManagerSessions = lazy(() => import("./pages/MyManagerSessions"));
 const BDODashboard = lazy(() => import("./pages/BDODashboard"));
 const BDOSession = lazy(() => import("./pages/BDOSession"));
+const MMSession = lazy(() => import("./pages/BDOSession")); // Same component, different route for Market Managers
 const BDOReporting = lazy(() => import("./pages/admin/BDOReporting"));
 const EmployeeReporting = lazy(() => import("./pages/admin/EmployeeReporting"));
 const EmployeeCitySelection = lazy(() => import("./pages/admin/EmployeeCitySelection"));
@@ -78,6 +79,7 @@ const App = () => (
                 <Route path="/my-manager-sessions" element={<ProtectedRoute><MyManagerSessions /></ProtectedRoute>} />
                 <Route path="/bdo-dashboard" element={<ProtectedRoute><BDODashboard /></ProtectedRoute>} />
                 <Route path="/bdo-session" element={<ProtectedRoute><BDOSession /></ProtectedRoute>} />
+                <Route path="/mm-session" element={<ProtectedRoute><MMSession /></ProtectedRoute>} />
                 <Route path="/market-selection" element={<ProtectedRoute><MarketSelection /></ProtectedRoute>} />
                 <Route path="/punch" element={<ProtectedRoute><Punch /></ProtectedRoute>} />
                 <Route path="/stalls" element={<ProtectedRoute><Stalls /></ProtectedRoute>} />
