@@ -1163,6 +1163,7 @@ export type Database = {
       }
       market_manager_sessions: {
         Row: {
+          attendance_status: string | null
           created_at: string
           day_of_week: number
           id: string
@@ -1170,8 +1171,10 @@ export type Database = {
           status: string
           updated_at: string
           user_id: string
+          working_hours: number | null
         }
         Insert: {
+          attendance_status?: string | null
           created_at?: string
           day_of_week: number
           id?: string
@@ -1179,8 +1182,10 @@ export type Database = {
           status?: string
           updated_at?: string
           user_id: string
+          working_hours?: number | null
         }
         Update: {
+          attendance_status?: string | null
           created_at?: string
           day_of_week?: number
           id?: string
@@ -1188,6 +1193,7 @@ export type Database = {
           status?: string
           updated_at?: string
           user_id?: string
+          working_hours?: number | null
         }
         Relationships: []
       }
