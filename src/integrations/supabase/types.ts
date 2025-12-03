@@ -557,6 +557,60 @@ export type Database = {
           },
         ]
       }
+      bdo_sessions: {
+        Row: {
+          attendance_status: string | null
+          created_at: string
+          id: string
+          punch_in_lat: number | null
+          punch_in_lng: number | null
+          punch_in_selfie_url: string | null
+          punch_in_time: string | null
+          punch_out_lat: number | null
+          punch_out_lng: number | null
+          punch_out_time: string | null
+          session_date: string
+          status: string
+          updated_at: string
+          user_id: string
+          working_hours: number | null
+        }
+        Insert: {
+          attendance_status?: string | null
+          created_at?: string
+          id?: string
+          punch_in_lat?: number | null
+          punch_in_lng?: number | null
+          punch_in_selfie_url?: string | null
+          punch_in_time?: string | null
+          punch_out_lat?: number | null
+          punch_out_lng?: number | null
+          punch_out_time?: string | null
+          session_date?: string
+          status?: string
+          updated_at?: string
+          user_id: string
+          working_hours?: number | null
+        }
+        Update: {
+          attendance_status?: string | null
+          created_at?: string
+          id?: string
+          punch_in_lat?: number | null
+          punch_in_lng?: number | null
+          punch_in_selfie_url?: string | null
+          punch_in_time?: string | null
+          punch_out_lat?: number | null
+          punch_out_lng?: number | null
+          punch_out_time?: string | null
+          session_date?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+          working_hours?: number | null
+        }
+        Relationships: []
+      }
       bdo_stall_submissions: {
         Row: {
           address: string

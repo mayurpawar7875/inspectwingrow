@@ -737,9 +737,9 @@ export default function BDODashboard() {
     try {
       const today = getISTDateString(new Date());
       
-      // BDOs use the regular sessions table, not a separate bdo_sessions table
+      // BDOs use the bdo_sessions table for time-based attendance tracking
       const { data: sessionData, error: sessionError } = await supabase
-        .from('sessions')
+        .from('bdo_sessions')
         .select('*')
         .eq('user_id', user.id)
         .eq('session_date', today)
@@ -835,69 +835,6 @@ export default function BDODashboard() {
     setSelfiePreview(null);
   };
 
-  const handlePunchIn = async () => {
-    if (!user || !sessionLocation) {
-      toast.error('Please wait for location');
-      return;
-    }
-
-    setSessionLoading(true);
-    try {
-      const today = getISTDateString(new Date());
-
-      // BDOs don't need to select a market - they work across multiple markets
-      // Create session without market_id requirement
-      const { error: sessionError } = await supabase
-        .from('sessions')
-        .insert({
-          user_id: user.id,
-          session_date: today,
-          market_id: '00000000-0000-0000-0000-000000000000', // Placeholder for BDO sessions
-          status: 'active',
-          punch_in_time: new Date().toISOString(),
-        });
-
-      if (sessionError) throw sessionError;
-
-      toast.success('Punched in successfully!');
-      fetchBDOSession();
-    } catch (error: any) {
-      console.error('Punch in error:', error);
-      toast.error('Failed to punch in');
-    } finally {
-      setSessionLoading(false);
-    }
-  };
-
-  const handlePunchOut = async () => {
-    if (!user || !sessionLocation || !bdoSession?.id) {
-      toast.error('Session not found or location unavailable');
-      return;
-    }
-
-    setSessionLoading(true);
-    try {
-      // Update session to completed
-      const { error } = await supabase
-        .from('sessions')
-        .update({ 
-          status: 'completed',
-          punch_out_time: new Date().toISOString()
-        })
-        .eq('id', bdoSession.id);
-
-      if (error) throw error;
-
-      toast.success('Punched out successfully!');
-      fetchBDOSession();
-    } catch (error: any) {
-      console.error('Punch out error:', error);
-      toast.error('Failed to punch out');
-    } finally {
-      setSessionLoading(false);
-    }
-  };
-
   if (authLoading || loading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -911,705 +848,88 @@ export default function BDODashboard() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
       <header className="border-b bg-card">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           <div>
             <h1 className="text-2xl font-bold">BDO Dashboard</h1>
-            <p className="text-sm text-muted-foreground">District-level Reporting & Monitoring</p>
-            <p className="text-xs text-muted-foreground">{user?.email}</p>
+            <p className="text-sm text-muted-foreground">District-level Reporting</p>
           </div>
           <div className="flex gap-2">
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button variant="default" size="sm" onClick={() => navigate('/bdo-session')}>
-                    <Clock className="h-4 w-4 sm:mr-2" />
-                    <span className="hidden sm:inline">My Session</span>
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent className="sm:hidden">
-                  <p>My Session</p>
-                </TooltipContent>
-              </Tooltip>
-
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button variant="outline" size="sm" onClick={() => navigate('/bdo/live-markets')}>
-                    <MapPin className="h-4 w-4 sm:mr-2" />
-                    <span className="hidden sm:inline">Live Markets Today</span>
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent className="sm:hidden">
-                  <p>Live Markets Today</p>
-                </TooltipContent>
-              </Tooltip>
-
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button variant="outline" size="sm" onClick={() => navigate('/my-sessions')}>
-                    <FileText className="h-4 w-4 sm:mr-2" />
-                    <span className="hidden sm:inline">View Sessions</span>
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent className="sm:hidden">
-                  <p>View Sessions</p>
-                </TooltipContent>
-              </Tooltip>
-
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button variant="outline" size="sm" onClick={handleSignOut}>
-                    <LogOut className="h-4 w-4 sm:mr-2" />
-                    <span className="hidden sm:inline">Sign Out</span>
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent className="sm:hidden">
-                  <p>Sign Out</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+            <Button variant="default" size="sm" onClick={() => navigate('/bdo-session')}>
+              <Clock className="h-4 w-4 mr-2" />
+              My Session
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => navigate('/bdo/live-markets')}>
+              <MapPin className="h-4 w-4 mr-2" />
+              Live Markets
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => signOut()}>
+              <LogOut className="h-4 w-4 mr-2" />
+              Sign Out
+            </Button>
           </div>
         </div>
       </header>
-
-      {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
-        {/* Top Section - Session & Live Markets */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-          {/* Session Status Card */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Clock className="h-5 w-5" />
-                Today's Session
-              </CardTitle>
-              <CardDescription>
-                {bdoSession?.punch_in && !bdoSession?.punch_out && 'Session in progress'}
-                {bdoSession?.punch_out && 'Session completed for today'}
-                {!bdoSession?.punch_in && 'Start your session by punching in'}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-            {!bdoSession?.punch_in ? (
-              <div className="space-y-4">
-                {!selfiePreview ? (
-                  <>
-                    {showCamera ? (
-                      <div className="space-y-4">
-                        <video
-                          ref={videoRef}
-                          autoPlay
-                          playsInline
-                          className="w-full max-w-md rounded-lg border mx-auto"
-                        />
-                        <div className="flex gap-2 justify-center">
-                          <Button onClick={capturePhoto}>
-                            <Camera className="h-4 w-4 mr-2" />
-                            Capture Photo
-                          </Button>
-                          <Button variant="outline" onClick={stopCamera}>
-                            <X className="h-4 w-4 mr-2" />
-                            Cancel
-                          </Button>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="text-center">
-                        <Button onClick={startCamera} size="lg">
-                          <Camera className="h-5 w-5 mr-2" />
-                          Take Selfie to Punch In
-                        </Button>
-                        {sessionLocation && (
-                          <p className="text-sm text-muted-foreground mt-2">
-                            <MapPin className="h-4 w-4 inline mr-1" />
-                            Location captured
-                          </p>
-                        )}
-                      </div>
-                    )}
-                  </>
-                ) : (
-                  <div className="space-y-4">
-                    <img src={selfiePreview} alt="Selfie" className="w-full max-w-md rounded-lg border mx-auto" />
-                    <div className="flex gap-2 justify-center">
-                      <Button onClick={handlePunchIn} disabled={sessionLoading || !sessionLocation}>
-                        <CheckCircle className="h-4 w-4 mr-2" />
-                        {sessionLoading ? 'Punching In...' : 'Confirm Punch In'}
-                      </Button>
-                      <Button variant="outline" onClick={clearPhoto}>
-                        <RefreshCw className="h-4 w-4 mr-2" />
-                        Retake
-                      </Button>
-                    </div>
-                    {!sessionLocation && (
-                      <p className="text-sm text-muted-foreground text-center">
-                        Waiting for location...
-                      </p>
-                    )}
-                  </div>
-                )}
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Clock className="h-5 w-5" />
+              Today's Session
+            </CardTitle>
+            <CardDescription>
+              {bdoSession?.punch_in_time && !bdoSession?.punch_out_time && 'Session in progress'}
+              {bdoSession?.punch_out_time && 'Session completed'}
+              {!bdoSession?.punch_in_time && 'Start your session'}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {!bdoSession?.punch_in_time ? (
+              <div className="text-center py-4">
+                <AlertCircle className="h-12 w-12 text-amber-500 mx-auto mb-4" />
+                <p className="text-muted-foreground mb-4">No session started today</p>
+                <Button onClick={() => navigate('/bdo-session')}>Start Session</Button>
               </div>
-            ) : bdoSession?.punch_out ? (
-              <div className="text-center py-8">
-                <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold mb-2">Session Completed</h3>
-                <div className="space-y-2 text-sm text-muted-foreground">
-                  <p>
-                    <Clock className="h-4 w-4 inline mr-1" />
-                    Punched In: {new Date(bdoSession.punch_in.punched_at).toLocaleTimeString()}
-                  </p>
-                  <p>
-                    <Clock className="h-4 w-4 inline mr-1" />
-                    Punched Out: {new Date(bdoSession.punch_out.punched_at).toLocaleTimeString()}
-                  </p>
-                </div>
+            ) : bdoSession?.punch_out_time ? (
+              <div className="text-center py-4">
+                <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-4" />
+                <p className="font-medium">Session Completed</p>
+                <p className="text-sm text-muted-foreground">Working Hours: {bdoSession.working_hours?.toFixed(2)} hrs</p>
+                <Badge className="mt-2">{bdoSession.attendance_status === 'full_day' ? 'Full Day' : bdoSession.attendance_status === 'half_day' ? 'Half Day' : 'Absent'}</Badge>
               </div>
             ) : (
-              <div className="space-y-4">
-                <Badge variant="default" className="mb-2">Session Active</Badge>
-                <p className="text-sm text-muted-foreground">
-                  <Clock className="h-4 w-4 inline mr-1" />
-                  Punched In: {new Date(bdoSession.punch_in.punched_at).toLocaleTimeString()}
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  <MapPin className="h-4 w-4 inline mr-1" />
-                  Location: {bdoSession.punch_in.gps_lat.toFixed(6)}, {bdoSession.punch_in.gps_lng.toFixed(6)}
-                </p>
-
-                {!selfiePreview ? (
-                  <>
-                    {showCamera ? (
-                      <div className="space-y-4">
-                        <video
-                          ref={videoRef}
-                          autoPlay
-                          playsInline
-                          className="w-full max-w-md rounded-lg border mx-auto"
-                        />
-                        <div className="flex gap-2 justify-center">
-                          <Button onClick={capturePhoto}>
-                            <Camera className="h-4 w-4 mr-2" />
-                            Capture Photo
-                          </Button>
-                          <Button variant="outline" onClick={stopCamera}>
-                            <X className="h-4 w-4 mr-2" />
-                            Cancel
-                          </Button>
-                        </div>
-                      </div>
-                    ) : (
-                      <Button onClick={startCamera} className="w-full">
-                        <Camera className="h-4 w-4 mr-2" />
-                        Take Selfie for Punch Out
-                      </Button>
-                    )}
-                  </>
-                ) : (
-                  <div className="space-y-4">
-                    <img
-                      src={selfiePreview}
-                      alt="Selfie preview"
-                      className="w-full max-w-md rounded-lg border mx-auto"
-                    />
-                    <div className="flex gap-2 justify-center">
-                      <Button onClick={clearPhoto} variant="outline">
-                        <RefreshCw className="h-4 w-4 mr-2" />
-                        Retake
-                      </Button>
-                      <Button onClick={handlePunchOut} disabled={sessionLoading || !sessionLocation}>
-                        <LogOut className="h-4 w-4 mr-2" />
-                        {sessionLoading ? 'Punching Out...' : 'Confirm Punch Out'}
-                      </Button>
-                    </div>
-                  </div>
-                )}
+              <div className="text-center py-4">
+                <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-4" />
+                <Badge className="mb-4">Session Active</Badge>
+                <Button variant="destructive" onClick={() => navigate('/bdo-session')}>Punch Out</Button>
               </div>
             )}
-            </CardContent>
-          </Card>
-
-        </div>
-
-        {/* Summary Cards - 2 columns on mobile, 4 on larger screens */}
+          </CardContent>
+        </Card>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          <Card 
-            className="cursor-pointer hover:bg-accent transition-colors"
-            onClick={() => navigate('/media-upload')}
-          >
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Finalized Markets</CardTitle>
-              <FileText className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.media_uploads}</div>
-              <p className="text-xs text-muted-foreground">Files uploaded</p>
-            </CardContent>
+          <Card className="cursor-pointer hover:bg-accent" onClick={() => setShowAddMarketDialog(true)}>
+            <CardHeader className="pb-2"><CardTitle className="text-sm">Add Market</CardTitle></CardHeader>
+            <CardContent><Plus className="h-8 w-8 text-primary" /></CardContent>
           </Card>
-
-          <Card 
-            className="cursor-pointer hover:bg-accent transition-colors border-dashed border-2"
-            onClick={() => setShowAddMarketDialog(true)}
-          >
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Add Market Location</CardTitle>
-              <Plus className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-primary">+</div>
-              <p className="text-xs text-muted-foreground">Submit new location</p>
-            </CardContent>
+          <Card className="cursor-pointer hover:bg-accent" onClick={() => setShowAddStallDialog(true)}>
+            <CardHeader className="pb-2"><CardTitle className="text-sm">Add Stall</CardTitle></CardHeader>
+            <CardContent><Plus className="h-8 w-8 text-primary" /></CardContent>
           </Card>
-
-          <Card 
-            className="cursor-pointer hover:bg-accent transition-colors border-dashed border-2"
-            onClick={() => setShowAddStallDialog(true)}
-          >
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Add Onboarded Stall</CardTitle>
-              <Plus className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-primary">+</div>
-              <p className="text-xs text-muted-foreground">Onboard new stall</p>
-            </CardContent>
+          <Card className="cursor-pointer hover:bg-accent" onClick={() => navigate('/my-attendance')}>
+            <CardHeader className="pb-2"><CardTitle className="text-sm">My Attendance</CardTitle></CardHeader>
+            <CardContent><CalendarCheck className="h-8 w-8 text-primary" /></CardContent>
           </Card>
-
-          <Card 
-            className="cursor-pointer hover:bg-accent transition-colors"
-            onClick={() => navigate('/my-attendance')}
-          >
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">My Attendance</CardTitle>
-              <CalendarCheck className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">📅</div>
-              <p className="text-xs text-muted-foreground">View records</p>
-            </CardContent>
+          <Card className="cursor-pointer hover:bg-accent" onClick={() => navigate('/my-sessions')}>
+            <CardHeader className="pb-2"><CardTitle className="text-sm">My Sessions</CardTitle></CardHeader>
+            <CardContent><FileText className="h-8 w-8 text-primary" /></CardContent>
           </Card>
         </div>
-
-        {/* Widgets Section */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
           <LeaveRequestsWidget />
           <LocationVisitsWidget />
-          <ReimbursementRequestsWidget />
         </div>
-
-        {/* Approved Markets Document Upload */}
-        <div className="mb-6">
-          <ApprovedMarketsDocuments />
-        </div>
-
+        <LiveMarketsWidget />
       </main>
-
-      {/* Add Market Location Dialog */}
-      <Dialog open={showAddMarketDialog} onOpenChange={(open) => {
-        setShowAddMarketDialog(open);
-        if (!open) {
-          // Reset everything when closing
-          setMarketsToSubmit([]);
-          setMarketForm({
-            name: '',
-            location: '',
-            address: '',
-            city: '',
-            contactPersonName: '',
-            contactPhone: '',
-            contactEmail: '',
-            openingDate: '',
-            photoFile: null,
-          });
-        }
-      }}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Add New Market Locations</DialogTitle>
-            <DialogDescription>
-              Add multiple market locations you've scouted. Add each market to the queue, then submit all at once. All locations will be reviewed by admin before activation.
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="space-y-4 py-4">
-            {/* Queued Markets List */}
-            {marketsToSubmit.length > 0 && (
-              <div className="border rounded-lg p-4 bg-muted/50">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-sm font-semibold">Queued Markets ({marketsToSubmit.length})</h3>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleSubmitAllMarkets}
-                    disabled={uploadingMarket}
-                  >
-                    {uploadingMarket ? 'Submitting...' : `Submit All (${marketsToSubmit.length})`}
-                  </Button>
-                </div>
-                <div className="space-y-2 max-h-40 overflow-y-auto">
-                  {marketsToSubmit.map((market, index) => (
-                    <div key={index} className="flex items-center justify-between p-2 bg-background rounded border">
-                      <div className="flex-1">
-                        <div className="font-medium text-sm">{market.name}</div>
-                        <div className="text-xs text-muted-foreground">{market.location} • {market.city || 'N/A'}</div>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleRemoveFromQueue(index)}
-                        className="text-destructive hover:text-destructive"
-                      >
-                        Remove
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            <div className="border-t pt-4">
-              <h3 className="text-sm font-semibold mb-3">New Market Form</h3>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="market-name">Market Name *</Label>
-                <Input
-                  id="market-name"
-                  placeholder="e.g., Main Vegetable Market"
-                  value={marketForm.name}
-                  onChange={(e) => setMarketForm({ ...marketForm, name: e.target.value })}
-                  required
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="city">City</Label>
-                <Input
-                  id="city"
-                  placeholder="City name"
-                  value={marketForm.city}
-                  onChange={(e) => setMarketForm({ ...marketForm, city: e.target.value })}
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="location">Location/Area *</Label>
-              <Input
-                id="location"
-                placeholder="e.g., Central Square, Downtown"
-                value={marketForm.location}
-                onChange={(e) => setMarketForm({ ...marketForm, location: e.target.value })}
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="address">Full Address *</Label>
-              <Textarea
-                id="address"
-                placeholder="Complete address with street, landmark, etc."
-                value={marketForm.address}
-                onChange={(e) => setMarketForm({ ...marketForm, address: e.target.value })}
-                rows={3}
-                required
-              />
-            </div>
-
-            <div className="border-t pt-4">
-              <h3 className="text-sm font-semibold mb-3">Contact Information</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="contact-person">Contact Person Name *</Label>
-                  <div className="relative">
-                    <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="contact-person"
-                      placeholder="Full name"
-                      className="pl-9"
-                      value={marketForm.contactPersonName}
-                      onChange={(e) => setMarketForm({ ...marketForm, contactPersonName: e.target.value })}
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="contact-phone">Contact Phone *</Label>
-                  <div className="relative">
-                    <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="contact-phone"
-                      type="tel"
-                      placeholder="+91 98765 43210"
-                      className="pl-9"
-                      value={marketForm.contactPhone}
-                      onChange={(e) => setMarketForm({ ...marketForm, contactPhone: e.target.value })}
-                      required
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="mt-4 space-y-2">
-                <Label htmlFor="contact-email">Contact Email</Label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="contact-email"
-                    type="email"
-                    placeholder="email@example.com"
-                    className="pl-9"
-                    value={marketForm.contactEmail}
-                    onChange={(e) => setMarketForm({ ...marketForm, contactEmail: e.target.value })}
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="border-t pt-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="opening-date">Date of Opening *</Label>
-                  <Input
-                    id="opening-date"
-                    type="date"
-                    value={marketForm.openingDate}
-                    onChange={(e) => setMarketForm({ ...marketForm, openingDate: e.target.value })}
-                    required
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="border-t pt-4">
-              <Label htmlFor="market-photo">Photo of Finalized Place</Label>
-              <div className="mt-2">
-                <Input
-                  id="market-photo"
-                  type="file"
-                  accept="image/*"
-                  onChange={handlePhotoChange}
-                  className="cursor-pointer"
-                />
-                {marketForm.photoFile && (
-                  <div className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
-                    <Camera className="h-4 w-4" />
-                    <span>{marketForm.photoFile.name}</span>
-                    <span className="text-xs">({(marketForm.photoFile.size / 1024 / 1024).toFixed(2)} MB)</span>
-                  </div>
-                )}
-                <p className="text-xs text-muted-foreground mt-1">
-                  Upload a photo of the finalized market location (Max 5MB, Image files only)
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <DialogFooter className="gap-2">
-            <Button
-              variant="outline"
-              onClick={() => {
-                setShowAddMarketDialog(false);
-                setMarketsToSubmit([]);
-                setMarketForm({
-                  name: '',
-                  location: '',
-                  address: '',
-                  city: '',
-                  contactPersonName: '',
-                  contactPhone: '',
-                  contactEmail: '',
-                  openingDate: '',
-                  photoFile: null,
-                });
-              }}
-              disabled={uploadingMarket}
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="secondary"
-              onClick={handleAddToQueue}
-              disabled={uploadingMarket}
-            >
-              Add to Queue
-            </Button>
-            {marketsToSubmit.length > 0 && (
-              <Button onClick={handleSubmitAllMarkets} disabled={uploadingMarket}>
-                {uploadingMarket ? 'Submitting...' : `Submit All (${marketsToSubmit.length})`}
-              </Button>
-            )}
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Add Onboarded Stall Dialog */}
-      <Dialog open={showAddStallDialog} onOpenChange={(open) => {
-        setShowAddStallDialog(open);
-        if (!open) {
-          // Reset everything when closing
-          setStallsToSubmit([]);
-          setStallForm({
-            farmerName: '',
-            stallName: '',
-            contactNumber: '',
-            address: '',
-            dateOfStartingMarkets: '',
-          });
-        }
-      }}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Add Onboarded Stalls</DialogTitle>
-            <DialogDescription>
-              Add multiple stalls onboarded by BDO. Add each stall to the queue, then submit all at once. All stalls will be reviewed by admin.
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="space-y-4 py-4">
-            {/* Queued Stalls List */}
-            {stallsToSubmit.length > 0 && (
-              <div className="border rounded-lg p-4 bg-muted/50">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-sm font-semibold">Queued Stalls ({stallsToSubmit.length})</h3>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleSubmitAllStalls}
-                    disabled={uploadingStall}
-                  >
-                    {uploadingStall ? 'Submitting...' : `Submit All (${stallsToSubmit.length})`}
-                  </Button>
-                </div>
-                <div className="space-y-2 max-h-40 overflow-y-auto">
-                  {stallsToSubmit.map((stall, index) => (
-                    <div key={index} className="flex items-center justify-between p-2 bg-background rounded border">
-                      <div className="flex-1">
-                        <div className="font-medium text-sm">{stall.farmerName} - {stall.stallName}</div>
-                        <div className="text-xs text-muted-foreground">{stall.contactNumber} • {stall.address}</div>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleRemoveStallFromQueue(index)}
-                        className="text-destructive hover:text-destructive"
-                      >
-                        Remove
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            <div className="border-t pt-4">
-              <h3 className="text-sm font-semibold mb-3">New Stall Form</h3>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="farmer-name">Farmer Name *</Label>
-                <div className="relative">
-                  <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="farmer-name"
-                    placeholder="Farmer full name"
-                    className="pl-9"
-                    value={stallForm.farmerName}
-                    onChange={(e) => setStallForm({ ...stallForm, farmerName: e.target.value })}
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="stall-name">Stall Name *</Label>
-                <Input
-                  id="stall-name"
-                  placeholder="e.g., Vegetable Stall 1"
-                  value={stallForm.stallName}
-                  onChange={(e) => setStallForm({ ...stallForm, stallName: e.target.value })}
-                  required
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="contact-number">Contact Number *</Label>
-              <div className="relative">
-                <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="contact-number"
-                  type="tel"
-                  placeholder="+91 98765 43210"
-                  className="pl-9"
-                  value={stallForm.contactNumber}
-                  onChange={(e) => setStallForm({ ...stallForm, contactNumber: e.target.value })}
-                  required
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="stall-address">Address *</Label>
-              <Textarea
-                id="stall-address"
-                placeholder="Complete address with street, landmark, etc."
-                value={stallForm.address}
-                onChange={(e) => setStallForm({ ...stallForm, address: e.target.value })}
-                rows={3}
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="date-starting">Date of Starting Markets *</Label>
-              <Input
-                id="date-starting"
-                type="date"
-                value={stallForm.dateOfStartingMarkets}
-                onChange={(e) => setStallForm({ ...stallForm, dateOfStartingMarkets: e.target.value })}
-                required
-              />
-            </div>
-          </div>
-
-          <DialogFooter className="gap-2">
-            <Button
-              variant="outline"
-              onClick={() => {
-                setShowAddStallDialog(false);
-                setStallsToSubmit([]);
-                setStallForm({
-                  farmerName: '',
-                  stallName: '',
-                  contactNumber: '',
-                  address: '',
-                  dateOfStartingMarkets: '',
-                });
-              }}
-              disabled={uploadingStall}
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="secondary"
-              onClick={handleAddStallToQueue}
-              disabled={uploadingStall}
-            >
-              Add to Queue
-            </Button>
-            {stallsToSubmit.length > 0 && (
-              <Button onClick={handleSubmitAllStalls} disabled={uploadingStall}>
-                {uploadingStall ? 'Submitting...' : `Submit All (${stallsToSubmit.length})`}
-              </Button>
-            )}
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
-
