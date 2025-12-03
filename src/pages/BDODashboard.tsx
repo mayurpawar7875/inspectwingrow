@@ -849,31 +849,33 @@ export default function BDODashboard() {
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b bg-card">
-        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <div>
-            <h1 className="text-2xl font-bold">BDO Dashboard</h1>
-            <p className="text-sm text-muted-foreground">District-level Reporting</p>
-          </div>
-          <div className="flex gap-2">
-            <Button variant="default" size="sm" onClick={() => navigate('/bdo-session')}>
-              <Clock className="h-4 w-4 mr-2" />
-              My Session
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => navigate('/bdo/live-markets')}>
-              <MapPin className="h-4 w-4 mr-2" />
-              Live Markets
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => signOut()}>
-              <LogOut className="h-4 w-4 mr-2" />
-              Sign Out
-            </Button>
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+            <div>
+              <h1 className="text-xl sm:text-2xl font-bold">BDO Dashboard</h1>
+              <p className="text-sm text-muted-foreground">District-level Reporting</p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button variant="default" size="sm" onClick={() => navigate('/bdo-session')}>
+                <Clock className="h-4 w-4 mr-2" />
+                My Session
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => navigate('/bdo/live-markets')}>
+                <MapPin className="h-4 w-4 mr-2" />
+                Live Markets
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => signOut()}>
+                <LogOut className="h-4 w-4 mr-2" />
+                Sign Out
+              </Button>
+            </div>
           </div>
         </div>
       </header>
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-4 py-6 sm:py-8">
         <Card className="mb-6">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+          <CardHeader className="pb-2 sm:pb-4">
+            <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
               <Clock className="h-5 w-5" />
               Today's Session
             </CardTitle>
@@ -883,48 +885,66 @@ export default function BDODashboard() {
               {!bdoSession?.punch_in_time && 'Start your session'}
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-2">
             {!bdoSession?.punch_in_time ? (
-              <div className="text-center py-4">
-                <AlertCircle className="h-12 w-12 text-amber-500 mx-auto mb-4" />
-                <p className="text-muted-foreground mb-4">No session started today</p>
+              <div className="flex flex-col items-center justify-center py-4">
+                <AlertCircle className="h-10 w-10 sm:h-12 sm:w-12 text-amber-500 mb-3" />
+                <p className="text-muted-foreground mb-4 text-sm sm:text-base">No session started today</p>
                 <Button onClick={() => navigate('/bdo-session')}>Start Session</Button>
               </div>
             ) : bdoSession?.punch_out_time ? (
-              <div className="text-center py-4">
-                <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-4" />
+              <div className="flex flex-col items-center justify-center py-4">
+                <CheckCircle className="h-10 w-10 sm:h-12 sm:w-12 text-green-500 mb-3" />
                 <p className="font-medium">Session Completed</p>
-                <p className="text-sm text-muted-foreground">Working Hours: {bdoSession.working_hours?.toFixed(2)} hrs</p>
-                <Badge className="mt-2">{bdoSession.attendance_status === 'full_day' ? 'Full Day' : bdoSession.attendance_status === 'half_day' ? 'Half Day' : 'Absent'}</Badge>
+                <p className="text-sm text-muted-foreground mt-1">Working Hours: {bdoSession.working_hours?.toFixed(2)} hrs</p>
+                <Badge className="mt-3">{bdoSession.attendance_status === 'full_day' ? 'Full Day' : bdoSession.attendance_status === 'half_day' ? 'Half Day' : 'Absent'}</Badge>
               </div>
             ) : (
-              <div className="text-center py-4">
-                <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-4" />
-                <Badge className="mb-4">Session Active</Badge>
-                <Button variant="destructive" onClick={() => navigate('/bdo-session')}>Punch Out</Button>
+              <div className="flex flex-col items-center justify-center py-4">
+                <CheckCircle className="h-10 w-10 sm:h-12 sm:w-12 text-green-500 mb-3" />
+                <div className="flex flex-wrap items-center justify-center gap-3">
+                  <Badge>Session Active</Badge>
+                  <Button variant="destructive" size="sm" onClick={() => navigate('/bdo-session')}>Punch Out</Button>
+                </div>
               </div>
             )}
           </CardContent>
         </Card>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          <Card className="cursor-pointer hover:bg-accent" onClick={() => setShowAddMarketDialog(true)}>
-            <CardHeader className="pb-2"><CardTitle className="text-sm">Add Market</CardTitle></CardHeader>
-            <CardContent><Plus className="h-8 w-8 text-primary" /></CardContent>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
+          <Card className="cursor-pointer hover:bg-accent transition-colors" onClick={() => setShowAddMarketDialog(true)}>
+            <CardHeader className="p-3 sm:p-4 pb-1 sm:pb-2">
+              <CardTitle className="text-xs sm:text-sm">Add Market</CardTitle>
+            </CardHeader>
+            <CardContent className="p-3 sm:p-4 pt-1 sm:pt-2">
+              <Plus className="h-6 w-6 sm:h-8 sm:w-8 text-primary" />
+            </CardContent>
           </Card>
-          <Card className="cursor-pointer hover:bg-accent" onClick={() => setShowAddStallDialog(true)}>
-            <CardHeader className="pb-2"><CardTitle className="text-sm">Add Stall</CardTitle></CardHeader>
-            <CardContent><Plus className="h-8 w-8 text-primary" /></CardContent>
+          <Card className="cursor-pointer hover:bg-accent transition-colors" onClick={() => setShowAddStallDialog(true)}>
+            <CardHeader className="p-3 sm:p-4 pb-1 sm:pb-2">
+              <CardTitle className="text-xs sm:text-sm">Add Stall</CardTitle>
+            </CardHeader>
+            <CardContent className="p-3 sm:p-4 pt-1 sm:pt-2">
+              <Plus className="h-6 w-6 sm:h-8 sm:w-8 text-primary" />
+            </CardContent>
           </Card>
-          <Card className="cursor-pointer hover:bg-accent" onClick={() => navigate('/my-attendance')}>
-            <CardHeader className="pb-2"><CardTitle className="text-sm">My Attendance</CardTitle></CardHeader>
-            <CardContent><CalendarCheck className="h-8 w-8 text-primary" /></CardContent>
+          <Card className="cursor-pointer hover:bg-accent transition-colors" onClick={() => navigate('/my-attendance')}>
+            <CardHeader className="p-3 sm:p-4 pb-1 sm:pb-2">
+              <CardTitle className="text-xs sm:text-sm">My Attendance</CardTitle>
+            </CardHeader>
+            <CardContent className="p-3 sm:p-4 pt-1 sm:pt-2">
+              <CalendarCheck className="h-6 w-6 sm:h-8 sm:w-8 text-primary" />
+            </CardContent>
           </Card>
-          <Card className="cursor-pointer hover:bg-accent" onClick={() => navigate('/my-sessions')}>
-            <CardHeader className="pb-2"><CardTitle className="text-sm">My Sessions</CardTitle></CardHeader>
-            <CardContent><FileText className="h-8 w-8 text-primary" /></CardContent>
+          <Card className="cursor-pointer hover:bg-accent transition-colors" onClick={() => navigate('/my-sessions')}>
+            <CardHeader className="p-3 sm:p-4 pb-1 sm:pb-2">
+              <CardTitle className="text-xs sm:text-sm">My Sessions</CardTitle>
+            </CardHeader>
+            <CardContent className="p-3 sm:p-4 pt-1 sm:pt-2">
+              <FileText className="h-6 w-6 sm:h-8 sm:w-8 text-primary" />
+            </CardContent>
           </Card>
         </div>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-6">
           <LeaveRequestsWidget />
           <LocationVisitsWidget />
         </div>
