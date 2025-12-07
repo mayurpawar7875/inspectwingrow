@@ -173,7 +173,8 @@ export default function AdminDashboard() {
       const { count: inspectionsCount } = await supabase
         .from('stall_inspections')
         .select('*', { count: 'exact', head: true })
-        .eq('market_id', marketId);
+        .eq('market_id', marketId)
+        .in('session_id', sessionIds.length > 0 ? sessionIds : ['00000000-0000-0000-0000-000000000000']);
 
     const { count: planningCount } = await supabase
       .from('next_day_planning')
@@ -335,12 +336,19 @@ export default function AdminDashboard() {
               .eq('market_id', market.market_id)
               .eq('market_date', todayDate);
             
-            // Fetch stall inspections
+            // Fetch stall inspections - filter by today's sessions
+            const { data: todaySessions } = await supabase
+              .from('sessions')
+              .select('id')
+              .eq('market_id', market.market_id)
+              .eq('session_date', todayDate);
+            const todaySessionIds = (todaySessions || []).map(s => s.id);
+            
             const inspectionsResult: any = await (supabase as any)
               .from('stall_inspections')
-              .select('user_id, market_date')
+              .select('session_id')
               .eq('market_id', market.market_id)
-              .eq('market_date', todayDate);
+              .in('session_id', todaySessionIds.length > 0 ? todaySessionIds : ['00000000-0000-0000-0000-000000000000']);
             
             const { data: inspectionsData } = inspectionsResult;
 
