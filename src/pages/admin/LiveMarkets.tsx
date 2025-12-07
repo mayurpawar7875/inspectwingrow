@@ -133,7 +133,8 @@ export default function LiveMarkets() {
       const { count: inspectionsCount } = await supabase
         .from('stall_inspections')
         .select('*', { count: 'exact', head: true })
-        .eq('market_id', marketId);
+        .eq('market_id', marketId)
+        .in('session_id', sessionIds.length > 0 ? sessionIds : ['00000000-0000-0000-0000-000000000000']);
 
       const { count: planningCount } = await supabase
         .from('next_day_planning')
