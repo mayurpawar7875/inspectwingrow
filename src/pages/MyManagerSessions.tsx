@@ -180,52 +180,43 @@ export default function MyManagerSessions() {
     punch_out: { table: 'market_manager_punchout', label: 'Punch-Out' },
   };
 
-  const getVideoSignedUrl = async (videoUrl: string | null): Promise<string | null> => {
-    if (!videoUrl) return null;
-    
-    console.log('[Video URL Debug] Original URL:', videoUrl);
+
+  const getSignedUrl = async (filePath: string | null): Promise<string | null> => {
+    if (!filePath) return null;
     
     try {
-      let videoPath = videoUrl;
+      let path = filePath;
       
       // If it's already a full URL, extract the path
-      if (videoUrl.startsWith('http://') || videoUrl.startsWith('https://')) {
-        // Try to extract path from various URL formats
-        const publicMatch = videoUrl.match(/\/storage\/v1\/object\/public\/employee-media\/(.+)$/);
-        const signedMatch = videoUrl.match(/\/storage\/v1\/object\/sign\/employee-media\/(.+)\?/);
-        const pathMatch = videoUrl.match(/employee-media\/(.+)$/);
-        
-        console.log('[Video URL Debug] Match results:', { publicMatch, signedMatch, pathMatch });
+      if (filePath.startsWith('http://') || filePath.startsWith('https://')) {
+        const publicMatch = filePath.match(/\/storage\/v1\/object\/public\/employee-media\/(.+)$/);
+        const signedMatch = filePath.match(/\/storage\/v1\/object\/sign\/employee-media\/(.+)\?/);
+        const pathMatch = filePath.match(/employee-media\/(.+)$/);
         
         if (publicMatch) {
-          videoPath = publicMatch[1];
+          path = publicMatch[1];
         } else if (signedMatch) {
-          videoPath = signedMatch[1];
+          path = signedMatch[1];
         } else if (pathMatch) {
-          videoPath = pathMatch[1];
+          path = pathMatch[1];
         } else {
-          // If we can't extract path, return the original URL
-          console.log('[Video URL Debug] Could not extract path, returning original URL');
-          return videoUrl;
+          return filePath;
         }
       }
-      
-      console.log('[Video URL Debug] Extracted path:', videoPath);
       
       // Generate signed URL (valid for 1 hour)
       const { data, error } = await supabase.storage
         .from('employee-media')
-        .createSignedUrl(videoPath, 3600);
+        .createSignedUrl(path, 3600);
       
       if (error) {
-        console.error('[Video URL Debug] Error generating signed URL:', error);
+        console.error('Error generating signed URL:', error);
         return null;
       }
       
-      console.log('[Video URL Debug] Generated signed URL:', data.signedUrl);
       return data.signedUrl;
     } catch (error) {
-      console.error('[Video URL Debug] Exception:', error);
+      console.error('Exception generating signed URL:', error);
       return null;
     }
   };
@@ -244,7 +235,7 @@ export default function MyManagerSessions() {
 
       if (error) throw error;
 
-      // Fetch market names for entries that have market_id and fix video URLs
+      // Fetch market names for entries that have market_id and fix media URLs
       const detailsWithMarkets = await Promise.all(
         (data || []).map(async (item: any) => {
           let processedItem = { ...item };
@@ -256,7 +247,12 @@ export default function MyManagerSessions() {
           
           // Fix video URL if it exists
           if (item.video_url) {
-            processedItem.video_url = await getVideoSignedUrl(item.video_url);
+            processedItem.video_url = await getSignedUrl(item.video_url);
+          }
+          
+          // Fix selfie URL if it exists
+          if (item.selfie_url) {
+            processedItem.selfie_url = await getSignedUrl(item.selfie_url);
           }
           
           return processedItem;
