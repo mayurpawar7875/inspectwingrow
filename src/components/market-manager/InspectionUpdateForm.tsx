@@ -109,6 +109,7 @@ export function InspectionUpdateForm({ sessionId, onComplete }: InspectionUpdate
         <TaskHistoryView
           sessionId={sessionId}
           taskType="market_inspection_updates"
+          markets={markets}
           columns={[
             { key: 'market_id', label: 'Market', render: (_, row) => markets.find(m => m.id === row.market_id)?.name || 'Unknown' },
             { key: 'update_notes', label: 'Updates' },

@@ -207,6 +207,7 @@ export function AssetsUsageForm({ sessionId, onComplete }: AssetsUsageFormProps)
         <TaskHistoryView
           sessionId={sessionId}
           taskType="assets_usage"
+          markets={markets}
           columns={[
             { key: 'employee_name', label: 'Employee' },
             { key: 'market_id', label: 'Market', render: (_, row) => markets.find(m => m.id === row.market_id)?.name || 'Unknown' },
