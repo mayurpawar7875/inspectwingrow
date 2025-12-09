@@ -1,10 +1,11 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { Camera, MapPin, X } from 'lucide-react';
 import { validateImage, generateUploadPath } from '@/lib/fileValidation';
+import { TaskHistoryView } from './TaskHistoryView';
 
 interface PunchInFormProps {
   sessionId: string;
@@ -15,7 +16,20 @@ export function PunchInForm({ sessionId, onComplete }: PunchInFormProps) {
   const [loading, setLoading] = useState(false);
   const [selfieFile, setSelfieFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [hasPunchedIn, setHasPunchedIn] = useState(false);
   const cameraInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    checkPunchInStatus();
+  }, [sessionId]);
+
+  const checkPunchInStatus = async () => {
+    const { count } = await supabase
+      .from('market_manager_punchin')
+      .select('*', { count: 'exact', head: true })
+      .eq('session_id', sessionId);
+    setHasPunchedIn((count || 0) > 0);
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files?.[0]) {
@@ -79,6 +93,7 @@ export function PunchInForm({ sessionId, onComplete }: PunchInFormProps) {
         }
 
         toast.success('Punched in successfully');
+        setHasPunchedIn(true);
         onComplete();
       },
       (error) => {
@@ -89,65 +104,87 @@ export function PunchInForm({ sessionId, onComplete }: PunchInFormProps) {
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Camera className="h-5 w-5" />
-          Punch-In
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="space-y-3">
-          <label className="block text-sm font-medium">Selfie</label>
-          
-          {!selfieFile ? (
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => cameraInputRef.current?.click()}
-              className="w-full h-32 flex flex-col gap-2"
-            >
-              <Camera className="h-8 w-8" />
-              <span>Take Photo</span>
-            </Button>
-          ) : (
-            <div className="relative">
-              <img 
-                src={previewUrl || ''} 
-                alt="Selfie preview" 
-                className="w-full h-48 object-cover rounded-lg border"
-              />
-              <Button
-                type="button"
-                variant="destructive"
-                size="icon"
-                className="absolute top-2 right-2"
-                onClick={clearPhoto}
-              >
-                <X className="h-4 w-4" />
-              </Button>
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Camera className="h-5 w-5" />
+            Punch-In
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {hasPunchedIn ? (
+            <div className="text-center py-4 text-muted-foreground">
+              Already punched in for this session
             </div>
+          ) : (
+            <>
+              <div className="space-y-3">
+                <label className="block text-sm font-medium">Selfie</label>
+                
+                {!selfieFile ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => cameraInputRef.current?.click()}
+                    className="w-full h-32 flex flex-col gap-2"
+                  >
+                    <Camera className="h-8 w-8" />
+                    <span>Take Photo</span>
+                  </Button>
+                ) : (
+                  <div className="relative">
+                    <img 
+                      src={previewUrl || ''} 
+                      alt="Selfie preview" 
+                      className="w-full h-48 object-cover rounded-lg border"
+                    />
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="icon"
+                      className="absolute top-2 right-2"
+                      onClick={clearPhoto}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )}
+
+                <input
+                  ref={cameraInputRef}
+                  type="file"
+                  accept="image/*"
+                  capture="user"
+                  onChange={handleFileChange}
+                  className="hidden"
+                />
+              </div>
+
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <MapPin className="h-4 w-4" />
+                GPS location will be captured automatically
+              </div>
+
+              <Button onClick={handlePunchIn} disabled={loading || !selfieFile} className="w-full">
+                {loading ? 'Processing...' : 'Punch In'}
+              </Button>
+            </>
           )}
+        </CardContent>
+      </Card>
 
-          <input
-            ref={cameraInputRef}
-            type="file"
-            accept="image/*"
-            capture="user"
-            onChange={handleFileChange}
-            className="hidden"
-          />
-        </div>
-
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <MapPin className="h-4 w-4" />
-          GPS location will be captured automatically
-        </div>
-
-        <Button onClick={handlePunchIn} disabled={loading || !selfieFile} className="w-full">
-          {loading ? 'Processing...' : 'Punch In'}
-        </Button>
-      </CardContent>
-    </Card>
+      <div>
+        <h3 className="font-semibold mb-3">Record</h3>
+        <TaskHistoryView
+          sessionId={sessionId}
+          taskType="market_manager_punchin"
+          columns={[
+            { key: 'gps_lat', label: 'Latitude', render: (val) => val?.toFixed(4) },
+            { key: 'gps_lng', label: 'Longitude', render: (val) => val?.toFixed(4) },
+          ]}
+        />
+      </div>
+    </div>
   );
 }

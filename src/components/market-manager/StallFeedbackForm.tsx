@@ -297,6 +297,7 @@ export function StallFeedbackForm({ sessionId, onComplete }: StallFeedbackFormPr
         <TaskHistoryView
           sessionId={sessionId}
           taskType="bms_stall_feedbacks"
+          markets={markets}
           columns={[
             { key: 'customer_name', label: 'Customer' },
             { key: 'market_id', label: 'Market', render: (_, row) => markets.find(m => m.id === row.market_id)?.name || '-' },

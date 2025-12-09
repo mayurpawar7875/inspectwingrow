@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { format } from 'date-fns';
+import { TaskRecordPreview } from './TaskRecordPreview';
 
 interface TaskHistoryViewProps {
   sessionId: string;
@@ -10,9 +11,10 @@ interface TaskHistoryViewProps {
     'stall_searching_updates' | 'assets_money_recovery' | 'assets_usage' | 
     'bms_stall_feedbacks' | 'market_inspection_updates' | 'market_manager_punchout';
   columns: { key: string; label: string; render?: (value: any, row: any) => React.ReactNode }[];
+  markets?: { id: string; name: string }[];
 }
 
-export function TaskHistoryView({ sessionId, taskType, columns }: TaskHistoryViewProps) {
+export function TaskHistoryView({ sessionId, taskType, columns, markets = [] }: TaskHistoryViewProps) {
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -62,6 +64,7 @@ export function TaskHistoryView({ sessionId, taskType, columns }: TaskHistoryVie
               <TableHead key={col.key}>{col.label}</TableHead>
             ))}
             <TableHead>Time</TableHead>
+            <TableHead className="w-[50px]">View</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -74,6 +77,9 @@ export function TaskHistoryView({ sessionId, taskType, columns }: TaskHistoryVie
               ))}
               <TableCell className="text-xs text-muted-foreground">
                 {format(new Date(row.created_at), 'HH:mm')}
+              </TableCell>
+              <TableCell>
+                <TaskRecordPreview record={row} taskType={taskType} markets={markets} />
               </TableCell>
             </TableRow>
           ))}

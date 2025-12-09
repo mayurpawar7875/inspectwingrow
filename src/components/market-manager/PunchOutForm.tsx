@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { LogOut, MapPin } from 'lucide-react';
+import { TaskHistoryView } from './TaskHistoryView';
 
 interface PunchOutFormProps {
   sessionId: string;
@@ -12,6 +13,19 @@ interface PunchOutFormProps {
 
 export function PunchOutForm({ sessionId, onComplete }: PunchOutFormProps) {
   const [loading, setLoading] = useState(false);
+  const [hasPunchedOut, setHasPunchedOut] = useState(false);
+
+  useEffect(() => {
+    checkPunchOutStatus();
+  }, [sessionId]);
+
+  const checkPunchOutStatus = async () => {
+    const { count } = await supabase
+      .from('market_manager_punchout')
+      .select('*', { count: 'exact', head: true })
+      .eq('session_id', sessionId);
+    setHasPunchedOut((count || 0) > 0);
+  };
 
   const handlePunchOut = async () => {
     setLoading(true);
@@ -85,6 +99,7 @@ export function PunchOutForm({ sessionId, onComplete }: PunchOutFormProps) {
         const statusText = attendanceStatus === 'full_day' ? 'Full Day' : 
                           attendanceStatus === 'half_day' ? 'Half Day' : 'Absent';
         toast.success(`Punched out! Working hours: ${workingHours.toFixed(2)} hrs - ${statusText}`);
+        setHasPunchedOut(true);
         onComplete();
       },
       (error) => {
@@ -95,23 +110,45 @@ export function PunchOutForm({ sessionId, onComplete }: PunchOutFormProps) {
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <LogOut className="h-5 w-5" />
-          Punch-Out
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <MapPin className="h-4 w-4" />
-          GPS location will be captured automatically
-        </div>
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <LogOut className="h-5 w-5" />
+            Punch-Out
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {hasPunchedOut ? (
+            <div className="text-center py-4 text-muted-foreground">
+              Already punched out for this session
+            </div>
+          ) : (
+            <>
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <MapPin className="h-4 w-4" />
+                GPS location will be captured automatically
+              </div>
 
-        <Button onClick={handlePunchOut} disabled={loading} className="w-full">
-          {loading ? 'Processing...' : 'Punch Out'}
-        </Button>
-      </CardContent>
-    </Card>
+              <Button onClick={handlePunchOut} disabled={loading} className="w-full">
+                {loading ? 'Processing...' : 'Punch Out'}
+              </Button>
+            </>
+          )}
+        </CardContent>
+      </Card>
+
+      <div>
+        <h3 className="font-semibold mb-3">Record</h3>
+        <TaskHistoryView
+          sessionId={sessionId}
+          taskType="market_manager_punchout"
+          columns={[
+            { key: 'gps_lat', label: 'Latitude', render: (val) => val?.toFixed(4) },
+            { key: 'gps_lng', label: 'Longitude', render: (val) => val?.toFixed(4) },
+          ]}
+        />
+      </div>
+    </div>
   );
 }
