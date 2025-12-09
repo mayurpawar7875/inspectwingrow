@@ -32,7 +32,7 @@ export default defineConfig(({ mode }) => ({
     mode === "development" && componentTagger(),
     VitePWA({
       registerType: 'autoUpdate',
-      injectRegister: null, // Manual registration for better control
+      injectRegister: 'auto', // Auto inject service worker registration
       includeAssets: ['icon-192.png', 'icon-512.png'],
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
