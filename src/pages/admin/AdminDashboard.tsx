@@ -103,10 +103,38 @@ export default function AdminDashboard() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'market_schedule' }, fetchLiveMarkets)
       .subscribe();
 
+    // BDO and Market Manager real-time subscriptions
+    const bdoChannel = supabase
+      .channel('bdo-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'bdo_sessions' }, () => {
+        fetchAllStats();
+        fetchLiveMarkets();
+      })
+      .subscribe();
+
+    const marketManagerChannel = supabase
+      .channel('market-manager-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'market_manager_sessions' }, () => {
+        fetchAllStats();
+        fetchLiveMarkets();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'market_manager_punchin' }, fetchLiveMarkets)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'market_manager_punchout' }, fetchLiveMarkets)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'employee_allocations' }, fetchLiveMarkets)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'market_land_search' }, fetchLiveMarkets)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'market_inspection_updates' }, fetchLiveMarkets)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'stall_searching_updates' }, fetchLiveMarkets)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'assets_usage' }, fetchLiveMarkets)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'assets_money_recovery' }, fetchLiveMarkets)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'bms_stall_feedbacks' }, fetchLiveMarkets)
+      .subscribe();
+
     return () => {
       supabase.removeChannel(statsChannel);
       supabase.removeChannel(stallsChannel);
       supabase.removeChannel(scheduleChannel);
+      supabase.removeChannel(bdoChannel);
+      supabase.removeChannel(marketManagerChannel);
     };
   }, [isAdmin, navigate]);
 
