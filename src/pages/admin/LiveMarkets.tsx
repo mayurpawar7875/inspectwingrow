@@ -21,9 +21,11 @@ interface LiveMarket {
   task_stats?: {
     attendance: number;
     stall_confirmations: number;
+    outside_rates: number;
+    rate_board: number;
     market_video: number;
     cleaning_video: number;
-    selfie_gps: number;
+    customer_feedback: number;
     offers: number;
     commodities: number;
     feedback: number;
@@ -41,7 +43,7 @@ export default function LiveMarkets() {
   useEffect(() => {
     fetchLiveMarkets();
     
-    // Subscribe to real-time updates
+    // Subscribe to real-time updates for all task-related tables
     const sessionsChannel = supabase
       .channel('live-markets-sessions')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'sessions' }, fetchLiveMarkets)
@@ -57,35 +59,52 @@ export default function LiveMarkets() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'media' }, fetchLiveMarkets)
       .subscribe();
 
-    const scheduleChannel = supabase
-      .channel('live-markets-schedule')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'market_schedule' }, fetchLiveMarkets)
+    const offersChannel = supabase
+      .channel('live-markets-offers')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'offers' }, fetchLiveMarkets)
+      .subscribe();
+
+    const commoditiesChannel = supabase
+      .channel('live-markets-commodities')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'non_available_commodities' }, fetchLiveMarkets)
+      .subscribe();
+
+    const feedbackChannel = supabase
+      .channel('live-markets-feedback')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'organiser_feedback' }, fetchLiveMarkets)
+      .subscribe();
+
+    const inspectionsChannel = supabase
+      .channel('live-markets-inspections')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'stall_inspections' }, fetchLiveMarkets)
+      .subscribe();
+
+    const planningChannel = supabase
+      .channel('live-markets-planning')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'next_day_planning' }, fetchLiveMarkets)
+      .subscribe();
+
+    const collectionsChannel = supabase
+      .channel('live-markets-collections')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'collections' }, fetchLiveMarkets)
       .subscribe();
 
     return () => {
       supabase.removeChannel(sessionsChannel);
       supabase.removeChannel(stallsChannel);
       supabase.removeChannel(mediaChannel);
-      supabase.removeChannel(scheduleChannel);
+      supabase.removeChannel(offersChannel);
+      supabase.removeChannel(commoditiesChannel);
+      supabase.removeChannel(feedbackChannel);
+      supabase.removeChannel(inspectionsChannel);
+      supabase.removeChannel(planningChannel);
+      supabase.removeChannel(collectionsChannel);
     };
   }, []);
 
   const fetchTaskStats = async (marketId: string, todayDate: string) => {
     try {
-      const { count: attendanceCount } = await supabase
-        .from('sessions')
-        .select('*', { count: 'exact', head: true })
-        .eq('market_id', marketId)
-        .eq('session_date', todayDate)
-        .not('punch_in_time', 'is', null);
-
-      const { count: stallsCount } = await supabase
-        .from('stall_confirmations')
-        .select('*', { count: 'exact', head: true })
-        .eq('market_id', marketId)
-        .eq('market_date', todayDate);
-
-      // Get session IDs for this market today
+      // Get session IDs for this market today first
       const { data: marketSessions } = await supabase
         .from('sessions')
         .select('id')
@@ -93,82 +112,77 @@ export default function LiveMarkets() {
         .eq('session_date', todayDate);
       
       const sessionIds = (marketSessions || []).map(s => s.id);
+      const safeSessionIds = sessionIds.length > 0 ? sessionIds : ['00000000-0000-0000-0000-000000000000'];
 
-      const { count: marketVideoCount } = await supabase
-        .from('media')
-        .select('*', { count: 'exact', head: true })
-        .in('session_id', sessionIds)
-        .eq('media_type', 'market_video' as any);
-
-      const { count: cleaningVideoCount } = await supabase
-        .from('media')
-        .select('*', { count: 'exact', head: true })
-        .in('session_id', sessionIds)
-        .eq('media_type', 'cleaning_video' as any);
-
-      const { count: selfieGpsCount } = await supabase
-        .from('media')
-        .select('*', { count: 'exact', head: true })
-        .in('session_id', sessionIds)
-        .eq('media_type', 'selfie_gps');
-
-      const { count: offersCount } = await supabase
-        .from('offers')
-        .select('*', { count: 'exact', head: true })
-        .eq('market_id', marketId)
-        .eq('market_date', todayDate);
-
-      const { count: commoditiesCount } = await supabase
-        .from('non_available_commodities')
-        .select('*', { count: 'exact', head: true })
-        .eq('market_id', marketId)
-        .eq('market_date', todayDate);
-
-      const { count: feedbackCount } = await supabase
-        .from('organiser_feedback')
-        .select('*', { count: 'exact', head: true })
-        .eq('market_id', marketId)
-        .eq('market_date', todayDate);
-
-      const { count: inspectionsCount } = await supabase
-        .from('stall_inspections')
-        .select('*', { count: 'exact', head: true })
-        .eq('market_id', marketId)
-        .in('session_id', sessionIds.length > 0 ? sessionIds : ['00000000-0000-0000-0000-000000000000']);
-
-      const { count: planningCount } = await supabase
-        .from('next_day_planning')
-        .select('*', { count: 'exact', head: true })
-        .eq('market_id', marketId)
-        .eq('market_date', todayDate);
-
-      const { count: collectionsCount } = await supabase
-        .from('collections')
-        .select('*', { count: 'exact', head: true })
-        .eq('market_id', marketId)
-        .eq('collection_date', todayDate);
+      // Fetch all counts in parallel for better performance
+      const [
+        attendanceResult,
+        stallsResult,
+        outsideRatesResult,
+        rateBoardResult,
+        marketVideoResult,
+        cleaningVideoResult,
+        customerFeedbackResult,
+        offersResult,
+        commoditiesResult,
+        feedbackResult,
+        inspectionsResult,
+        planningResult,
+        collectionsResult
+      ] = await Promise.all([
+        supabase.from('sessions').select('*', { count: 'exact', head: true })
+          .eq('market_id', marketId).eq('session_date', todayDate).not('punch_in_time', 'is', null),
+        supabase.from('stall_confirmations').select('*', { count: 'exact', head: true })
+          .eq('market_id', marketId).eq('market_date', todayDate),
+        supabase.from('media').select('*', { count: 'exact', head: true })
+          .in('session_id', safeSessionIds).eq('media_type', 'outside_rates' as any),
+        supabase.from('media').select('*', { count: 'exact', head: true })
+          .in('session_id', safeSessionIds).eq('media_type', 'rate_board' as any),
+        supabase.from('media').select('*', { count: 'exact', head: true })
+          .in('session_id', safeSessionIds).eq('media_type', 'market_video' as any),
+        supabase.from('media').select('*', { count: 'exact', head: true })
+          .in('session_id', safeSessionIds).eq('media_type', 'cleaning_video' as any),
+        supabase.from('media').select('*', { count: 'exact', head: true })
+          .in('session_id', safeSessionIds).eq('media_type', 'customer_feedback' as any),
+        supabase.from('offers').select('*', { count: 'exact', head: true })
+          .eq('market_id', marketId).eq('market_date', todayDate),
+        supabase.from('non_available_commodities').select('*', { count: 'exact', head: true })
+          .eq('market_id', marketId).eq('market_date', todayDate),
+        supabase.from('organiser_feedback').select('*', { count: 'exact', head: true })
+          .eq('market_id', marketId).eq('market_date', todayDate),
+        supabase.from('stall_inspections').select('*', { count: 'exact', head: true })
+          .eq('market_id', marketId).in('session_id', safeSessionIds),
+        supabase.from('next_day_planning').select('*', { count: 'exact', head: true })
+          .eq('market_id', marketId).eq('market_date', todayDate),
+        supabase.from('collections').select('*', { count: 'exact', head: true })
+          .eq('market_id', marketId).eq('collection_date', todayDate)
+      ]);
 
       return {
-        attendance: attendanceCount || 0,
-        stall_confirmations: stallsCount || 0,
-        market_video: marketVideoCount || 0,
-        cleaning_video: cleaningVideoCount || 0,
-        selfie_gps: selfieGpsCount || 0,
-        offers: offersCount || 0,
-        commodities: commoditiesCount || 0,
-        feedback: feedbackCount || 0,
-        inspections: inspectionsCount || 0,
-        planning: planningCount || 0,
-        collections: collectionsCount || 0,
+        attendance: attendanceResult.count || 0,
+        stall_confirmations: stallsResult.count || 0,
+        outside_rates: outsideRatesResult.count || 0,
+        rate_board: rateBoardResult.count || 0,
+        market_video: marketVideoResult.count || 0,
+        cleaning_video: cleaningVideoResult.count || 0,
+        customer_feedback: customerFeedbackResult.count || 0,
+        offers: offersResult.count || 0,
+        commodities: commoditiesResult.count || 0,
+        feedback: feedbackResult.count || 0,
+        inspections: inspectionsResult.count || 0,
+        planning: planningResult.count || 0,
+        collections: collectionsResult.count || 0,
       };
     } catch (error) {
       console.error('Error fetching task stats:', error);
       return {
         attendance: 0,
         stall_confirmations: 0,
+        outside_rates: 0,
+        rate_board: 0,
         market_video: 0,
         cleaning_video: 0,
-        selfie_gps: 0,
+        customer_feedback: 0,
         offers: 0,
         commodities: 0,
         feedback: 0,
@@ -366,9 +380,26 @@ export default function LiveMarkets() {
         value: market.task_stats && market.task_stats.stall_confirmations > 0 ? `${market.task_stats.stall_confirmations} confirmed` : null
       },
       { 
-        label: 'Selfie GPS', 
-        completed: market.task_stats ? market.task_stats.selfie_gps > 0 : false,
-        value: market.task_stats && market.task_stats.selfie_gps > 0 ? `${market.task_stats.selfie_gps} uploaded` : null
+        label: 'Outside Rates', 
+        completed: market.task_stats ? market.task_stats.outside_rates > 0 : false,
+        value: market.task_stats && market.task_stats.outside_rates > 0 ? `${market.task_stats.outside_rates} uploaded` : null
+      },
+      { 
+        label: 'Rate Board', 
+        completed: market.task_stats ? market.task_stats.rate_board > 0 : false,
+        value: market.task_stats && market.task_stats.rate_board > 0 ? `${market.task_stats.rate_board} uploaded` : null
+      },
+      { 
+        label: 'Market Video', 
+        completed: market.task_stats ? market.task_stats.market_video > 0 : false
+      },
+      { 
+        label: 'Cleaning Video', 
+        completed: market.task_stats ? market.task_stats.cleaning_video > 0 : false
+      },
+      { 
+        label: 'Customer Feedback', 
+        completed: market.task_stats ? market.task_stats.customer_feedback > 0 : false
       },
       { 
         label: 'Today\'s Offer', 
@@ -392,14 +423,6 @@ export default function LiveMarkets() {
       { 
         label: 'Next Day Planning', 
         completed: market.task_stats ? market.task_stats.planning > 0 : false
-      },
-      { 
-        label: 'Market Video', 
-        completed: market.task_stats ? market.task_stats.market_video > 0 : false
-      },
-      { 
-        label: 'Cleaning Video', 
-        completed: market.task_stats ? market.task_stats.cleaning_video > 0 : false
       },
       { 
         label: 'Collection', 
