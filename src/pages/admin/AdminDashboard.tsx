@@ -773,17 +773,19 @@ export default function AdminDashboard() {
               .in('id', userIds);
             
             const employeeMap = new Map(employeesData?.map(e => [e.id, e.full_name]) || []);
-            data = selfieData.map((m: any) => {
-              const { data: { publicUrl } } = supabase.storage
+            
+            // Use signed URLs for private bucket
+            data = await Promise.all(selfieData.map(async (m: any) => {
+              const { data: signedUrlData } = await supabase.storage
                 .from('employee-media')
-                .getPublicUrl(m.file_url);
+                .createSignedUrl(m.file_url, 3600); // 1 hour expiry
               
               return {
                 ...m,
-                file_url: publicUrl,
+                file_url: signedUrlData?.signedUrl || m.file_url,
                 employees: { full_name: employeeMap.get(m.sessions?.user_id) }
               };
-            });
+            }));
           }
           console.log(`[${taskType}] Found ${data.length} records`);
           break;
