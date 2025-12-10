@@ -303,52 +303,46 @@ export default function AdminDashboard() {
             const { data: stallsData } = await supabase
               .from('stall_confirmations')
               .select('created_by, market_date')
-              .eq('market_id', market.market_id)
+              .eq('market_id', market.id)
               .eq('market_date', todayDate);
             
-            // Fetch media uploads by type
-            const mediaResult: any = await (supabase as any)
+            // Fetch media uploads by type - use session_id instead of market_id
+            const safeSessionIds = sessionIds.length > 0 ? sessionIds : ['00000000-0000-0000-0000-000000000000'];
+            const { data: mediaData } = await supabase
               .from('media')
-              .select('user_id, media_type, market_date')
-              .eq('market_id', market.market_id)
-              .eq('market_date', todayDate);
+              .select('session_id, media_type')
+              .in('session_id', safeSessionIds);
             
-            const { data: mediaData } = mediaResult;
+            // Map media to user_id via sessions
+            const sessionToUserMap = new Map(sessionsData?.map((s: any) => [s.id, s.user_id]) || []);
             
             // Fetch offers
             const { data: offersData } = await supabase
               .from('offers')
               .select('user_id, market_date')
-              .eq('market_id', market.market_id)
+              .eq('market_id', market.id)
               .eq('market_date', todayDate);
             
             // Fetch non-available commodities
             const { data: commoditiesData } = await supabase
               .from('non_available_commodities')
               .select('user_id, market_date')
-              .eq('market_id', market.market_id)
+              .eq('market_id', market.id)
               .eq('market_date', todayDate);
             
             // Fetch organiser feedback
             const { data: feedbackData } = await supabase
               .from('organiser_feedback')
               .select('user_id, market_date')
-              .eq('market_id', market.market_id)
+              .eq('market_id', market.id)
               .eq('market_date', todayDate);
             
             // Fetch stall inspections - filter by today's sessions
-            const { data: todaySessions } = await supabase
-              .from('sessions')
-              .select('id')
-              .eq('market_id', market.market_id)
-              .eq('session_date', todayDate);
-            const todaySessionIds = (todaySessions || []).map(s => s.id);
-            
             const inspectionsResult: any = await (supabase as any)
               .from('stall_inspections')
               .select('session_id')
-              .eq('market_id', market.market_id)
-              .in('session_id', todaySessionIds.length > 0 ? todaySessionIds : ['00000000-0000-0000-0000-000000000000']);
+              .eq('market_id', market.id)
+              .in('session_id', safeSessionIds);
             
             const { data: inspectionsData } = inspectionsResult;
 
@@ -370,19 +364,19 @@ export default function AdminDashboard() {
               if (stallsData?.some((s: any) => s.created_by === session.user_id)) completedTasks++;
               
               // 3. Outside rates photo
-              if (mediaData?.some((m: any) => m.user_id === session.user_id && m.media_type === 'outside_rates')) completedTasks++;
+              if (mediaData?.some((m: any) => m.session_id === session.id && m.media_type === 'outside_rates')) completedTasks++;
               
               // 4. Rate board photo
-              if (mediaData?.some((m: any) => m.user_id === session.user_id && m.media_type === 'rate_board')) completedTasks++;
+              if (mediaData?.some((m: any) => m.session_id === session.id && m.media_type === 'rate_board')) completedTasks++;
               
               // 5. Market video
-              if (mediaData?.some((m: any) => m.user_id === session.user_id && m.media_type === 'market_video')) completedTasks++;
+              if (mediaData?.some((m: any) => m.session_id === session.id && m.media_type === 'market_video')) completedTasks++;
               
               // 6. Cleaning video
-              if (mediaData?.some((m: any) => m.user_id === session.user_id && m.media_type === 'cleaning_video')) completedTasks++;
+              if (mediaData?.some((m: any) => m.session_id === session.id && m.media_type === 'cleaning_video')) completedTasks++;
               
               // 7. Customer feedback video
-              if (mediaData?.some((m: any) => m.user_id === session.user_id && m.media_type === 'customer_feedback')) completedTasks++;
+              if (mediaData?.some((m: any) => m.session_id === session.id && m.media_type === 'customer_feedback')) completedTasks++;
               
               // 8. Today's offers
               if (offersData?.some((o: any) => o.user_id === session.user_id)) completedTasks++;
@@ -394,7 +388,7 @@ export default function AdminDashboard() {
               if (feedbackData?.some((f: any) => f.user_id === session.user_id)) completedTasks++;
               
               // 11. Stall inspection
-              if (inspectionsData?.some((i: any) => i.user_id === session.user_id)) completedTasks++;
+              if (inspectionsData?.some((i: any) => i.session_id === session.id)) completedTasks++;
 
               // Determine status based on task completion
               let status: 'active' | 'half_day' | 'completed' = 'active';
