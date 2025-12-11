@@ -86,8 +86,8 @@ export function OrganiserFeedbackSection({ marketId, marketDate, isToday }: Prop
   if (loading) {
     return (
       <Card>
-        <CardContent className="p-6">
-          <div className="text-center text-muted-foreground">Loading...</div>
+        <CardContent className="p-4 sm:p-6">
+          <div className="text-center text-xs sm:text-sm text-muted-foreground">Loading...</div>
         </CardContent>
       </Card>
     );
@@ -95,25 +95,25 @@ export function OrganiserFeedbackSection({ marketId, marketDate, isToday }: Prop
 
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="py-3 sm:py-6">
         <div className="flex items-center justify-between">
-          <CardTitle>Organiser Feedback</CardTitle>
-          <Badge variant="secondary">{feedbacks.length} Submissions</Badge>
+          <CardTitle className="text-base sm:text-lg">Organiser Feedback</CardTitle>
+          <Badge variant="secondary" className="text-xs">{feedbacks.length} Submissions</Badge>
         </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="pt-0">
         {feedbacks.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground">
+          <div className="text-center py-6 sm:py-8 text-xs sm:text-sm text-muted-foreground">
             No organiser feedback submitted yet
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-3 sm:space-y-4">
             {feedbacks.map((feedback) => (
-              <div key={feedback.id} className="border rounded-lg p-4 space-y-3">
+              <div key={feedback.id} className="border rounded-lg p-3 sm:p-4 space-y-2 sm:space-y-3">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <User className="h-4 w-4 text-muted-foreground" />
-                    <span className="font-medium">{feedback.employee_name}</span>
+                  <div className="flex items-center gap-1.5 sm:gap-2">
+                    <User className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
+                    <span className="text-sm sm:text-base font-medium">{feedback.employee_name}</span>
                   </div>
                   <span className="text-xs text-muted-foreground">
                     {format(new Date(feedback.created_at), 'hh:mm a')}
@@ -122,20 +122,20 @@ export function OrganiserFeedbackSection({ marketId, marketDate, isToday }: Prop
                 
                 {feedback.difficulties && (
                   <div>
-                    <p className="text-sm font-medium text-muted-foreground">Difficulties Faced</p>
-                    <p className="text-sm mt-1">{feedback.difficulties}</p>
+                    <p className="text-xs sm:text-sm font-medium text-muted-foreground">Difficulties Faced</p>
+                    <p className="text-xs sm:text-sm mt-0.5 sm:mt-1">{feedback.difficulties}</p>
                   </div>
                 )}
 
                 {feedback.feedback && (
                   <div>
-                    <p className="text-sm font-medium text-muted-foreground">Feedback</p>
-                    <p className="text-sm mt-1">{feedback.feedback}</p>
+                    <p className="text-xs sm:text-sm font-medium text-muted-foreground">Feedback</p>
+                    <p className="text-xs sm:text-sm mt-0.5 sm:mt-1">{feedback.feedback}</p>
                   </div>
                 )}
 
                 {!feedback.difficulties && !feedback.feedback && (
-                  <p className="text-sm text-muted-foreground italic">No content provided</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground italic">No content provided</p>
                 )}
               </div>
             ))}

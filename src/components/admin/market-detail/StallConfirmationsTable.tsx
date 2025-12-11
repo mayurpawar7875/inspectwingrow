@@ -116,38 +116,38 @@ export function StallConfirmationsTable({ marketId, marketDate, isToday, marketN
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle>Stall Confirmations</CardTitle>
-        <Button onClick={exportToCSV} variant="outline" size="sm" disabled={confirmations.length === 0}>
-          <Download className="mr-2 h-4 w-4" />
-          Export CSV
+      <CardHeader className="flex flex-row items-center justify-between py-3 sm:py-6">
+        <CardTitle className="text-base sm:text-lg">Stall Confirmations</CardTitle>
+        <Button onClick={exportToCSV} variant="outline" size="sm" disabled={confirmations.length === 0} className="h-8 text-xs sm:text-sm">
+          <Download className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
+          Export
         </Button>
       </CardHeader>
-      <CardContent>
+      <CardContent className="pt-0">
         {loading ? (
-          <div className="text-center text-muted-foreground">Loading...</div>
+          <div className="text-center text-xs sm:text-sm text-muted-foreground">Loading...</div>
         ) : confirmations.length === 0 ? (
-          <div className="text-center text-muted-foreground">No stall confirmations yet</div>
+          <div className="text-center text-xs sm:text-sm text-muted-foreground">No stall confirmations yet</div>
         ) : (
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Time</TableHead>
-                  <TableHead>Farmer Name</TableHead>
-                  <TableHead>Stall Name</TableHead>
-                  <TableHead>Stall No</TableHead>
-                  <TableHead>Entered By</TableHead>
+                  <TableHead className="text-xs sm:text-sm">Time</TableHead>
+                  <TableHead className="text-xs sm:text-sm">Farmer</TableHead>
+                  <TableHead className="text-xs sm:text-sm">Stall</TableHead>
+                  <TableHead className="text-xs sm:text-sm">No</TableHead>
+                  <TableHead className="text-xs sm:text-sm">By</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {confirmations.map((confirmation) => (
                   <TableRow key={confirmation.id}>
-                    <TableCell>{format(new Date(confirmation.created_at), 'hh:mm a')}</TableCell>
-                    <TableCell>{confirmation.farmer_name}</TableCell>
-                    <TableCell>{confirmation.stall_name}</TableCell>
-                    <TableCell>{confirmation.stall_no}</TableCell>
-                    <TableCell>{confirmation.profiles.full_name}</TableCell>
+                    <TableCell className="text-xs sm:text-sm">{format(new Date(confirmation.created_at), 'hh:mm a')}</TableCell>
+                    <TableCell className="text-xs sm:text-sm">{confirmation.farmer_name}</TableCell>
+                    <TableCell className="text-xs sm:text-sm">{confirmation.stall_name}</TableCell>
+                    <TableCell className="text-xs sm:text-sm">{confirmation.stall_no}</TableCell>
+                    <TableCell className="text-xs sm:text-sm">{confirmation.profiles.full_name}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
