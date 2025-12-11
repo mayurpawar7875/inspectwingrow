@@ -368,14 +368,15 @@ export default function LiveMarkets() {
   }
 
   const renderTaskChecklist = (market: LiveMarket) => {
+    // 13 tasks matching Employee Dashboard
     const tasks = [
       { 
-        label: 'Employees Checked In', 
+        label: 'Punch In', 
         completed: market.task_stats ? market.task_stats.attendance > 0 : false,
         value: market.task_stats && market.task_stats.attendance > 0 ? `${market.task_stats.attendance} checked in` : null
       },
       { 
-        label: 'Stall Confirmation', 
+        label: 'Stall Confirmations', 
         completed: market.task_stats ? market.task_stats.stall_confirmations > 0 : false,
         value: market.task_stats && market.task_stats.stall_confirmations > 0 ? `${market.task_stats.stall_confirmations} confirmed` : null
       },
@@ -385,7 +386,7 @@ export default function LiveMarkets() {
         value: market.task_stats && market.task_stats.outside_rates > 0 ? `${market.task_stats.outside_rates} uploaded` : null
       },
       { 
-        label: 'Rate Board', 
+        label: 'Rate Board Photo', 
         completed: market.task_stats ? market.task_stats.rate_board > 0 : false,
         value: market.task_stats && market.task_stats.rate_board > 0 ? `${market.task_stats.rate_board} uploaded` : null
       },
@@ -402,7 +403,7 @@ export default function LiveMarkets() {
         completed: market.task_stats ? market.task_stats.customer_feedback > 0 : false
       },
       { 
-        label: 'Today\'s Offer', 
+        label: "Today's Offers", 
         completed: market.task_stats ? market.task_stats.offers > 0 : false,
         value: market.task_stats && market.task_stats.offers > 0 ? `${market.task_stats.offers} items` : null
       },
@@ -412,20 +413,16 @@ export default function LiveMarkets() {
         value: market.task_stats && market.task_stats.commodities > 0 ? `${market.task_stats.commodities} items` : null
       },
       { 
-        label: 'Organiser Feedback', 
-        completed: market.task_stats ? market.task_stats.feedback > 0 : false
-      },
-      { 
-        label: 'Stall Inspection', 
+        label: 'Stall Inspections', 
         completed: market.task_stats ? market.task_stats.inspections > 0 : false,
         value: market.task_stats && market.task_stats.inspections > 0 ? `${market.task_stats.inspections} stalls` : null
       },
       { 
-        label: 'Next Day Planning', 
-        completed: market.task_stats ? market.task_stats.planning > 0 : false
+        label: 'Feedback / Next Day Plan', 
+        completed: market.task_stats ? (market.task_stats.feedback > 0 || market.task_stats.planning > 0) : false
       },
       { 
-        label: 'Collection', 
+        label: 'Collections', 
         completed: market.task_stats ? market.task_stats.collections > 0 : false,
         value: market.task_stats && market.task_stats.collections > 0 ? `${market.task_stats.collections} collected` : null
       },
