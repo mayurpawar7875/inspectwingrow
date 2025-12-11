@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import LiveMarketsWidget from '@/components/admin/LiveMarketsWidget';
 import { EmployeeAllocationsTab } from '@/components/admin/market-manager/EmployeeAllocationsTab';
 import { PunchRecordsTab } from '@/components/admin/market-manager/PunchRecordsTab';
 import { LandSearchTab } from '@/components/admin/market-manager/LandSearchTab';
@@ -28,9 +27,8 @@ export default function MarketManagerReporting() {
         </div>
       </div>
 
-      <Tabs defaultValue="overview" className="w-full">
-        <TabsList className="grid w-full grid-cols-4 lg:grid-cols-8">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
+      <Tabs defaultValue="allocations" className="w-full">
+        <TabsList className="grid w-full grid-cols-4 lg:grid-cols-7">
           <TabsTrigger value="allocations">Allocations</TabsTrigger>
           <TabsTrigger value="punch">Punch Records</TabsTrigger>
           <TabsTrigger value="land">Land Search</TabsTrigger>
@@ -39,10 +37,6 @@ export default function MarketManagerReporting() {
           <TabsTrigger value="feedback">Feedback</TabsTrigger>
           <TabsTrigger value="inspections">Inspections</TabsTrigger>
         </TabsList>
-
-        <TabsContent value="overview">
-          <LiveMarketsWidget />
-        </TabsContent>
 
         <TabsContent value="allocations">
           <EmployeeAllocationsTab />
