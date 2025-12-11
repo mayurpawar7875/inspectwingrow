@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Loader2, Save, Trash2, Calendar, Plus, X } from 'lucide-react';
@@ -32,6 +33,12 @@ interface NextDayPlan {
   stall_list: string;
 }
 
+interface Market {
+  id: string;
+  name: string;
+  city: string | null;
+}
+
 export default function NextDayPlanningForm({ sessionId, marketDate, userId, onSuccess }: Props) {
   const [marketName, setMarketName] = useState('');
   const [farmerName, setFarmerName] = useState('');
@@ -40,10 +47,27 @@ export default function NextDayPlanningForm({ sessionId, marketDate, userId, onS
   const [existingPlan, setExistingPlan] = useState<NextDayPlan | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [markets, setMarkets] = useState<Market[]>([]);
 
   useEffect(() => {
     fetchExistingPlan();
+    fetchMarkets();
   }, [userId, marketDate]);
+
+  const fetchMarkets = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('markets')
+        .select('id, name, city')
+        .eq('is_active', true)
+        .order('name');
+
+      if (error) throw error;
+      setMarkets(data || []);
+    } catch (error: any) {
+      console.error('Error fetching markets:', error);
+    }
+  };
 
   const fetchExistingPlan = async () => {
     try {
@@ -246,14 +270,22 @@ export default function NextDayPlanningForm({ sessionId, marketDate, userId, onS
       <CardContent className="space-y-3 sm:space-y-4">
         <div className="space-y-2">
           <Label htmlFor="market-name" className="text-xs sm:text-sm">Next Day Market Name *</Label>
-          <Input
-            id="market-name"
-            placeholder="Enter market name for next day"
-            className="h-8 sm:h-10 text-xs sm:text-sm"
+          <Select
             value={marketName}
-            onChange={(e) => setMarketName(e.target.value)}
+            onValueChange={setMarketName}
             disabled={saving}
-          />
+          >
+            <SelectTrigger className="h-8 sm:h-10 text-xs sm:text-sm">
+              <SelectValue placeholder="Select market for next day" />
+            </SelectTrigger>
+            <SelectContent className="bg-background z-50">
+              {markets.map((market) => (
+                <SelectItem key={market.id} value={market.name}>
+                  {market.name}{market.city ? ` (${market.city})` : ''}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         <div className="space-y-2 sm:space-y-3">
