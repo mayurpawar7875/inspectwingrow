@@ -199,28 +199,43 @@ export default function LiveMarket() {
     try {
       const dateStr = format(selectedDate, 'yyyy-MM-dd');
       
-      // Direct filtering using market_id and market_date with IST timezone
-      const { data, error } = await (supabase as any)
-        .from('media')
-        .select(`
-          id,
-          created_at,
-          media_type,
-          is_late,
-          file_url,
-          user_id,
-          profiles!media_user_id_fkey(full_name)
-        `)
+      // First get session IDs for this market and date
+      const { data: sessions } = await supabase
+        .from('sessions')
+        .select('id, user_id')
         .eq('market_id', selectedMarket)
-        .eq('market_date', dateStr)
+        .eq('session_date', dateStr);
+      
+      const sessionIds = sessions?.map(s => s.id) || [];
+      const userIds = [...new Set(sessions?.map(s => s.user_id).filter(Boolean) || [])];
+      
+      if (sessionIds.length === 0) {
+        setMediaUploads([]);
+        return;
+      }
+      
+      // Fetch media for those sessions
+      const { data, error } = await supabase
+        .from('media')
+        .select('id, created_at, media_type, is_late, file_url, session_id')
+        .in('session_id', sessionIds)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
 
+      // Get employee names
+      const { data: employees } = await supabase
+        .from('employees')
+        .select('id, full_name')
+        .in('id', userIds);
+
+      const employeeMap = new Map(employees?.map(e => [e.id, e.full_name]) || []);
+      const sessionUserMap = new Map(sessions?.map(s => [s.id, s.user_id]) || []);
+
       setMediaUploads((data || []).map((item: any) => ({
         id: item.id,
         uploaded_at: item.created_at,
-        employee_name: item.profiles?.full_name || 'Unknown',
+        employee_name: employeeMap.get(sessionUserMap.get(item.session_id)) || 'Unknown',
         file_type: item.media_type,
         is_late: item.is_late,
         file_url: item.file_url
@@ -235,13 +250,19 @@ export default function LiveMarket() {
     try {
       const dateStr = format(selectedDate, 'yyyy-MM-dd');
       
-      // Active + completed employees for the day
-      const { count: activeCount } = await supabase
+      // Get sessions for this market/date to use for media filtering
+      const { data: sessions } = await supabase
         .from('sessions')
-        .select('*', { count: 'exact', head: true })
+        .select('id')
         .eq('market_id', selectedMarket)
         .eq('session_date', dateStr)
         .in('status', ['active', 'completed', 'finalized']);
+      
+      const sessionIds = sessions?.map(s => s.id) || [];
+      const safeSessionIds = sessionIds.length > 0 ? sessionIds : ['00000000-0000-0000-0000-000000000000'];
+      
+      // Active + completed employees for the day
+      const activeCount = sessions?.length || 0;
 
       // Stalls confirmed - direct filtering
       const { count: stallsCount } = await supabase
@@ -250,18 +271,16 @@ export default function LiveMarket() {
         .eq('market_id', selectedMarket)
         .eq('market_date', dateStr);
 
-      // Media uploads - direct filtering using new columns
-      const { count: totalMedia } = await (supabase as any)
+      // Media uploads - filter by session_id instead of market_date
+      const { count: totalMedia } = await supabase
         .from('media')
         .select('*', { count: 'exact', head: true })
-        .eq('market_id', selectedMarket)
-        .eq('market_date', dateStr);
+        .in('session_id', safeSessionIds);
 
-      const { count: lateMedia } = await (supabase as any)
+      const { count: lateMedia } = await supabase
         .from('media')
         .select('*', { count: 'exact', head: true })
-        .eq('market_id', selectedMarket)
-        .eq('market_date', dateStr)
+        .in('session_id', safeSessionIds)
         .eq('is_late', true);
 
       setKpis({
