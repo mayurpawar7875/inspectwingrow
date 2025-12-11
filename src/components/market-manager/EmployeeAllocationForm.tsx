@@ -50,61 +50,25 @@ export function EmployeeAllocationForm({ sessionId, onComplete }: EmployeeAlloca
 
   const fetchLiveMarkets = async () => {
     try {
-      const today = new Date();
-      const todayIST = new Date(today.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
-      const dayOfWeek = todayIST.getDay(); // 0 = Sunday, 1 = Monday, etc.
-      const todayDate = todayIST.toISOString().split('T')[0];
-      
-      // First, try to get markets with active sessions today
-      const { data: activeSessions } = await supabase
-        .from('sessions')
-        .select('market_id, markets(id, name)')
-        .eq('session_date', todayDate)
-        .eq('status', 'active');
-      
-      let liveMarkets: any[] = [];
-      
-      // Add markets with active sessions
-      if (activeSessions && activeSessions.length > 0) {
-        const sessionMarkets = activeSessions
-          .map(s => s.markets)
-          .filter(Boolean)
-          .filter((market, index, self) => 
-            index === self.findIndex(m => m.id === market.id)
-          );
-        liveMarkets.push(...sessionMarkets);
-      }
-      
-      // Also fetch markets scheduled for today's day of week
-      const { data: scheduledMarkets, error: scheduleError } = await supabase
-        .from('market_schedule')
-        .select('market_id, markets(id, name)')
+      // Fetch all active markets - market managers need to allocate employees to any active market
+      const { data: activeMarkets, error } = await supabase
+        .from('markets')
+        .select('id, name')
         .eq('is_active', true)
-        .eq('day_of_week', dayOfWeek);
+        .order('name');
       
-      if (!scheduleError && scheduledMarkets) {
-        const scheduled = scheduledMarkets
-          .map(s => s.markets)
-          .filter(Boolean)
-          .filter((market, index, self) => 
-            index === self.findIndex(m => m.id === market.id)
-          );
-        
-        // Merge with live markets, avoiding duplicates
-        scheduled.forEach(market => {
-          if (!liveMarkets.find(m => m.id === market.id)) {
-            liveMarkets.push(market);
-          }
-        });
+      if (error) {
+        console.error('Error fetching markets:', error);
+        toast.error('Failed to load markets');
+        setMarkets([]);
+        return;
       }
       
-      if (liveMarkets.length === 0) {
-        toast.info('No markets scheduled for today');
+      if (!activeMarkets || activeMarkets.length === 0) {
+        toast.info('No markets available');
         setMarkets([]);
       } else {
-        // Sort by name
-        liveMarkets.sort((a, b) => a.name.localeCompare(b.name));
-        setMarkets(liveMarkets);
+        setMarkets(activeMarkets);
       }
     } catch (error) {
       console.error('Error fetching live markets:', error);
@@ -148,11 +112,11 @@ export function EmployeeAllocationForm({ sessionId, onComplete }: EmployeeAlloca
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Live Markets List */}
+          {/* Available Markets List */}
           <div className="space-y-3">
-            <Label className="text-base font-semibold">Live Markets Today ({markets.length})</Label>
+            <Label className="text-base font-semibold">Available Markets ({markets.length})</Label>
             {markets.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No markets scheduled for today</p>
+              <p className="text-sm text-muted-foreground">No markets available</p>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                 {markets.map((market) => (
