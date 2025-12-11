@@ -133,10 +133,10 @@ export function OrganiserOnDuty({ marketId, marketDate, isToday }: Props) {
     }
 
     if (selectedUserId) {
-      // Fetch the employee profile
+      // Fetch the employee profile - only non-sensitive fields
       const { data: emp } = await supabase
         .from('employees')
-        .select('id, full_name, phone')
+        .select('id, full_name')
         .eq('id', selectedUserId)
         .maybeSingle();
 
@@ -146,7 +146,7 @@ export function OrganiserOnDuty({ marketId, marketDate, isToday }: Props) {
           user_id: selectedUserId,
           profiles: {
             full_name: emp.full_name,
-            phone: emp.phone
+            phone: null
           }
         } as any);
 
