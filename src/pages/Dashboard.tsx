@@ -284,7 +284,7 @@ export default function Dashboard() {
         }
         taskDetails.push({ name: 'Stall Confirmations', completed: stallsCompleted, icon: FileText });
         
-        // Task 3-8: Media uploads (6 types)
+        // Task 3-8: Media uploads (6 types) - run in parallel
         const mediaTypes: Array<{type: 'outside_rates' | 'rate_board' | 'market_video' | 'cleaning_video' | 'customer_feedback' | 'selfie_gps', label: string, icon: any}> = [
           { type: 'outside_rates', label: 'Outside Rates', icon: Upload },
           { type: 'rate_board', label: 'Rate Board Photo', icon: ImageIcon },
@@ -294,45 +294,44 @@ export default function Dashboard() {
           { type: 'selfie_gps', label: 'Selfie with GPS', icon: Camera },
         ];
         
-        for (const mediaType of mediaTypes) {
-          const { count: mediaCount } = await supabase
-            .from('media')
-            .select('*', { count: 'exact', head: true })
-            .eq('session_id', data.id)
-            .eq('media_type', mediaType.type);
-          const mediaCompleted = (mediaCount || 0) > 0;
-          if (mediaCompleted) completedTasks++;
-          taskDetails.push({ name: mediaType.label, completed: mediaCompleted, icon: mediaType.icon });
-        }
+        // Run all media queries in parallel
+        const mediaResults = await Promise.all(
+          mediaTypes.map(mediaType => 
+            supabase
+              .from('media')
+              .select('*', { count: 'exact', head: true })
+              .eq('session_id', data.id)
+              .eq('media_type', mediaType.type)
+          )
+        );
         
+        mediaResults.forEach((result, index) => {
+          const mediaCompleted = (result.count || 0) > 0;
+          if (mediaCompleted) completedTasks++;
+          taskDetails.push({ name: mediaTypes[index].label, completed: mediaCompleted, icon: mediaTypes[index].icon });
+        });
+        
+        // Task 9-13: Run remaining queries in parallel
+        const [offersResult, commoditiesResult, inspectionsResult, feedbackResult, planningResult] = await Promise.all([
+          supabase.from('offers').select('*', { count: 'exact', head: true }).eq('market_id', data.market_id).eq('market_date', dateStr).eq('session_id', data.id),
+          supabase.from('non_available_commodities').select('*', { count: 'exact', head: true }).eq('market_id', data.market_id).eq('market_date', dateStr).eq('session_id', data.id),
+          supabase.from('stall_inspections').select('*', { count: 'exact', head: true }).eq('session_id', data.id),
+          supabase.from('organiser_feedback').select('*', { count: 'exact', head: true }).eq('market_id', data.market_id).eq('market_date', dateStr).eq('session_id', data.id),
+          supabase.from('next_day_planning').select('*', { count: 'exact', head: true }).eq('market_id', data.market_id).eq('market_date', dateStr).eq('session_id', data.id),
+        ]);
+
         // Task 9: Today's Offers
-        const { count: offersCount } = await supabase
-          .from('offers')
-          .select('*', { count: 'exact', head: true })
-          .eq('market_id', data.market_id)
-          .eq('market_date', dateStr)
-          .eq('session_id', data.id);
-        const offersCompleted = (offersCount || 0) > 0;
+        const offersCompleted = (offersResult.count || 0) > 0;
         if (offersCompleted) completedTasks++;
         taskDetails.push({ name: "Today's Offers", completed: offersCompleted, icon: FileText });
         
         // Task 10: Non-Available Commodities
-        const { count: commoditiesCount } = await supabase
-          .from('non_available_commodities')
-          .select('*', { count: 'exact', head: true })
-          .eq('market_id', data.market_id)
-          .eq('market_date', dateStr)
-          .eq('session_id', data.id);
-        const commoditiesCompleted = (commoditiesCount || 0) > 0;
+        const commoditiesCompleted = (commoditiesResult.count || 0) > 0;
         if (commoditiesCompleted) completedTasks++;
         taskDetails.push({ name: 'Non-Available Commodities', completed: commoditiesCompleted, icon: AlertCircle });
         
         // Task 11: Stall Inspections (at least 1)
-        const { count: inspectionsCount } = await supabase
-          .from('stall_inspections')
-          .select('*', { count: 'exact', head: true })
-          .eq('session_id', data.id);
-        const inspectionsCompleted = (inspectionsCount || 0) > 0;
+        const inspectionsCompleted = (inspectionsResult.count || 0) > 0;
         if (inspectionsCompleted) completedTasks++;
         taskDetails.push({ name: 'Stall Inspections', completed: inspectionsCompleted, icon: ClipboardCheck });
         
@@ -342,21 +341,7 @@ export default function Dashboard() {
         taskDetails.push({ name: 'Punch Out', completed: punchOutCompleted, icon: LogOut });
         
         // Task 13: Organiser Feedback or Next Day Planning (either one counts)
-        const { count: feedbackCount } = await supabase
-          .from('organiser_feedback')
-          .select('*', { count: 'exact', head: true })
-          .eq('market_id', data.market_id)
-          .eq('market_date', dateStr)
-          .eq('session_id', data.id);
-        
-        const { count: planningCount } = await supabase
-          .from('next_day_planning')
-          .select('*', { count: 'exact', head: true })
-          .eq('market_id', data.market_id)
-          .eq('market_date', dateStr)
-          .eq('session_id', data.id);
-        
-        const feedbackCompleted = (feedbackCount || 0) > 0 || (planningCount || 0) > 0;
+        const feedbackCompleted = (feedbackResult.count || 0) > 0 || (planningResult.count || 0) > 0;
         if (feedbackCompleted) completedTasks++;
         taskDetails.push({ name: 'Feedback / Next Day Plan', completed: feedbackCompleted, icon: Calendar });
         
