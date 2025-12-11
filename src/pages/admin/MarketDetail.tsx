@@ -69,12 +69,12 @@ export default function MarketDetail() {
 
       const dateStr = getISTDateString(selectedDate);
 
-      // Fetch sessions for this market and date (handle both market_date and session_date)
+      // Fetch sessions for this market and date
       const { data: s, error: sErr } = await supabase
         .from('sessions')
         .select('id, user_id, punch_in_time, punch_out_time, status')
         .eq('market_id', marketId)
-        .or(`market_date.eq.${dateStr},session_date.eq.${dateStr}`)
+        .eq('session_date', dateStr)
         .order('punch_in_time', { ascending: false });
 
       if (sErr) console.error(sErr);

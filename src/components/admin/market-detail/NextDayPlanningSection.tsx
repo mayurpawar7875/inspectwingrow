@@ -65,7 +65,7 @@ export function NextDayPlanningSection({ marketId, marketDate, isToday }: Props)
           created_at,
           user_id
         `)
-        .eq('current_market_date', marketDate)
+        .eq('market_date', marketDate)
         .order('created_at', { ascending: false });
       
       const data: any = result.data;
