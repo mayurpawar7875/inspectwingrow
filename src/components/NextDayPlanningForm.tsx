@@ -56,9 +56,32 @@ export default function NextDayPlanningForm({ sessionId, marketDate, userId, onS
 
   const fetchMarkets = async () => {
     try {
+      // Calculate next day's day of week (0 = Sunday, 6 = Saturday)
+      const currentDate = new Date(marketDate);
+      const nextDay = new Date(currentDate);
+      nextDay.setDate(nextDay.getDate() + 1);
+      const nextDayOfWeek = nextDay.getDay();
+
+      // Get markets scheduled for next day
+      const { data: scheduleData, error: scheduleError } = await supabase
+        .from('market_schedule')
+        .select('market_id')
+        .eq('day_of_week', nextDayOfWeek)
+        .eq('is_active', true);
+
+      if (scheduleError) throw scheduleError;
+
+      if (!scheduleData || scheduleData.length === 0) {
+        setMarkets([]);
+        return;
+      }
+
+      const marketIds = scheduleData.map(s => s.market_id);
+
       const { data, error } = await supabase
         .from('markets')
         .select('id, name, city')
+        .in('id', marketIds)
         .eq('is_active', true)
         .order('name');
 
