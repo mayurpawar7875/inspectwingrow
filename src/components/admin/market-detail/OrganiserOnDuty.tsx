@@ -75,18 +75,20 @@ export function OrganiserOnDuty({ marketId, marketDate, isToday }: Props) {
       .select('id, user_id, punch_in_time, punch_out_time, status')
       .eq('market_id', marketId)
       .eq('session_date', marketDate)
-      .order('punch_in_time', { ascending: false });
+      .order('created_at', { ascending: false });
 
     if (sErr) console.error(sErr);
 
     let selectedUserId: string | null = null;
     let sessionData: any = null;
 
-    // Pick organiser = active session first, else latest
-    const organiserSession = (s ?? []).sort((a, b) => 
-      (a.status === 'active' ? -1 : 1) || 
-      (new Date(b.punch_in_time || 0).getTime() - new Date(a.punch_in_time || 0).getTime())
-    )[0];
+    // Pick organiser = active session first, else latest by created_at
+    const organiserSession = (s ?? []).sort((a, b) => {
+      // Prioritize active sessions
+      if (a.status === 'active' && b.status !== 'active') return -1;
+      if (b.status === 'active' && a.status !== 'active') return 1;
+      return 0;
+    })[0];
 
     if (organiserSession) {
       selectedUserId = organiserSession.user_id;
