@@ -50,11 +50,16 @@ export function EmployeeAllocationForm({ sessionId, onComplete }: EmployeeAlloca
 
   const fetchLiveMarkets = async () => {
     try {
-      // Fetch ALL active markets for allocation
+      // Get today's day of week in IST (0 = Sunday, 4 = Thursday, etc.)
+      const ist = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
+      const dayOfWeek = ist.getDay();
+      
+      // Fetch only today's live markets based on day_of_week
       const { data: marketsData, error: marketsError } = await supabase
         .from('markets')
         .select('id, name')
         .eq('is_active', true)
+        .eq('day_of_week', dayOfWeek)
         .order('name');
       
       if (marketsError) {
@@ -107,9 +112,9 @@ export function EmployeeAllocationForm({ sessionId, onComplete }: EmployeeAlloca
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Active Markets */}
+          {/* Live Markets Today */}
           <div className="space-y-3">
-            <Label className="text-base font-semibold">Active Markets ({markets.length})</Label>
+            <Label className="text-base font-semibold">Live Markets Today ({markets.length})</Label>
             {markets.length === 0 ? (
               <p className="text-sm text-muted-foreground">No markets scheduled for today</p>
             ) : (
