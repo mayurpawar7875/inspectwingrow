@@ -1336,18 +1336,18 @@ export default function AdminDashboard() {
     ];
 
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-1.5">
+      <div className="grid grid-cols-2 gap-1 md:gap-1.5">
         {tasks.map((task, index) => (
           <div 
             key={index} 
-            className="flex items-center gap-2 cursor-pointer hover:bg-accent/50 px-1.5 py-1 rounded transition-colors"
+            className="flex items-center gap-1 md:gap-2 cursor-pointer hover:bg-accent/50 px-1 py-0.5 md:px-1.5 md:py-1 rounded transition-colors"
             onClick={task.onClick}
           >
-            <Checkbox checked={task.completed} disabled className="pointer-events-none h-3.5 w-3.5 shrink-0" />
-            <div className="flex-1">
-              <div className="text-xs font-medium leading-tight">{task.label}</div>
+            <Checkbox checked={task.completed} disabled className="pointer-events-none h-3 w-3 md:h-3.5 md:w-3.5 shrink-0" />
+            <div className="flex-1 min-w-0">
+              <div className="text-[10px] md:text-xs font-medium leading-tight truncate">{task.label}</div>
               {task.value && (
-                <div className="text-[10px] text-muted-foreground leading-tight">{task.value}</div>
+                <div className="text-[8px] md:text-[10px] text-muted-foreground leading-tight truncate">{task.value}</div>
               )}
             </div>
           </div>
