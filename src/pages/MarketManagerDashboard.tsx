@@ -266,40 +266,40 @@ export default function MarketManagerDashboard() {
           <div className="space-y-2">
             <h2 className="text-lg font-semibold mb-4">Tasks</h2>
             {TASKS.map((task) => (
-              <div key={task.id}>
-                <button
-                  onClick={() => setOpenDialog(task.id)}
-                  className={`w-full text-left p-3 rounded-lg border transition-colors ${
-                    completedTasks.includes(task.id)
-                      ? 'bg-muted border-muted'
-                      : 'bg-card border-border hover:bg-muted'
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium">{task.name}</span>
-                      {taskCounts[task.id] > 0 && (
-                        <span className="text-xs bg-primary text-primary-foreground px-2 py-0.5 rounded-full">
-                          {taskCounts[task.id]}
-                        </span>
-                      )}
-                    </div>
-                    {completedTasks.includes(task.id) && (
-                      <CheckCircle2 className="h-4 w-4 text-green-500" />
+              <button
+                key={task.id}
+                onClick={() => setOpenDialog(task.id)}
+                className={`w-full text-left p-3 rounded-lg border transition-colors ${
+                  completedTasks.includes(task.id)
+                    ? 'bg-muted border-muted'
+                    : 'bg-card border-border hover:bg-muted'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium">{task.name}</span>
+                    {taskCounts[task.id] > 0 && (
+                      <span className="text-xs bg-primary text-primary-foreground px-2 py-0.5 rounded-full">
+                        {taskCounts[task.id]}
+                      </span>
                     )}
                   </div>
-                </button>
-
-                <Dialog open={openDialog === task.id} onOpenChange={(open) => !open && setOpenDialog(null)}>
-                  <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-                    <DialogHeader>
-                      <DialogTitle>{task.name}</DialogTitle>
-                    </DialogHeader>
-                    {renderTaskForm(task.id)}
-                  </DialogContent>
-                </Dialog>
-              </div>
+                  {completedTasks.includes(task.id) && (
+                    <CheckCircle2 className="h-4 w-4 text-green-500" />
+                  )}
+                </div>
+              </button>
             ))}
+
+            {/* Single Dialog outside the map to prevent re-mounting on re-renders */}
+            <Dialog open={openDialog !== null} onOpenChange={(open) => !open && setOpenDialog(null)}>
+              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>{TASKS.find(t => t.id === openDialog)?.name}</DialogTitle>
+                </DialogHeader>
+                {openDialog !== null && renderTaskForm(openDialog)}
+              </DialogContent>
+            </Dialog>
           </div>
         )}
       </main>
