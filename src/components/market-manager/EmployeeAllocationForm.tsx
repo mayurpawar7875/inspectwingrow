@@ -184,20 +184,31 @@ export function EmployeeAllocationForm({ sessionId, onComplete }: EmployeeAlloca
   };
 
   const handleDelete = async () => {
-    if (!deleteId) return;
+    if (!deleteId) {
+      console.log('No deleteId set');
+      return;
+    }
 
-    const { error } = await supabase
+    console.log('Deleting allocation:', deleteId);
+    
+    const { error, data } = await supabase
       .from('employee_allocations')
       .delete()
-      .eq('id', deleteId);
+      .eq('id', deleteId)
+      .select();
+
+    console.log('Delete result:', { error, data });
 
     if (error) {
+      console.error('Delete error:', error);
       toast.error('Failed to delete allocation');
+      setDeleteId(null);
       return;
     }
 
     toast.success('Allocation removed');
     setDeleteId(null);
+    fetchAllocations(); // Force refresh
   };
 
   const getMarketName = (marketId: string) => {
