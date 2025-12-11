@@ -315,7 +315,7 @@ export default function AdminDashboard() {
           .from('media')
           .select('market_id, captured_at')
           .in('market_id', marketIds)
-          .gte('market_date', todayDate)
+          .gte('captured_at', `${todayDate}T00:00:00`)
           .order('captured_at', { ascending: false });
         
         // Get latest stall confirmations per market
