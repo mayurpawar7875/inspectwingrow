@@ -50,62 +50,16 @@ export function EmployeeAllocationForm({ sessionId, onComplete }: EmployeeAlloca
 
   const fetchLiveMarkets = async () => {
     try {
-      // Get today's date in IST
+      // Get today's day of week in IST
       const ist = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
-      const y = ist.getFullYear();
-      const m = String(ist.getMonth() + 1).padStart(2, '0');
-      const d = String(ist.getDate()).padStart(2, '0');
-      const todayDate = `${y}-${m}-${d}`;
-      const dayOfWeek = ist.getDay();
+      const dayOfWeek = ist.getDay(); // 0 = Sunday, 1 = Monday, etc.
       
-      const marketIds = new Set<string>();
-      
-      // Fetch market IDs from active sessions today
-      const { data: activeSessions, error: sessionsError } = await supabase
-        .from('sessions')
-        .select('market_id')
-        .eq('session_date', todayDate)
-        .eq('status', 'active');
-      
-      if (sessionsError) {
-        console.error('Error fetching sessions:', sessionsError);
-      }
-      
-      if (activeSessions) {
-        activeSessions.forEach(s => {
-          if (s.market_id) marketIds.add(s.market_id);
-        });
-      }
-      
-      // Also fetch market IDs scheduled for today's day of week
-      const { data: scheduledMarkets, error: scheduleError } = await supabase
-        .from('market_schedule')
-        .select('market_id')
-        .eq('is_active', true)
-        .eq('day_of_week', dayOfWeek);
-      
-      if (scheduleError) {
-        console.error('Error fetching schedule:', scheduleError);
-      }
-      
-      if (scheduledMarkets) {
-        scheduledMarkets.forEach(s => {
-          if (s.market_id) marketIds.add(s.market_id);
-        });
-      }
-      
-      if (marketIds.size === 0) {
-        toast.info('No live markets for today');
-        setMarkets([]);
-        return;
-      }
-      
-      // Fetch market details for all collected IDs
+      // Fetch markets scheduled for today based on day_of_week column on markets table
       const { data: marketsData, error: marketsError } = await supabase
         .from('markets')
         .select('id, name')
-        .in('id', Array.from(marketIds))
         .eq('is_active', true)
+        .eq('day_of_week', dayOfWeek)
         .order('name');
       
       if (marketsError) {
@@ -115,7 +69,13 @@ export function EmployeeAllocationForm({ sessionId, onComplete }: EmployeeAlloca
         return;
       }
       
-      setMarkets(marketsData || []);
+      if (!marketsData || marketsData.length === 0) {
+        toast.info('No live markets for today');
+        setMarkets([]);
+        return;
+      }
+      
+      setMarkets(marketsData);
     } catch (error) {
       console.error('Error fetching live markets:', error);
       toast.error('Failed to load markets');
