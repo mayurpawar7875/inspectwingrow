@@ -88,8 +88,8 @@ export function TodaysOffersSection({ marketId, marketDate, isToday }: Props) {
   if (loading) {
     return (
       <Card>
-        <CardContent className="p-6">
-          <div className="text-center text-muted-foreground">Loading...</div>
+        <CardContent className="p-4 sm:p-6">
+          <div className="text-center text-xs sm:text-sm text-muted-foreground">Loading...</div>
         </CardContent>
       </Card>
     );
@@ -97,15 +97,15 @@ export function TodaysOffersSection({ marketId, marketDate, isToday }: Props) {
 
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="py-3 sm:py-6">
         <div className="flex items-center justify-between">
-          <CardTitle>Today's Offers</CardTitle>
-          <Badge variant="secondary">{offers.length} Offers</Badge>
+          <CardTitle className="text-base sm:text-lg">Today's Offers</CardTitle>
+          <Badge variant="secondary" className="text-xs">{offers.length} Offers</Badge>
         </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="pt-0">
         {offers.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground">
+          <div className="text-center py-6 sm:py-8 text-xs sm:text-sm text-muted-foreground">
             No offers submitted yet
           </div>
         ) : (
@@ -113,25 +113,25 @@ export function TodaysOffersSection({ marketId, marketDate, isToday }: Props) {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Time</TableHead>
-                  <TableHead>Employee</TableHead>
-                  <TableHead>Commodity</TableHead>
-                  <TableHead>Category</TableHead>
-                  <TableHead>Price</TableHead>
-                  <TableHead>Notes</TableHead>
+                  <TableHead className="text-xs sm:text-sm">Time</TableHead>
+                  <TableHead className="text-xs sm:text-sm">Employee</TableHead>
+                  <TableHead className="text-xs sm:text-sm">Commodity</TableHead>
+                  <TableHead className="text-xs sm:text-sm">Category</TableHead>
+                  <TableHead className="text-xs sm:text-sm">Price</TableHead>
+                  <TableHead className="text-xs sm:text-sm">Notes</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {offers.map((offer) => (
                   <TableRow key={offer.id}>
-                    <TableCell>{format(new Date(offer.created_at), 'hh:mm a')}</TableCell>
-                    <TableCell>{offer.employee_name}</TableCell>
-                    <TableCell className="font-medium">{offer.commodity_name}</TableCell>
-                    <TableCell>{offer.category}</TableCell>
-                    <TableCell>
+                    <TableCell className="text-xs sm:text-sm">{format(new Date(offer.created_at), 'hh:mm a')}</TableCell>
+                    <TableCell className="text-xs sm:text-sm">{offer.employee_name}</TableCell>
+                    <TableCell className="text-xs sm:text-sm font-medium">{offer.commodity_name}</TableCell>
+                    <TableCell className="text-xs sm:text-sm">{offer.category}</TableCell>
+                    <TableCell className="text-xs sm:text-sm">
                       {offer.price ? `₹${offer.price}` : '—'}
                     </TableCell>
-                    <TableCell className="max-w-xs truncate">
+                    <TableCell className="text-xs sm:text-sm max-w-xs truncate">
                       {offer.notes || '—'}
                     </TableCell>
                   </TableRow>

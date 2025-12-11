@@ -86,8 +86,8 @@ export function NonAvailableCommoditiesSection({ marketId, marketDate, isToday }
   if (loading) {
     return (
       <Card>
-        <CardContent className="p-6">
-          <div className="text-center text-muted-foreground">Loading...</div>
+        <CardContent className="p-4 sm:p-6">
+          <div className="text-center text-xs sm:text-sm text-muted-foreground">Loading...</div>
         </CardContent>
       </Card>
     );
@@ -95,15 +95,15 @@ export function NonAvailableCommoditiesSection({ marketId, marketDate, isToday }
 
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="py-3 sm:py-6">
         <div className="flex items-center justify-between">
-          <CardTitle>Non-Available Commodities</CardTitle>
-          <Badge variant="secondary">{commodities.length} Items</Badge>
+          <CardTitle className="text-base sm:text-lg">Non-Available Commodities</CardTitle>
+          <Badge variant="secondary" className="text-xs">{commodities.length} Items</Badge>
         </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="pt-0">
         {commodities.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground">
+          <div className="text-center py-6 sm:py-8 text-xs sm:text-sm text-muted-foreground">
             No non-available commodities reported yet
           </div>
         ) : (
@@ -111,19 +111,19 @@ export function NonAvailableCommoditiesSection({ marketId, marketDate, isToday }
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Time</TableHead>
-                  <TableHead>Employee</TableHead>
-                  <TableHead>Commodity Name</TableHead>
-                  <TableHead>Notes</TableHead>
+                  <TableHead className="text-xs sm:text-sm">Time</TableHead>
+                  <TableHead className="text-xs sm:text-sm">Employee</TableHead>
+                  <TableHead className="text-xs sm:text-sm">Commodity</TableHead>
+                  <TableHead className="text-xs sm:text-sm">Notes</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {commodities.map((commodity) => (
                   <TableRow key={commodity.id}>
-                    <TableCell>{format(new Date(commodity.created_at), 'hh:mm a')}</TableCell>
-                    <TableCell>{commodity.employee_name}</TableCell>
-                    <TableCell className="font-medium">{commodity.commodity_name}</TableCell>
-                    <TableCell className="max-w-xs truncate">
+                    <TableCell className="text-xs sm:text-sm">{format(new Date(commodity.created_at), 'hh:mm a')}</TableCell>
+                    <TableCell className="text-xs sm:text-sm">{commodity.employee_name}</TableCell>
+                    <TableCell className="text-xs sm:text-sm font-medium">{commodity.commodity_name}</TableCell>
+                    <TableCell className="text-xs sm:text-sm max-w-xs truncate">
                       {commodity.notes || '—'}
                     </TableCell>
                   </TableRow>

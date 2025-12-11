@@ -111,9 +111,9 @@ export function NextDayPlanningSection({ marketId, marketDate, isToday }: Props)
   if (loading) {
     return (
       <Card>
-        <CardContent className="p-6">
+        <CardContent className="p-4 sm:p-6">
           <div className="flex items-center justify-center">
-            <div className="text-sm text-muted-foreground">Loading...</div>
+            <div className="text-xs sm:text-sm text-muted-foreground">Loading...</div>
           </div>
         </CardContent>
       </Card>
@@ -122,30 +122,30 @@ export function NextDayPlanningSection({ marketId, marketDate, isToday }: Props)
 
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="py-3 sm:py-6">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Calendar className="h-5 w-5 text-primary" />
-            <CardTitle>Next Day Planning</CardTitle>
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            <Calendar className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+            <CardTitle className="text-base sm:text-lg">Next Day Planning</CardTitle>
           </div>
-          <Badge variant="secondary">{plannings.length} Submissions</Badge>
+          <Badge variant="secondary" className="text-xs">{plannings.length} Submissions</Badge>
         </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="pt-0">
         {plannings.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground">
+          <div className="text-center py-6 sm:py-8 text-xs sm:text-sm text-muted-foreground">
             No next day planning submitted yet
           </div>
         ) : (
-          <div className="space-y-6">
+          <div className="space-y-4 sm:space-y-6">
             {plannings.map((planning) => {
               const confirmations = parseStallList(planning.stall_list);
               return (
-                <div key={planning.id} className="border rounded-lg p-4 space-y-3">
+                <div key={planning.id} className="border rounded-lg p-3 sm:p-4 space-y-2 sm:space-y-3">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <User className="h-4 w-4 text-muted-foreground" />
-                      <span className="font-medium">{planning.employee_name}</span>
+                    <div className="flex items-center gap-1.5 sm:gap-2">
+                      <User className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
+                      <span className="text-sm sm:text-base font-medium">{planning.employee_name}</span>
                     </div>
                     <span className="text-xs text-muted-foreground">
                       {format(new Date(planning.created_at), 'hh:mm a')}
@@ -153,27 +153,27 @@ export function NextDayPlanningSection({ marketId, marketDate, isToday }: Props)
                   </div>
                   
                   <div>
-                    <p className="text-sm text-muted-foreground">Next Day Market</p>
-                    <p className="font-medium">{planning.next_day_market_name}</p>
+                    <p className="text-xs sm:text-sm text-muted-foreground">Next Day Market</p>
+                    <p className="text-sm sm:text-base font-medium">{planning.next_day_market_name}</p>
                   </div>
 
                   {confirmations.length > 0 && (
                     <div>
-                      <p className="text-sm text-muted-foreground mb-2">
+                      <p className="text-xs sm:text-sm text-muted-foreground mb-1.5 sm:mb-2">
                         Stall Confirmations ({confirmations.length})
                       </p>
                       <Table>
                         <TableHeader>
                           <TableRow>
-                            <TableHead>Stall Name</TableHead>
-                            <TableHead>Farmer Name</TableHead>
+                            <TableHead className="text-xs sm:text-sm">Stall Name</TableHead>
+                            <TableHead className="text-xs sm:text-sm">Farmer Name</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
                           {confirmations.map((conf, idx) => (
                             <TableRow key={idx}>
-                              <TableCell className="font-medium">{conf.stallName}</TableCell>
-                              <TableCell>{conf.farmerName}</TableCell>
+                              <TableCell className="text-xs sm:text-sm font-medium">{conf.stallName}</TableCell>
+                              <TableCell className="text-xs sm:text-sm">{conf.farmerName}</TableCell>
                             </TableRow>
                           ))}
                         </TableBody>

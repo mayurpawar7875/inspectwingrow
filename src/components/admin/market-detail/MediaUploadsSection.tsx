@@ -115,52 +115,54 @@ export function MediaUploadsSection({ marketId, marketDate, isToday }: Props) {
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>Media Uploads</CardTitle>
+      <CardHeader className="py-3 sm:py-6">
+        <CardTitle className="text-base sm:text-lg">Media Uploads</CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className="pt-0">
         {loading ? (
-          <div className="text-center text-muted-foreground">Loading...</div>
+          <div className="text-center text-xs sm:text-sm text-muted-foreground">Loading...</div>
         ) : uploads.length === 0 ? (
-          <div className="text-center text-muted-foreground">No media uploads yet</div>
+          <div className="text-center text-xs sm:text-sm text-muted-foreground">No media uploads yet</div>
         ) : (
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Time</TableHead>
-                  <TableHead>Employee</TableHead>
-                  <TableHead>File Type</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Actions</TableHead>
+                  <TableHead className="text-xs sm:text-sm">Time</TableHead>
+                  <TableHead className="text-xs sm:text-sm">Employee</TableHead>
+                  <TableHead className="text-xs sm:text-sm">Type</TableHead>
+                  <TableHead className="text-xs sm:text-sm">Status</TableHead>
+                  <TableHead className="text-xs sm:text-sm">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {uploads.map((upload) => (
                   <TableRow key={upload.id}>
-                    <TableCell>{format(new Date(upload.captured_at), 'hh:mm a')}</TableCell>
-                    <TableCell>{upload.profiles.full_name}</TableCell>
-                    <TableCell className="uppercase">{upload.media_type}</TableCell>
-                    <TableCell>
+                    <TableCell className="text-xs sm:text-sm">{format(new Date(upload.captured_at), 'hh:mm a')}</TableCell>
+                    <TableCell className="text-xs sm:text-sm">{upload.profiles.full_name}</TableCell>
+                    <TableCell className="text-xs sm:text-sm uppercase">{upload.media_type}</TableCell>
+                    <TableCell className="text-xs sm:text-sm">
                       {upload.is_late && (
-                        <Badge variant="destructive">Late</Badge>
+                        <Badge variant="destructive" className="text-xs">Late</Badge>
                       )}
                     </TableCell>
                     <TableCell>
-                      <div className="flex gap-2">
+                      <div className="flex gap-1">
                         <Button
                           variant="ghost"
                           size="sm"
+                          className="h-7 w-7 p-0"
                           onClick={() => handleView(upload.file_url)}
                         >
-                          <Eye className="h-4 w-4" />
+                          <Eye className="h-3 w-3 sm:h-4 sm:w-4" />
                         </Button>
                         <Button
                           variant="ghost"
                           size="sm"
+                          className="h-7 w-7 p-0"
                           onClick={() => handleDownload(upload.file_url, `media-${upload.id}`)}
                         >
-                          <Download className="h-4 w-4" />
+                          <Download className="h-3 w-3 sm:h-4 sm:w-4" />
                         </Button>
                       </div>
                     </TableCell>

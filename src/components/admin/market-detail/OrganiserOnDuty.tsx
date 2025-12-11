@@ -183,11 +183,11 @@ export function OrganiserOnDuty({ marketId, marketDate, isToday }: Props) {
   if (loading) {
     return (
       <Card>
-        <CardHeader>
-          <CardTitle>Organiser on Duty</CardTitle>
+        <CardHeader className="py-3 sm:py-6">
+          <CardTitle className="text-base sm:text-lg">Organiser on Duty</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-center text-muted-foreground">Loading...</div>
+          <div className="text-center text-xs sm:text-sm text-muted-foreground">Loading...</div>
         </CardContent>
       </Card>
     );
@@ -196,11 +196,11 @@ export function OrganiserOnDuty({ marketId, marketDate, isToday }: Props) {
   if (!organiser) {
     return (
       <Card>
-        <CardHeader>
-          <CardTitle>Organiser on Duty</CardTitle>
+        <CardHeader className="py-3 sm:py-6">
+          <CardTitle className="text-base sm:text-lg">Organiser on Duty</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-center text-muted-foreground">
+          <div className="text-center text-xs sm:text-sm text-muted-foreground">
             No session for this market/date. Ensure Punch-In created a session for ({marketId}, {marketDate}).
           </div>
         </CardContent>
@@ -210,22 +210,22 @@ export function OrganiserOnDuty({ marketId, marketDate, isToday }: Props) {
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>Organiser on Duty</CardTitle>
+      <CardHeader className="py-3 sm:py-6">
+        <CardTitle className="text-base sm:text-lg">Organiser on Duty</CardTitle>
       </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
+      <CardContent className="pt-0">
+        <div className="space-y-3 sm:space-y-4">
           <div>
-            <div className="text-2xl font-bold">{organiser.profiles.full_name}</div>
+            <div className="text-lg sm:text-2xl font-bold">{organiser.profiles.full_name}</div>
             {organiser.profiles.phone && (
-              <div className="text-sm text-muted-foreground">{organiser.profiles.phone}</div>
+              <div className="text-xs sm:text-sm text-muted-foreground">{organiser.profiles.phone}</div>
             )}
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-3 gap-2 sm:gap-4">
             <div>
-              <div className="text-sm font-medium text-muted-foreground">Punch In</div>
-              <div className="text-lg">
+              <div className="text-xs sm:text-sm font-medium text-muted-foreground">Punch In</div>
+              <div className="text-sm sm:text-lg">
                 {organiser.punch_in_time
                   ? format(new Date(organiser.punch_in_time), 'hh:mm a')
                   : '—'}
@@ -233,8 +233,8 @@ export function OrganiserOnDuty({ marketId, marketDate, isToday }: Props) {
             </div>
 
             <div>
-              <div className="text-sm font-medium text-muted-foreground">Punch Out</div>
-              <div className="text-lg">
+              <div className="text-xs sm:text-sm font-medium text-muted-foreground">Punch Out</div>
+              <div className="text-sm sm:text-lg">
                 {organiser.punch_out_time
                   ? format(new Date(organiser.punch_out_time), 'hh:mm a')
                   : '—'}
@@ -242,8 +242,8 @@ export function OrganiserOnDuty({ marketId, marketDate, isToday }: Props) {
             </div>
 
             <div>
-              <div className="text-sm font-medium text-muted-foreground">Last Activity</div>
-              <div className="text-lg">
+              <div className="text-xs sm:text-sm font-medium text-muted-foreground">Last Activity</div>
+              <div className="text-sm sm:text-lg">
                 {lastActivity
                   ? format(new Date(lastActivity), 'hh:mm a')
                   : 'No activity'}
@@ -253,7 +253,7 @@ export function OrganiserOnDuty({ marketId, marketDate, isToday }: Props) {
 
           {organiser.status && (
             <div>
-              <Badge variant={organiser.status === 'active' ? 'default' : 'secondary'}>
+              <Badge variant={organiser.status === 'active' ? 'default' : 'secondary'} className="text-xs">
                 {organiser.status}
               </Badge>
             </div>

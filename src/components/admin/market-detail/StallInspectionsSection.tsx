@@ -104,8 +104,8 @@ export function StallInspectionsSection({ marketId, marketDate, isToday }: Props
   if (loading) {
     return (
       <Card>
-        <CardContent className="p-6">
-          <div className="text-center text-muted-foreground">Loading...</div>
+        <CardContent className="p-4 sm:p-6">
+          <div className="text-center text-xs sm:text-sm text-muted-foreground">Loading...</div>
         </CardContent>
       </Card>
     );
@@ -113,15 +113,15 @@ export function StallInspectionsSection({ marketId, marketDate, isToday }: Props
 
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="py-3 sm:py-6">
         <div className="flex items-center justify-between">
-          <CardTitle>Stall Inspections</CardTitle>
-          <Badge variant="secondary">{inspections.length} Inspections</Badge>
+          <CardTitle className="text-base sm:text-lg">Stall Inspections</CardTitle>
+          <Badge variant="secondary" className="text-xs">{inspections.length} Inspections</Badge>
         </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="pt-0">
         {inspections.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground">
+          <div className="text-center py-6 sm:py-8 text-xs sm:text-sm text-muted-foreground">
             No stall inspections submitted yet
           </div>
         ) : (
@@ -129,31 +129,31 @@ export function StallInspectionsSection({ marketId, marketDate, isToday }: Props
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Time</TableHead>
-                  <TableHead>Employee</TableHead>
-                  <TableHead>Farmer</TableHead>
-                  <TableHead>Stall Name</TableHead>
-                  <TableHead>Stall No</TableHead>
-                  <TableHead>Rating</TableHead>
-                  <TableHead>Feedback</TableHead>
+                  <TableHead className="text-xs sm:text-sm">Time</TableHead>
+                  <TableHead className="text-xs sm:text-sm">Employee</TableHead>
+                  <TableHead className="text-xs sm:text-sm">Farmer</TableHead>
+                  <TableHead className="text-xs sm:text-sm">Stall</TableHead>
+                  <TableHead className="text-xs sm:text-sm">No</TableHead>
+                  <TableHead className="text-xs sm:text-sm">Rating</TableHead>
+                  <TableHead className="text-xs sm:text-sm">Feedback</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {inspections.map((inspection) => (
                   <TableRow key={inspection.id}>
-                    <TableCell>{format(new Date(inspection.created_at), 'hh:mm a')}</TableCell>
-                    <TableCell>{inspection.employee_name}</TableCell>
-                    <TableCell>{inspection.farmer_name}</TableCell>
-                    <TableCell>{inspection.stall_name}</TableCell>
-                    <TableCell>{inspection.stall_no || '-'}</TableCell>
-                    <TableCell>
+                    <TableCell className="text-xs sm:text-sm">{format(new Date(inspection.created_at), 'hh:mm a')}</TableCell>
+                    <TableCell className="text-xs sm:text-sm">{inspection.employee_name}</TableCell>
+                    <TableCell className="text-xs sm:text-sm">{inspection.farmer_name}</TableCell>
+                    <TableCell className="text-xs sm:text-sm">{inspection.stall_name}</TableCell>
+                    <TableCell className="text-xs sm:text-sm">{inspection.stall_no || '-'}</TableCell>
+                    <TableCell className="text-xs sm:text-sm">
                       {inspection.rating ? (
-                        <span className="text-sm">{'⭐'.repeat(inspection.rating)}</span>
+                        <span>{'⭐'.repeat(inspection.rating)}</span>
                       ) : (
                         '-'
                       )}
                     </TableCell>
-                    <TableCell className="max-w-xs truncate">
+                    <TableCell className="text-xs sm:text-sm max-w-xs truncate">
                       {inspection.feedback || '-'}
                     </TableCell>
                   </TableRow>
