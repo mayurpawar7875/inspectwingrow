@@ -90,19 +90,28 @@ export default function MarketDetail() {
       if (organiserSession) {
         selectedUserId = organiserSession.user_id;
       } else {
-        // Fallback: user with most uploads for this market/date
-        const uploadsResult: any = await (supabase as any)
-          .from('media')
-          .select('user_id')
+        // Fallback: user with most uploads for this market/date - get via sessions
+        const { data: sessionsForUploads } = await supabase
+          .from('sessions')
+          .select('id, user_id')
           .eq('market_id', marketId)
-          .eq('market_date', dateStr);
+          .eq('session_date', dateStr);
         
-        const { data: uploads } = uploadsResult;
+        const sessionIds = sessionsForUploads?.map(s => s.id) || [];
+        const safeSessionIds = sessionIds.length > 0 ? sessionIds : ['00000000-0000-0000-0000-000000000000'];
+        
+        const { data: uploads } = await supabase
+          .from('media')
+          .select('session_id')
+          .in('session_id', safeSessionIds);
 
         if (uploads && uploads.length > 0) {
+          // Map session_id to user_id
+          const sessionToUser = new Map(sessionsForUploads?.map(s => [s.id, s.user_id]) || []);
           const uploadCounts: Record<string, number> = {};
           uploads.forEach(u => {
-            if ((u as any).user_id) uploadCounts[(u as any).user_id] = (uploadCounts[(u as any).user_id] || 0) + 1;
+            const userId = sessionToUser.get(u.session_id);
+            if (userId) uploadCounts[userId] = (uploadCounts[userId] || 0) + 1;
           });
           const mostActiveUser = Object.entries(uploadCounts).sort(([, a], [, b]) => b - a)[0];
           if (mostActiveUser) selectedUserId = mostActiveUser[0];
