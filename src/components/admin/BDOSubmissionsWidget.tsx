@@ -98,13 +98,13 @@ export default function BDOSubmissionsWidget({ filter = 'all' }: BDOSubmissionsW
         supabase
           .from('bdo_market_submissions')
           .select('*')
-          .order('submitted_at', { ascending: false })
-          .limit(10),
+          .order('created_at', { ascending: false })
+          .limit(50),
         supabase
           .from('bdo_stall_submissions')
           .select('*')
-          .order('submitted_at', { ascending: false })
-          .limit(10),
+          .order('created_at', { ascending: false })
+          .limit(50),
       ]);
 
       if (marketsRes.error) throw marketsRes.error;
