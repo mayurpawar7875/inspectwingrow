@@ -70,12 +70,11 @@ export function OrganiserOnDuty({ marketId, marketDate, isToday }: Props) {
     setLoading(true);
     
     // Fetch sessions (status can be: active, finalized, locked)
-    // Match by market_date OR session_date to handle older sessions without market_date set
     const { data: s, error: sErr } = await supabase
       .from('sessions')
       .select('id, user_id, punch_in_time, punch_out_time, status')
       .eq('market_id', marketId)
-      .or(`market_date.eq.${marketDate},session_date.eq.${marketDate}`)
+      .eq('session_date', marketDate)
       .order('punch_in_time', { ascending: false });
 
     if (sErr) console.error(sErr);
