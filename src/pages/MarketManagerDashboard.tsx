@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { LogOut, CheckCircle2, History, CalendarCheck } from 'lucide-react';
+import { MobileBottomNav } from '@/components/MobileBottomNav';
 import { SessionSelector } from '@/components/market-manager/SessionSelector';
 import { EmployeeAllocationForm } from '@/components/market-manager/EmployeeAllocationForm';
 import { PunchInForm } from '@/components/market-manager/PunchInForm';
@@ -303,6 +304,8 @@ export default function MarketManagerDashboard() {
           </div>
         )}
       </main>
+      <MobileBottomNav />
+      <div className="h-16 md:hidden" /> {/* Spacer for bottom nav */}
     </div>
   );
 }

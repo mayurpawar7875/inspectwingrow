@@ -8,6 +8,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Users, Building2, ClipboardList, MapPin, TrendingUp, Activity, ChevronRight, Clock, Upload, Calendar } from 'lucide-react';
+import { MobileBottomNav } from '@/components/MobileBottomNav';
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
 import { format } from 'date-fns';
 
@@ -1682,6 +1683,8 @@ export default function AdminDashboard() {
           </DialogContent>
         </Dialog>
       </div>
+      <MobileBottomNav />
+      <div className="h-16 md:hidden" /> {/* Spacer for bottom nav */}
     </div>
   );
 }

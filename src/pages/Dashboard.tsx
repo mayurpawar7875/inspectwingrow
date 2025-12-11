@@ -47,6 +47,7 @@ const StallInspectionForm = lazy(() => import('@/components/StallInspectionForm'
 const NextDayPlanningForm = lazy(() => import('@/components/NextDayPlanningForm'));
 const MarketLocationVisitForm = lazy(() => import('@/components/MarketLocationVisitForm'));
 const ReimbursementForm = lazy(() => import('@/components/ReimbursementForm'));
+import { MobileBottomNav } from '@/components/MobileBottomNav';
 
 interface TaskStatus {
   name: string;
@@ -1418,6 +1419,8 @@ export default function Dashboard() {
           </div>
         </DialogContent>
       </Dialog>
+      <MobileBottomNav />
+      <div className="h-16 md:hidden" /> {/* Spacer for bottom nav */}
     </div>
   );
 }
