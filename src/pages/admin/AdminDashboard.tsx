@@ -38,15 +38,17 @@ interface LiveMarket {
   task_stats?: {
     attendance: number;
     stall_confirmations: number;
+    outside_rates: number;
+    rate_board: number;
     market_video: number;
     cleaning_video: number;
+    customer_feedback: number;
     offers: number;
     commodities: number;
     feedback: number;
     inspections: number;
     planning: number;
     collections: number;
-    selfie_gps: number;
   };
 }
 
@@ -162,23 +164,37 @@ export default function AdminDashboard() {
       
       const sessionIds = (marketSessions || []).map(s => s.id);
 
+      const safeSessionIds = sessionIds.length > 0 ? sessionIds : ['00000000-0000-0000-0000-000000000000'];
+
+      const { count: outsideRatesCount } = await supabase
+        .from('media')
+        .select('*', { count: 'exact', head: true })
+        .in('session_id', safeSessionIds)
+        .eq('media_type', 'outside_rates' as any);
+
+      const { count: rateBoardCount } = await supabase
+        .from('media')
+        .select('*', { count: 'exact', head: true })
+        .in('session_id', safeSessionIds)
+        .eq('media_type', 'rate_board' as any);
+
       const { count: marketVideoCount } = await supabase
         .from('media')
         .select('*', { count: 'exact', head: true })
-        .in('session_id', sessionIds)
+        .in('session_id', safeSessionIds)
         .eq('media_type', 'market_video' as any);
 
       const { count: cleaningVideoCount } = await supabase
         .from('media')
         .select('*', { count: 'exact', head: true })
-        .in('session_id', sessionIds)
+        .in('session_id', safeSessionIds)
         .eq('media_type', 'cleaning_video' as any);
 
-      const { count: selfieGpsCount } = await supabase
+      const { count: customerFeedbackCount } = await supabase
         .from('media')
         .select('*', { count: 'exact', head: true })
-        .in('session_id', sessionIds)
-        .eq('media_type', 'selfie_gps');
+        .in('session_id', safeSessionIds)
+        .eq('media_type', 'customer_feedback' as any);
 
       const { count: offersCount } = await supabase
         .from('offers')
@@ -219,9 +235,11 @@ export default function AdminDashboard() {
     return {
       attendance: attendanceCount || 0,
       stall_confirmations: stallsCount || 0,
+      outside_rates: outsideRatesCount || 0,
+      rate_board: rateBoardCount || 0,
       market_video: marketVideoCount || 0,
       cleaning_video: cleaningVideoCount || 0,
-      selfie_gps: selfieGpsCount || 0,
+      customer_feedback: customerFeedbackCount || 0,
       offers: offersCount || 0,
       commodities: commoditiesCount || 0,
       feedback: feedbackCount || 0,
@@ -234,9 +252,11 @@ export default function AdminDashboard() {
       return {
         attendance: 0,
         stall_confirmations: 0,
+        outside_rates: 0,
+        rate_board: 0,
         market_video: 0,
         cleaning_video: 0,
-        selfie_gps: 0,
+        customer_feedback: 0,
         offers: 0,
         commodities: 0,
         feedback: 0,
@@ -374,8 +394,22 @@ export default function AdminDashboard() {
             
             const { data: inspectionsData } = inspectionsResult;
 
-            // All 11 tasks that need to be completed
-            const totalTasksCount = 11;
+            // All 13 tasks that need to be completed
+            const totalTasksCount = 13;
+
+            // Fetch next day planning
+            const { data: planningData } = await supabase
+              .from('next_day_planning')
+              .select('user_id, market_date')
+              .eq('market_id', market.id)
+              .eq('market_date', todayDate);
+            
+            // Fetch collections
+            const { data: collectionsData } = await supabase
+              .from('collections')
+              .select('collected_by, collection_date')
+              .eq('market_id', market.id)
+              .eq('collection_date', todayDate);
 
             const employees: EmployeeStatus[] = (sessionsData || []).map((session: any) => {
               const fullName = employeeDetailsMap.get(session.user_id) || 'Unknown';
@@ -385,7 +419,7 @@ export default function AdminDashboard() {
               // Count actual completed tasks for this user
               let completedTasks = 0;
               
-              // 1. Punch (if punched in)
+              // 1. Punch In (if punched in)
               if (session.punch_in_time) completedTasks++;
               
               // 2. Stall confirmations
@@ -417,6 +451,12 @@ export default function AdminDashboard() {
               
               // 11. Stall inspection
               if (inspectionsData?.some((i: any) => i.session_id === session.id)) completedTasks++;
+              
+              // 12. Next day planning
+              if (planningData?.some((p: any) => p.user_id === session.user_id)) completedTasks++;
+              
+              // 13. Collections
+              if (collectionsData?.some((c: any) => c.collected_by === session.user_id)) completedTasks++;
 
               // Determine status based on task completion
               let status: 'active' | 'half_day' | 'completed' = 'active';
@@ -1133,30 +1173,56 @@ export default function AdminDashboard() {
   };
 
   const renderTaskChecklist = (market: LiveMarket) => {
+    // 13 tasks matching Employee Dashboard exactly
     const tasks = [
       { 
-        label: 'Employees Checked In', 
+        label: 'Punch In', 
         completed: market.task_stats ? market.task_stats.attendance > 0 : false,
         value: market.task_stats && market.task_stats.attendance > 0 ? `${market.task_stats.attendance} checked in` : null,
         taskType: 'attendance',
         onClick: () => fetchTaskData(market.market_id, market.market_name, 'attendance')
       },
       { 
-        label: 'Stall Confirmation', 
+        label: 'Stall Confirmations', 
         completed: market.task_stats ? market.task_stats.stall_confirmations > 0 : false,
         value: market.task_stats && market.task_stats.stall_confirmations > 0 ? `${market.task_stats.stall_confirmations} confirmed` : null,
         taskType: 'stall_confirmations',
         onClick: () => fetchTaskData(market.market_id, market.market_name, 'stall_confirmations')
       },
       { 
-        label: 'Selfie GPS', 
-        completed: market.task_stats ? market.task_stats.selfie_gps > 0 : false,
-        value: market.task_stats && market.task_stats.selfie_gps > 0 ? `${market.task_stats.selfie_gps} uploaded` : null,
-        taskType: 'selfie_gps',
-        onClick: () => fetchTaskData(market.market_id, market.market_name, 'selfie_gps')
+        label: 'Outside Rates', 
+        completed: market.task_stats ? market.task_stats.outside_rates > 0 : false,
+        value: market.task_stats && market.task_stats.outside_rates > 0 ? `${market.task_stats.outside_rates} uploaded` : null,
+        taskType: 'outside_rates',
+        onClick: () => fetchTaskData(market.market_id, market.market_name, 'outside_rates')
       },
       { 
-        label: 'Today\'s Offer', 
+        label: 'Rate Board Photo', 
+        completed: market.task_stats ? market.task_stats.rate_board > 0 : false,
+        value: market.task_stats && market.task_stats.rate_board > 0 ? `${market.task_stats.rate_board} uploaded` : null,
+        taskType: 'rate_board',
+        onClick: () => fetchTaskData(market.market_id, market.market_name, 'rate_board')
+      },
+      { 
+        label: 'Market Video', 
+        completed: market.task_stats ? market.task_stats.market_video > 0 : false,
+        taskType: 'market_video',
+        onClick: () => fetchTaskData(market.market_id, market.market_name, 'market_video')
+      },
+      { 
+        label: 'Cleaning Video', 
+        completed: market.task_stats ? market.task_stats.cleaning_video > 0 : false,
+        taskType: 'cleaning_video',
+        onClick: () => fetchTaskData(market.market_id, market.market_name, 'cleaning_video')
+      },
+      { 
+        label: 'Customer Feedback', 
+        completed: market.task_stats ? market.task_stats.customer_feedback > 0 : false,
+        taskType: 'customer_feedback',
+        onClick: () => fetchTaskData(market.market_id, market.market_name, 'customer_feedback')
+      },
+      { 
+        label: "Today's Offers", 
         completed: market.task_stats ? market.task_stats.offers > 0 : false,
         value: market.task_stats && market.task_stats.offers > 0 ? `${market.task_stats.offers} items` : null,
         taskType: 'offers',
@@ -1176,7 +1242,7 @@ export default function AdminDashboard() {
         onClick: () => fetchTaskData(market.market_id, market.market_name, 'feedback')
       },
       { 
-        label: 'Stall Inspection', 
+        label: 'Stall Inspections', 
         completed: market.task_stats ? market.task_stats.inspections > 0 : false,
         value: market.task_stats && market.task_stats.inspections > 0 ? `${market.task_stats.inspections} stalls` : null,
         taskType: 'inspections',
@@ -1189,21 +1255,9 @@ export default function AdminDashboard() {
         onClick: () => fetchTaskData(market.market_id, market.market_name, 'planning')
       },
       { 
-        label: 'Market Video', 
-        completed: market.task_stats ? market.task_stats.market_video > 0 : false,
-        taskType: 'market_video',
-        onClick: () => fetchTaskData(market.market_id, market.market_name, 'market_video')
-      },
-      { 
-        label: 'Cleaning Video', 
-        completed: market.task_stats ? market.task_stats.cleaning_video > 0 : false,
-        taskType: 'cleaning_video',
-        onClick: () => fetchTaskData(market.market_id, market.market_name, 'cleaning_video')
-      },
-      { 
-        label: 'Collection', 
+        label: 'Collections', 
         completed: market.task_stats ? market.task_stats.collections > 0 : false,
-        value: market.task_stats && market.task_stats.collections > 0 ? `${market.task_stats.collections} collected` : null,
+        value: market.task_stats && market.task_stats.collections > 0 ? `${market.task_stats.collections} entries` : null,
         taskType: 'collections',
         onClick: () => fetchTaskData(market.market_id, market.market_name, 'collections')
       },
