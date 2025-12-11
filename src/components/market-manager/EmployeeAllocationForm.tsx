@@ -50,26 +50,36 @@ export function EmployeeAllocationForm({ sessionId, onComplete }: EmployeeAlloca
 
   const fetchLiveMarkets = async () => {
     try {
-      // Fetch all active markets - market managers need to allocate employees to any active market
-      const { data: activeMarkets, error } = await supabase
-        .from('markets')
-        .select('id, name')
+      // Get today's day of week in IST
+      const ist = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
+      const dayOfWeek = ist.getDay(); // 0 = Sunday, 1 = Monday, etc.
+      
+      // Fetch markets scheduled for today's day of week
+      const { data: scheduledMarkets, error } = await supabase
+        .from('market_schedule')
+        .select('market_id, markets(id, name)')
         .eq('is_active', true)
-        .order('name');
+        .eq('day_of_week', dayOfWeek);
       
       if (error) {
-        console.error('Error fetching markets:', error);
+        console.error('Error fetching scheduled markets:', error);
         toast.error('Failed to load markets');
         setMarkets([]);
         return;
       }
       
-      if (!activeMarkets || activeMarkets.length === 0) {
-        toast.info('No markets available');
-        setMarkets([]);
-      } else {
-        setMarkets(activeMarkets);
+      const liveMarkets = (scheduledMarkets || [])
+        .map(s => s.markets)
+        .filter(Boolean)
+        .filter((market: any, index: number, self: any[]) => 
+          index === self.findIndex((m: any) => m.id === market.id)
+        )
+        .sort((a: any, b: any) => a.name.localeCompare(b.name));
+      
+      if (liveMarkets.length === 0) {
+        toast.info('No markets scheduled for today');
       }
+      setMarkets(liveMarkets);
     } catch (error) {
       console.error('Error fetching live markets:', error);
       toast.error('Failed to load markets');
@@ -112,11 +122,11 @@ export function EmployeeAllocationForm({ sessionId, onComplete }: EmployeeAlloca
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Available Markets List */}
+          {/* Live Markets Today */}
           <div className="space-y-3">
-            <Label className="text-base font-semibold">Available Markets ({markets.length})</Label>
+            <Label className="text-base font-semibold">Live Markets Today ({markets.length})</Label>
             {markets.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No markets available</p>
+              <p className="text-sm text-muted-foreground">No markets scheduled for today</p>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                 {markets.map((market) => (
