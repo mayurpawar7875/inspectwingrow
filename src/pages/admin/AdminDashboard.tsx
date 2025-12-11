@@ -52,6 +52,18 @@ interface LiveMarket {
   };
 }
 
+interface MarketManagerSession {
+  id: string;
+  user_id: string;
+  manager_name: string;
+  session_date: string;
+  status: string;
+  attendance_status: string | null;
+  working_hours: number | null;
+  punch_in_time: string | null;
+  punch_out_time: string | null;
+}
+
 export default function AdminDashboard() {
   const { isAdmin } = useAuth();
   const navigate = useNavigate();
@@ -64,6 +76,7 @@ export default function AdminDashboard() {
     lastUpdate: '',
   });
   const [liveMarkets, setLiveMarkets] = useState<LiveMarket[]>([]);
+  const [mmSessions, setMmSessions] = useState<MarketManagerSession[]>([]);
   const [loading, setLoading] = useState(true);
   const [taskDialog, setTaskDialog] = useState<{
     open: boolean;
@@ -79,6 +92,7 @@ export default function AdminDashboard() {
     }
     fetchAllStats();
     fetchLiveMarkets();
+    fetchMMSessions();
 
     const statsChannel = supabase
       .channel('dashboard-overview')
@@ -119,9 +133,16 @@ export default function AdminDashboard() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'market_manager_sessions' }, () => {
         fetchAllStats();
         fetchLiveMarkets();
+        fetchMMSessions();
       })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'market_manager_punchin' }, fetchLiveMarkets)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'market_manager_punchout' }, fetchLiveMarkets)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'market_manager_punchin' }, () => {
+        fetchLiveMarkets();
+        fetchMMSessions();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'market_manager_punchout' }, () => {
+        fetchLiveMarkets();
+        fetchMMSessions();
+      })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'employee_allocations' }, fetchLiveMarkets)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'market_land_search' }, fetchLiveMarkets)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'market_inspection_updates' }, fetchLiveMarkets)
@@ -568,6 +589,56 @@ export default function AdminDashboard() {
       console.error('Error fetching stats:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchMMSessions = async () => {
+    try {
+      const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+      
+      // Fetch today's market manager sessions
+      const { data: sessions, error: sessionsError } = await supabase
+        .from('market_manager_sessions')
+        .select('*')
+        .eq('session_date', today)
+        .order('created_at', { ascending: false });
+      
+      if (sessionsError) throw sessionsError;
+      
+      if (!sessions || sessions.length === 0) {
+        setMmSessions([]);
+        return;
+      }
+      
+      // Get user IDs and fetch punch-in/out data
+      const userIds = sessions.map(s => s.user_id);
+      const sessionIds = sessions.map(s => s.id);
+      
+      const [employeesRes, punchInRes, punchOutRes] = await Promise.all([
+        supabase.from('profiles').select('id, full_name').in('id', userIds),
+        supabase.from('market_manager_punchin').select('session_id, punched_at').in('session_id', sessionIds),
+        supabase.from('market_manager_punchout').select('session_id, punched_at').in('session_id', sessionIds),
+      ]);
+      
+      const employeesMap = new Map(employeesRes.data?.map(e => [e.id, e.full_name]) || []);
+      const punchInMap = new Map(punchInRes.data?.map(p => [p.session_id, p.punched_at]) || []);
+      const punchOutMap = new Map(punchOutRes.data?.map(p => [p.session_id, p.punched_at]) || []);
+      
+      const enrichedSessions: MarketManagerSession[] = sessions.map(session => ({
+        id: session.id,
+        user_id: session.user_id,
+        manager_name: employeesMap.get(session.user_id) || 'Unknown',
+        session_date: session.session_date,
+        status: session.status,
+        attendance_status: session.attendance_status,
+        working_hours: session.working_hours,
+        punch_in_time: punchInMap.get(session.id) || null,
+        punch_out_time: punchOutMap.get(session.id) || null,
+      }));
+      
+      setMmSessions(enrichedSessions);
+    } catch (error) {
+      console.error('Error fetching MM sessions:', error);
     }
   };
 
@@ -1489,15 +1560,35 @@ export default function AdminDashboard() {
               <CardTitle className="text-lg">Market Manager Reporting</CardTitle>
               <CardDescription className="text-xs">Live market operations and analytics</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-2 p-4 pt-0">
-              <div className="flex items-center justify-between p-2 rounded-lg bg-accent/50">
-                <span className="text-xs font-medium text-muted-foreground">Live Markets</span>
-                <span className="text-xl font-bold text-purple-500">{marketStats.live}</span>
-              </div>
-              <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
-                <Activity className="h-3 w-3" />
-                <span>Last update: {getTimeAgo(marketStats.lastUpdate)}</span>
-              </div>
+            <CardContent className="space-y-2 p-4 pt-0 max-h-[200px] overflow-y-auto">
+              {mmSessions.length === 0 ? (
+                <div className="text-xs text-muted-foreground text-center py-2">
+                  No active sessions today
+                </div>
+              ) : (
+                mmSessions.map((session) => (
+                  <div key={session.id} className="p-2 rounded-lg bg-accent/50 space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-medium">{session.manager_name}</span>
+                      <Badge variant={session.status === 'active' ? 'default' : 'secondary'} className="text-[10px]">
+                        {session.status}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                      <Clock className="h-3 w-3" />
+                      <span>In: {session.punch_in_time ? formatTime(session.punch_in_time) : 'Not yet'}</span>
+                      {session.punch_out_time && (
+                        <span>| Out: {formatTime(session.punch_out_time)}</span>
+                      )}
+                    </div>
+                    {session.working_hours !== null && session.working_hours > 0 && (
+                      <div className="text-[10px] text-purple-500 font-medium">
+                        {session.working_hours.toFixed(1)}h worked
+                      </div>
+                    )}
+                  </div>
+                ))
+              )}
             </CardContent>
           </Card>
         </div>
