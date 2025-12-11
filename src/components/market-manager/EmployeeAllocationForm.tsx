@@ -58,47 +58,64 @@ export function EmployeeAllocationForm({ sessionId, onComplete }: EmployeeAlloca
       const todayDate = `${y}-${m}-${d}`;
       const dayOfWeek = ist.getDay();
       
-      let liveMarkets: any[] = [];
+      const marketIds = new Set<string>();
       
-      // Fetch markets with active sessions today
-      const { data: activeSessions } = await supabase
+      // Fetch market IDs from active sessions today
+      const { data: activeSessions, error: sessionsError } = await supabase
         .from('sessions')
-        .select('market_id, markets(id, name)')
+        .select('market_id')
         .eq('session_date', todayDate)
         .eq('status', 'active');
       
-      if (activeSessions && activeSessions.length > 0) {
-        const sessionMarkets = activeSessions
-          .map(s => s.markets)
-          .filter(Boolean);
-        liveMarkets.push(...sessionMarkets);
+      if (sessionsError) {
+        console.error('Error fetching sessions:', sessionsError);
       }
       
-      // Also fetch markets scheduled for today's day of week
-      const { data: scheduledMarkets } = await supabase
-        .from('market_schedule')
-        .select('market_id, markets(id, name)')
-        .eq('is_active', true)
-        .eq('day_of_week', dayOfWeek);
-      
-      if (scheduledMarkets) {
-        const scheduled = scheduledMarkets.map(s => s.markets).filter(Boolean);
-        scheduled.forEach((market: any) => {
-          if (!liveMarkets.find((m: any) => m.id === market.id)) {
-            liveMarkets.push(market);
-          }
+      if (activeSessions) {
+        activeSessions.forEach(s => {
+          if (s.market_id) marketIds.add(s.market_id);
         });
       }
       
-      // Remove duplicates and sort
-      const uniqueMarkets = liveMarkets.filter((market: any, index: number, self: any[]) => 
-        index === self.findIndex((m: any) => m.id === market.id)
-      ).sort((a: any, b: any) => a.name.localeCompare(b.name));
+      // Also fetch market IDs scheduled for today's day of week
+      const { data: scheduledMarkets, error: scheduleError } = await supabase
+        .from('market_schedule')
+        .select('market_id')
+        .eq('is_active', true)
+        .eq('day_of_week', dayOfWeek);
       
-      if (uniqueMarkets.length === 0) {
-        toast.info('No markets scheduled for today');
+      if (scheduleError) {
+        console.error('Error fetching schedule:', scheduleError);
       }
-      setMarkets(uniqueMarkets);
+      
+      if (scheduledMarkets) {
+        scheduledMarkets.forEach(s => {
+          if (s.market_id) marketIds.add(s.market_id);
+        });
+      }
+      
+      if (marketIds.size === 0) {
+        toast.info('No live markets for today');
+        setMarkets([]);
+        return;
+      }
+      
+      // Fetch market details for all collected IDs
+      const { data: marketsData, error: marketsError } = await supabase
+        .from('markets')
+        .select('id, name')
+        .in('id', Array.from(marketIds))
+        .eq('is_active', true)
+        .order('name');
+      
+      if (marketsError) {
+        console.error('Error fetching markets:', marketsError);
+        toast.error('Failed to load markets');
+        setMarkets([]);
+        return;
+      }
+      
+      setMarkets(marketsData || []);
     } catch (error) {
       console.error('Error fetching live markets:', error);
       toast.error('Failed to load markets');
