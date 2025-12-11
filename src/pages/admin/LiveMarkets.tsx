@@ -427,14 +427,14 @@ export default function LiveMarkets() {
     ];
 
     return (
-      <div className="space-y-3">
+      <div className="grid grid-cols-2 md:grid-cols-1 gap-2 md:gap-3">
         {tasks.map((task, index) => (
-          <div key={index} className="flex items-center gap-3">
-            <Checkbox checked={task.completed} disabled className="pointer-events-none" />
-            <div className="flex-1">
-              <div className="text-sm font-medium">{task.label}</div>
+          <div key={index} className="flex items-center gap-1.5 md:gap-3">
+            <Checkbox checked={task.completed} disabled className="pointer-events-none h-3.5 w-3.5 md:h-4 md:w-4" />
+            <div className="flex-1 min-w-0">
+              <div className="text-[10px] md:text-sm font-medium truncate">{task.label}</div>
               {task.value && (
-                <div className="text-xs text-muted-foreground">{task.value}</div>
+                <div className="text-[8px] md:text-xs text-muted-foreground truncate">{task.value}</div>
               )}
             </div>
           </div>
