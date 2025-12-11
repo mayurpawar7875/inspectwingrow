@@ -57,11 +57,32 @@ export default function MarketManagerDashboard() {
   const checkActiveSession = async () => {
     if (!user) return;
 
+    // Get today's date in IST
+    const getISTDateString = () => {
+      const ist = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
+      const y = ist.getFullYear();
+      const m = String(ist.getMonth() + 1).padStart(2, '0');
+      const d = String(ist.getDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    };
+
+    const todayIST = getISTDateString();
+
+    // First, auto-complete any old active sessions from previous days
+    await supabase
+      .from('market_manager_sessions')
+      .update({ status: 'completed', updated_at: new Date().toISOString() })
+      .eq('user_id', user.id)
+      .eq('status', 'active')
+      .lt('session_date', todayIST);
+
+    // Now check for today's active session only
     const { data } = await supabase
       .from('market_manager_sessions')
       .select('*')
       .eq('user_id', user.id)
       .eq('status', 'active')
+      .eq('session_date', todayIST)
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle();
