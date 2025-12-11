@@ -50,16 +50,11 @@ export function EmployeeAllocationForm({ sessionId, onComplete }: EmployeeAlloca
 
   const fetchLiveMarkets = async () => {
     try {
-      // Get today's day of week in IST
-      const ist = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
-      const dayOfWeek = ist.getDay(); // 0 = Sunday, 1 = Monday, etc.
-      
-      // Fetch markets scheduled for today based on day_of_week column on markets table
+      // Fetch ALL active markets for allocation
       const { data: marketsData, error: marketsError } = await supabase
         .from('markets')
         .select('id, name')
         .eq('is_active', true)
-        .eq('day_of_week', dayOfWeek)
         .order('name');
       
       if (marketsError) {
@@ -69,13 +64,7 @@ export function EmployeeAllocationForm({ sessionId, onComplete }: EmployeeAlloca
         return;
       }
       
-      if (!marketsData || marketsData.length === 0) {
-        toast.info('No live markets for today');
-        setMarkets([]);
-        return;
-      }
-      
-      setMarkets(marketsData);
+      setMarkets(marketsData || []);
     } catch (error) {
       console.error('Error fetching live markets:', error);
       toast.error('Failed to load markets');
@@ -105,7 +94,7 @@ export function EmployeeAllocationForm({ sessionId, onComplete }: EmployeeAlloca
     toast.success('Employee allocated to market successfully');
     setEmployeeName('');
     setSelectedMarket('');
-    onComplete();
+    // Don't auto-close - let market manager decide when to close
   };
 
   return (
@@ -118,9 +107,9 @@ export function EmployeeAllocationForm({ sessionId, onComplete }: EmployeeAlloca
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Live Markets Today */}
+          {/* Active Markets */}
           <div className="space-y-3">
-            <Label className="text-base font-semibold">Live Markets Today ({markets.length})</Label>
+            <Label className="text-base font-semibold">Active Markets ({markets.length})</Label>
             {markets.length === 0 ? (
               <p className="text-sm text-muted-foreground">No markets scheduled for today</p>
             ) : (
