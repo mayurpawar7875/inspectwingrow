@@ -543,7 +543,7 @@ export default function MediaUpload() {
 
   const handleViewMedia = async (file: MediaFile) => {
     try {
-      const signedUrl = await getSignedUrl(file.file_url, 'employee-media');
+      const signedUrl = await getSignedUrl('employee-media', file.file_url);
       setSelectedMedia(file);
       setSelectedMediaUrl(signedUrl);
       setViewMediaDialog(true);
