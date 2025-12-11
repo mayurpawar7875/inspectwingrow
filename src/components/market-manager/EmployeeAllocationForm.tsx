@@ -50,36 +50,55 @@ export function EmployeeAllocationForm({ sessionId, onComplete }: EmployeeAlloca
 
   const fetchLiveMarkets = async () => {
     try {
-      // Get today's day of week in IST
+      // Get today's date in IST
       const ist = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
-      const dayOfWeek = ist.getDay(); // 0 = Sunday, 1 = Monday, etc.
+      const y = ist.getFullYear();
+      const m = String(ist.getMonth() + 1).padStart(2, '0');
+      const d = String(ist.getDate()).padStart(2, '0');
+      const todayDate = `${y}-${m}-${d}`;
+      const dayOfWeek = ist.getDay();
       
-      // Fetch markets scheduled for today's day of week
-      const { data: scheduledMarkets, error } = await supabase
+      let liveMarkets: any[] = [];
+      
+      // Fetch markets with active sessions today
+      const { data: activeSessions } = await supabase
+        .from('sessions')
+        .select('market_id, markets(id, name)')
+        .eq('session_date', todayDate)
+        .eq('status', 'active');
+      
+      if (activeSessions && activeSessions.length > 0) {
+        const sessionMarkets = activeSessions
+          .map(s => s.markets)
+          .filter(Boolean);
+        liveMarkets.push(...sessionMarkets);
+      }
+      
+      // Also fetch markets scheduled for today's day of week
+      const { data: scheduledMarkets } = await supabase
         .from('market_schedule')
         .select('market_id, markets(id, name)')
         .eq('is_active', true)
         .eq('day_of_week', dayOfWeek);
       
-      if (error) {
-        console.error('Error fetching scheduled markets:', error);
-        toast.error('Failed to load markets');
-        setMarkets([]);
-        return;
+      if (scheduledMarkets) {
+        const scheduled = scheduledMarkets.map(s => s.markets).filter(Boolean);
+        scheduled.forEach((market: any) => {
+          if (!liveMarkets.find((m: any) => m.id === market.id)) {
+            liveMarkets.push(market);
+          }
+        });
       }
       
-      const liveMarkets = (scheduledMarkets || [])
-        .map(s => s.markets)
-        .filter(Boolean)
-        .filter((market: any, index: number, self: any[]) => 
-          index === self.findIndex((m: any) => m.id === market.id)
-        )
-        .sort((a: any, b: any) => a.name.localeCompare(b.name));
+      // Remove duplicates and sort
+      const uniqueMarkets = liveMarkets.filter((market: any, index: number, self: any[]) => 
+        index === self.findIndex((m: any) => m.id === market.id)
+      ).sort((a: any, b: any) => a.name.localeCompare(b.name));
       
-      if (liveMarkets.length === 0) {
+      if (uniqueMarkets.length === 0) {
         toast.info('No markets scheduled for today');
       }
-      setMarkets(liveMarkets);
+      setMarkets(uniqueMarkets);
     } catch (error) {
       console.error('Error fetching live markets:', error);
       toast.error('Failed to load markets');
