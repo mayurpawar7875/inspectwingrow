@@ -183,26 +183,30 @@ export default function Collections() {
           const stallIds = (stalls || []).map(s => s.id);
           const { data: existingCollections } = await supabase
             .from('collections')
-            .select('stall_confirmation_id, amount')
+            .select('stall_confirmation_id, amount, mode, screenshot_url')
             .in('stall_confirmation_id', stallIds)
             .eq('collected_by', user.id);
 
-          // Create a map of stall_confirmation_id -> actual rent collected
+          // Create a map of stall_confirmation_id -> full collection data
           const collectionsMap = new Map(
-            (existingCollections || []).map(c => [c.stall_confirmation_id, c.amount])
+            (existingCollections || []).map(c => [c.stall_confirmation_id, c])
           );
 
           // Build rows with expected and actual rent
           setRows(
-            (stalls || []).map((s) => ({
-              id: s.id,
-              farmer_name: s.farmer_name,
-              stall_name: s.stall_name,
-              expected_rent: s.rent_amount || 0,
-              actual_rent: collectionsMap.get(s.id)?.toString() || '',
-              payment_mode: 'cash' as const,
-              screenshot_file: null,
-            }))
+            (stalls || []).map((s) => {
+              const collection = collectionsMap.get(s.id);
+              return {
+                id: s.id,
+                farmer_name: s.farmer_name,
+                stall_name: s.stall_name,
+                expected_rent: s.rent_amount || 0,
+                actual_rent: collection?.amount?.toString() || '',
+                payment_mode: (collection?.mode as 'cash' | 'online') || 'cash',
+                screenshot_file: null,
+                screenshot_url: collection?.screenshot_url || undefined,
+              };
+            })
           );
         }
       } catch (e) {
