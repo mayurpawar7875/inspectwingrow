@@ -26,12 +26,13 @@ interface LiveMarket {
     market_video: number;
     cleaning_video: number;
     customer_feedback: number;
+    selfie_gps: number;
     offers: number;
     commodities: number;
-    feedback: number;
     inspections: number;
+    punch_out: number;
+    feedback: number;
     planning: number;
-    collections: number;
   };
 }
 
@@ -84,11 +85,6 @@ export default function LiveMarkets() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'next_day_planning' }, fetchLiveMarkets)
       .subscribe();
 
-    const collectionsChannel = supabase
-      .channel('live-markets-collections')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'collections' }, fetchLiveMarkets)
-      .subscribe();
-
     return () => {
       supabase.removeChannel(sessionsChannel);
       supabase.removeChannel(stallsChannel);
@@ -98,7 +94,6 @@ export default function LiveMarkets() {
       supabase.removeChannel(feedbackChannel);
       supabase.removeChannel(inspectionsChannel);
       supabase.removeChannel(planningChannel);
-      supabase.removeChannel(collectionsChannel);
     };
   }, []);
 
@@ -114,7 +109,7 @@ export default function LiveMarkets() {
       const sessionIds = (marketSessions || []).map(s => s.id);
       const safeSessionIds = sessionIds.length > 0 ? sessionIds : ['00000000-0000-0000-0000-000000000000'];
 
-      // Fetch all counts in parallel for better performance
+      // Fetch all counts in parallel for better performance - matching 13 tasks from Employee Dashboard
       const [
         attendanceResult,
         stallsResult,
@@ -123,12 +118,13 @@ export default function LiveMarkets() {
         marketVideoResult,
         cleaningVideoResult,
         customerFeedbackResult,
+        selfieGpsResult,
         offersResult,
         commoditiesResult,
-        feedbackResult,
         inspectionsResult,
-        planningResult,
-        collectionsResult
+        punchOutResult,
+        feedbackResult,
+        planningResult
       ] = await Promise.all([
         supabase.from('sessions').select('*', { count: 'exact', head: true })
           .eq('market_id', marketId).eq('session_date', todayDate).not('punch_in_time', 'is', null),
@@ -144,18 +140,20 @@ export default function LiveMarkets() {
           .in('session_id', safeSessionIds).eq('media_type', 'cleaning_video' as any),
         supabase.from('media').select('*', { count: 'exact', head: true })
           .in('session_id', safeSessionIds).eq('media_type', 'customer_feedback' as any),
+        supabase.from('media').select('*', { count: 'exact', head: true })
+          .in('session_id', safeSessionIds).eq('media_type', 'selfie_gps' as any),
         supabase.from('offers').select('*', { count: 'exact', head: true })
           .eq('market_id', marketId).eq('market_date', todayDate),
         supabase.from('non_available_commodities').select('*', { count: 'exact', head: true })
           .eq('market_id', marketId).eq('market_date', todayDate),
-        supabase.from('organiser_feedback').select('*', { count: 'exact', head: true })
-          .eq('market_id', marketId).eq('market_date', todayDate),
         supabase.from('stall_inspections').select('*', { count: 'exact', head: true })
           .eq('market_id', marketId).in('session_id', safeSessionIds),
-        supabase.from('next_day_planning').select('*', { count: 'exact', head: true })
+        supabase.from('sessions').select('*', { count: 'exact', head: true })
+          .eq('market_id', marketId).eq('session_date', todayDate).not('punch_out_time', 'is', null),
+        supabase.from('organiser_feedback').select('*', { count: 'exact', head: true })
           .eq('market_id', marketId).eq('market_date', todayDate),
-        supabase.from('collections').select('*', { count: 'exact', head: true })
-          .eq('market_id', marketId).eq('collection_date', todayDate)
+        supabase.from('next_day_planning').select('*', { count: 'exact', head: true })
+          .eq('market_id', marketId).eq('market_date', todayDate)
       ]);
 
       return {
@@ -166,12 +164,13 @@ export default function LiveMarkets() {
         market_video: marketVideoResult.count || 0,
         cleaning_video: cleaningVideoResult.count || 0,
         customer_feedback: customerFeedbackResult.count || 0,
+        selfie_gps: selfieGpsResult.count || 0,
         offers: offersResult.count || 0,
         commodities: commoditiesResult.count || 0,
-        feedback: feedbackResult.count || 0,
         inspections: inspectionsResult.count || 0,
+        punch_out: punchOutResult.count || 0,
+        feedback: feedbackResult.count || 0,
         planning: planningResult.count || 0,
-        collections: collectionsResult.count || 0,
       };
     } catch (error) {
       console.error('Error fetching task stats:', error);
@@ -183,12 +182,13 @@ export default function LiveMarkets() {
         market_video: 0,
         cleaning_video: 0,
         customer_feedback: 0,
+        selfie_gps: 0,
         offers: 0,
         commodities: 0,
-        feedback: 0,
         inspections: 0,
+        punch_out: 0,
+        feedback: 0,
         planning: 0,
-        collections: 0,
       };
     }
   };
@@ -368,7 +368,7 @@ export default function LiveMarkets() {
   }
 
   const renderTaskChecklist = (market: LiveMarket) => {
-    // 13 tasks matching Employee Dashboard
+    // 13 tasks matching Employee Dashboard exactly
     const tasks = [
       { 
         label: 'Punch In', 
@@ -403,6 +403,10 @@ export default function LiveMarkets() {
         completed: market.task_stats ? market.task_stats.customer_feedback > 0 : false
       },
       { 
+        label: 'Selfie with GPS', 
+        completed: market.task_stats ? market.task_stats.selfie_gps > 0 : false
+      },
+      { 
         label: "Today's Offers", 
         completed: market.task_stats ? market.task_stats.offers > 0 : false,
         value: market.task_stats && market.task_stats.offers > 0 ? `${market.task_stats.offers} items` : null
@@ -418,13 +422,12 @@ export default function LiveMarkets() {
         value: market.task_stats && market.task_stats.inspections > 0 ? `${market.task_stats.inspections} stalls` : null
       },
       { 
-        label: 'Feedback / Next Day Plan', 
-        completed: market.task_stats ? (market.task_stats.feedback > 0 || market.task_stats.planning > 0) : false
+        label: 'Punch Out', 
+        completed: market.task_stats ? market.task_stats.punch_out > 0 : false
       },
       { 
-        label: 'Collections', 
-        completed: market.task_stats ? market.task_stats.collections > 0 : false,
-        value: market.task_stats && market.task_stats.collections > 0 ? `${market.task_stats.collections} collected` : null
+        label: 'Feedback / Next Day Plan', 
+        completed: market.task_stats ? (market.task_stats.feedback > 0 || market.task_stats.planning > 0) : false
       },
     ];
 
