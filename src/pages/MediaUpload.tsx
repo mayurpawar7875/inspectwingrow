@@ -9,8 +9,9 @@ import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
-import { ArrowLeft, Upload } from 'lucide-react';
+import { ArrowLeft, Upload, Trash2, Play, Eye } from 'lucide-react';
 import { validateImage, validateVideo, generateUploadPath } from '@/lib/fileValidation';
 import { getSignedUrl } from '@/lib/storageHelpers';
 
@@ -59,6 +60,12 @@ export default function MediaUpload() {
     rent: string;
     videoFile: File;
   }>>([]);
+  const [viewMediaDialog, setViewMediaDialog] = useState(false);
+  const [selectedMedia, setSelectedMedia] = useState<MediaFile | null>(null);
+  const [selectedMediaUrl, setSelectedMediaUrl] = useState<string | null>(null);
+  const [deleteConfirmDialog, setDeleteConfirmDialog] = useState(false);
+  const [mediaToDelete, setMediaToDelete] = useState<MediaFile | null>(null);
+  const [deleting, setDeleting] = useState(false);
   useEffect(() => {
     fetchData();
   }, [user, currentRole]);
@@ -69,11 +76,12 @@ export default function MediaUpload() {
     try {
       const today = new Date().toISOString().split('T')[0];
       
-      // Fetch media for sessions user created
+      // Fetch only today's session for this user
       const { data: sessionsData } = await supabase
         .from('sessions')
         .select('id')
-        .eq('user_id', user.id);
+        .eq('user_id', user.id)
+        .eq('session_date', today);
       
       const sessionIds = (sessionsData || []).map(s => s.id);
       
@@ -533,6 +541,58 @@ export default function MediaUpload() {
     }
   };
 
+  const handleViewMedia = async (file: MediaFile) => {
+    try {
+      const signedUrl = await getSignedUrl(file.file_url, 'employee-media');
+      setSelectedMedia(file);
+      setSelectedMediaUrl(signedUrl);
+      setViewMediaDialog(true);
+    } catch (error) {
+      console.error('Error getting signed URL:', error);
+      toast.error('Failed to load media');
+    }
+  };
+
+  const handleDeleteMedia = async () => {
+    if (!mediaToDelete) return;
+    
+    setDeleting(true);
+    try {
+      // Delete from storage
+      const { error: storageError } = await supabase.storage
+        .from('employee-media')
+        .remove([mediaToDelete.file_url]);
+      
+      if (storageError) {
+        console.error('Storage delete error:', storageError);
+        // Continue to delete from database even if storage fails
+      }
+
+      // Delete from database
+      const { error: dbError } = await supabase
+        .from('media')
+        .delete()
+        .eq('id', mediaToDelete.id);
+
+      if (dbError) throw dbError;
+
+      toast.success('Media deleted successfully');
+      setDeleteConfirmDialog(false);
+      setMediaToDelete(null);
+      fetchData();
+    } catch (error: any) {
+      console.error('Error deleting media:', error);
+      toast.error('Failed to delete media');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const isSameDay = (dateStr: string) => {
+    const today = new Date().toISOString().split('T')[0];
+    const mediaDate = new Date(dateStr).toISOString().split('T')[0];
+    return today === mediaDate;
+  };
 
   const marketVideoMedia = media.filter((m) => m.media_type === 'market_video');
 
@@ -1014,9 +1074,31 @@ export default function MediaUpload() {
                                 Uploaded at {new Date(file.captured_at).toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata' })}
                               </p>
                             </div>
-                            {file.is_late && (
-                              <span className="text-xs font-semibold text-destructive">Late Upload</span>
-                            )}
+                            <div className="flex items-center gap-2">
+                              {file.is_late && (
+                                <span className="text-xs font-semibold text-destructive">Late</span>
+                              )}
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleViewMedia(file)}
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                              {isSameDay(file.captured_at) && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="text-destructive hover:text-destructive"
+                                  onClick={() => {
+                                    setMediaToDelete(file);
+                                    setDeleteConfirmDialog(true);
+                                  }}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              )}
+                            </div>
                           </div>
                         </div>
                       ))}
@@ -1067,9 +1149,31 @@ export default function MediaUpload() {
                               Uploaded at {new Date(file.captured_at).toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata' })}
                             </p>
                           </div>
-                          {file.is_late && (
-                            <span className="text-xs font-semibold text-destructive">Late Upload</span>
-                          )}
+                          <div className="flex items-center gap-2">
+                            {file.is_late && (
+                              <span className="text-xs font-semibold text-destructive">Late</span>
+                            )}
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleViewMedia(file)}
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            {isSameDay(file.captured_at) && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="text-destructive hover:text-destructive"
+                                onClick={() => {
+                                  setMediaToDelete(file);
+                                  setDeleteConfirmDialog(true);
+                                }}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            )}
+                          </div>
                         </div>
                       </div>
                     ))}
@@ -1120,9 +1224,31 @@ export default function MediaUpload() {
                                 Uploaded at {new Date(file.captured_at).toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata' })}
                               </p>
                             </div>
-                            {file.is_late && (
-                              <span className="text-xs font-semibold text-destructive">Late Upload</span>
-                            )}
+                            <div className="flex items-center gap-2">
+                              {file.is_late && (
+                                <span className="text-xs font-semibold text-destructive">Late</span>
+                              )}
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleViewMedia(file)}
+                              >
+                                <Play className="h-4 w-4" />
+                              </Button>
+                              {isSameDay(file.captured_at) && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="text-destructive hover:text-destructive"
+                                  onClick={() => {
+                                    setMediaToDelete(file);
+                                    setDeleteConfirmDialog(true);
+                                  }}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              )}
+                            </div>
                           </div>
                         </div>
                       ))}
@@ -1173,9 +1299,31 @@ export default function MediaUpload() {
                                 Uploaded at {new Date(file.captured_at).toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata' })}
                               </p>
                             </div>
-                            {file.is_late && (
-                              <span className="text-xs font-semibold text-destructive">Late Upload</span>
-                            )}
+                            <div className="flex items-center gap-2">
+                              {file.is_late && (
+                                <span className="text-xs font-semibold text-destructive">Late</span>
+                              )}
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleViewMedia(file)}
+                              >
+                                <Play className="h-4 w-4" />
+                              </Button>
+                              {isSameDay(file.captured_at) && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="text-destructive hover:text-destructive"
+                                  onClick={() => {
+                                    setMediaToDelete(file);
+                                    setDeleteConfirmDialog(true);
+                                  }}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              )}
+                            </div>
                           </div>
                         </div>
                       ))}
@@ -1229,9 +1377,31 @@ export default function MediaUpload() {
                                 Uploaded at {new Date(file.captured_at).toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata' })}
                               </p>
                             </div>
-                            {file.is_late && (
-                              <span className="text-xs font-semibold text-destructive">Late Upload</span>
-                            )}
+                            <div className="flex items-center gap-2">
+                              {file.is_late && (
+                                <span className="text-xs font-semibold text-destructive">Late</span>
+                              )}
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleViewMedia(file)}
+                              >
+                                <Play className="h-4 w-4" />
+                              </Button>
+                              {isSameDay(file.captured_at) && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="text-destructive hover:text-destructive"
+                                  onClick={() => {
+                                    setMediaToDelete(file);
+                                    setDeleteConfirmDialog(true);
+                                  }}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              )}
+                            </div>
                           </div>
                         </div>
                       ))}
@@ -1242,6 +1412,95 @@ export default function MediaUpload() {
             )}
           </>
         )}
+
+        {/* View Media Dialog */}
+        <Dialog open={viewMediaDialog} onOpenChange={setViewMediaDialog}>
+          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>{selectedMedia?.file_name || 'Media'}</DialogTitle>
+              <DialogDescription>
+                Uploaded at {selectedMedia && new Date(selectedMedia.captured_at).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="py-4">
+              {selectedMediaUrl && selectedMedia && (
+                <>
+                  {selectedMedia.media_type === 'market_video' || selectedMedia.media_type === 'cleaning_video' ? (
+                    <video
+                      src={selectedMediaUrl}
+                      controls
+                      className="w-full max-h-[60vh] rounded-lg"
+                      autoPlay={false}
+                    />
+                  ) : selectedMedia.file_name.toLowerCase().endsWith('.mp3') || 
+                     selectedMedia.file_name.toLowerCase().endsWith('.m4a') ||
+                     selectedMedia.file_name.toLowerCase().endsWith('.wav') ? (
+                    <audio
+                      src={selectedMediaUrl}
+                      controls
+                      className="w-full"
+                    />
+                  ) : selectedMedia.file_name.toLowerCase().endsWith('.mp4') ||
+                     selectedMedia.file_name.toLowerCase().endsWith('.mov') ||
+                     selectedMedia.file_name.toLowerCase().endsWith('.webm') ? (
+                    <video
+                      src={selectedMediaUrl}
+                      controls
+                      className="w-full max-h-[60vh] rounded-lg"
+                      autoPlay={false}
+                    />
+                  ) : (
+                    <img
+                      src={selectedMediaUrl}
+                      alt={selectedMedia.file_name}
+                      className="w-full max-h-[60vh] object-contain rounded-lg"
+                    />
+                  )}
+                </>
+              )}
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setViewMediaDialog(false)}>
+                Close
+              </Button>
+              {selectedMedia && isSameDay(selectedMedia.captured_at) && (
+                <Button
+                  variant="destructive"
+                  onClick={() => {
+                    setViewMediaDialog(false);
+                    setMediaToDelete(selectedMedia);
+                    setDeleteConfirmDialog(true);
+                  }}
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete
+                </Button>
+              )}
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Delete Confirmation Dialog */}
+        <AlertDialog open={deleteConfirmDialog} onOpenChange={setDeleteConfirmDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete Media?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to delete "{mediaToDelete?.file_name}"? This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleDeleteMedia}
+                disabled={deleting}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                {deleting ? 'Deleting...' : 'Delete'}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
       </main>
     </div>
