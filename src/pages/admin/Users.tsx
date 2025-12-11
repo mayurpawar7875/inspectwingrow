@@ -199,171 +199,178 @@ export default function Users() {
   const inactiveUsers = users.filter(u => u.status === 'inactive');
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
+    <div className="space-y-4 md:space-y-6">
+      <div className="flex justify-between items-center gap-2">
         <div>
-          <h2 className="text-3xl font-bold">Employee Management</h2>
-          <p className="text-muted-foreground">Manage employee accounts and permissions</p>
+          <h2 className="text-xl md:text-3xl font-bold">Employee Management</h2>
+          <p className="text-xs md:text-sm text-muted-foreground">Manage employee accounts and permissions</p>
         </div>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
-            <Button>
-              <UserPlus className="mr-2 h-4 w-4" />
-              Add Employee
+            <Button size="sm" className="text-xs md:text-sm">
+              <UserPlus className="mr-1 md:mr-2 h-3 w-3 md:h-4 md:w-4" />
+              <span className="hidden sm:inline">Add Employee</span>
+              <span className="sm:hidden">Add</span>
             </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Add New Employee</DialogTitle>
-              <DialogDescription>Create a new employee account</DialogDescription>
+              <DialogTitle className="text-base md:text-lg">Add New Employee</DialogTitle>
+              <DialogDescription className="text-xs md:text-sm">Create a new employee account</DialogDescription>
             </DialogHeader>
-            <div className="space-y-4">
+            <div className="space-y-3 md:space-y-4">
               <div>
-                <Label htmlFor="full_name">Full Name *</Label>
+                <Label htmlFor="full_name" className="text-xs md:text-sm">Full Name *</Label>
                 <Input
                   id="full_name"
+                  className="text-sm"
                   value={formData.full_name}
                   onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
                 />
               </div>
               <div>
-                <Label htmlFor="email">Email *</Label>
+                <Label htmlFor="email" className="text-xs md:text-sm">Email *</Label>
                 <Input
                   id="email"
                   type="email"
+                  className="text-sm"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 />
               </div>
               <div>
-                <Label htmlFor="username">Username *</Label>
+                <Label htmlFor="username" className="text-xs md:text-sm">Username *</Label>
                 <Input
                   id="username"
+                  className="text-sm"
                   value={formData.username}
                   onChange={(e) => setFormData({ ...formData, username: e.target.value.toLowerCase().replace(/\s+/g, '') })}
                   placeholder="johndoe"
                 />
-                <p className="text-xs text-muted-foreground mt-1">Username must be unique and will be used for login</p>
+                <p className="text-[10px] md:text-xs text-muted-foreground mt-1">Username must be unique and will be used for login</p>
               </div>
               <div>
-                <Label htmlFor="phone">Phone</Label>
+                <Label htmlFor="phone" className="text-xs md:text-sm">Phone</Label>
                 <Input
                   id="phone"
+                  className="text-sm"
                   value={formData.phone}
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                 />
               </div>
               <div>
-                <Label htmlFor="password">Password *</Label>
+                <Label htmlFor="password" className="text-xs md:text-sm">Password *</Label>
                 <Input
                   id="password"
                   type="password"
+                  className="text-sm"
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                 />
               </div>
               <div>
-                <Label htmlFor="status">Status</Label>
+                <Label htmlFor="status" className="text-xs md:text-sm">Status</Label>
                 <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value })}>
-                  <SelectTrigger>
+                  <SelectTrigger className="text-sm">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="active">Active</SelectItem>
-                    <SelectItem value="inactive">Inactive</SelectItem>
+                    <SelectItem value="active" className="text-sm">Active</SelectItem>
+                    <SelectItem value="inactive" className="text-sm">Inactive</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
-              <Button onClick={handleAddUser}>Add Employee</Button>
+            <DialogFooter className="gap-2">
+              <Button variant="outline" size="sm" onClick={() => setDialogOpen(false)}>Cancel</Button>
+              <Button size="sm" onClick={handleAddUser}>Add Employee</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-2 md:gap-4 grid-cols-3">
         <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium">Total Employees</CardTitle>
+          <CardHeader className="p-3 md:pb-3">
+            <CardTitle className="text-xs md:text-sm font-medium">Total</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{users.length}</div>
+          <CardContent className="p-3 pt-0">
+            <div className="text-lg md:text-2xl font-bold">{users.length}</div>
           </CardContent>
         </Card>
         <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium">Active</CardTitle>
+          <CardHeader className="p-3 md:pb-3">
+            <CardTitle className="text-xs md:text-sm font-medium">Active</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">{activeUsers.length}</div>
+          <CardContent className="p-3 pt-0">
+            <div className="text-lg md:text-2xl font-bold text-green-600">{activeUsers.length}</div>
           </CardContent>
         </Card>
         <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium">Inactive</CardTitle>
+          <CardHeader className="p-3 md:pb-3">
+            <CardTitle className="text-xs md:text-sm font-medium">Inactive</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-red-600">{inactiveUsers.length}</div>
+          <CardContent className="p-3 pt-0">
+            <div className="text-lg md:text-2xl font-bold text-red-600">{inactiveUsers.length}</div>
           </CardContent>
         </Card>
       </div>
 
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <UsersIcon className="h-5 w-5" />
+        <CardHeader className="p-3 md:p-6">
+          <CardTitle className="flex items-center gap-2 text-sm md:text-base">
+            <UsersIcon className="h-4 w-4 md:h-5 md:w-5" />
             All Employees ({users.length})
           </CardTitle>
-          <CardDescription>View and manage employee accounts</CardDescription>
+          <CardDescription className="text-xs md:text-sm">View and manage employee accounts</CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
+        <CardContent className="p-3 md:p-6 pt-0">
+          <div className="space-y-3 md:space-y-4">
             {users.map((user) => (
               <Card key={user.id}>
-                <CardContent className="p-4">
-                  <div className="flex justify-between items-start">
+                <CardContent className="p-3 md:p-4">
+                  <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-3">
                     <div className="space-y-1 flex-1">
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-semibold">{user.full_name}</h3>
-                        <Badge variant={user.status === 'active' ? 'default' : 'secondary'}>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h3 className="text-sm md:text-base font-semibold">{user.full_name}</h3>
+                        <Badge variant={user.status === 'active' ? 'default' : 'secondary'} className="text-[10px] md:text-xs">
                           {user.status}
                         </Badge>
                       </div>
-                      <p className="text-sm text-muted-foreground">{user.email}</p>
-                      {user.username && <p className="text-sm text-muted-foreground">Username: {user.username}</p>}
-                      {user.phone && <p className="text-sm text-muted-foreground">{user.phone}</p>}
-                      <div className="flex flex-wrap gap-2 mt-2">
+                      <p className="text-xs md:text-sm text-muted-foreground">{user.email}</p>
+                      {user.username && <p className="text-xs md:text-sm text-muted-foreground">@{user.username}</p>}
+                      {user.phone && <p className="text-xs md:text-sm text-muted-foreground">{user.phone}</p>}
+                      <div className="flex flex-wrap gap-1 md:gap-2 mt-2">
                         {user.roles.map((role) => (
                           <Badge
                             key={role}
-                            className={
+                            className={`text-[10px] md:text-xs ${
                               role === 'admin' ? 'bg-destructive text-destructive-foreground' :
                               role === 'bdo' ? 'bg-blue-600 text-white' :
                               role === 'bms_executive' ? 'bg-purple-600 text-white' :
                               role === 'market_manager' ? 'bg-green-600 text-white' :
                               'bg-muted'
-                            }
+                            }`}
                           >
                             {role.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
                           </Badge>
                         ))}
                         {user.roles.length === 0 && (
-                          <Badge variant="outline">No role assigned</Badge>
+                          <Badge variant="outline" className="text-[10px] md:text-xs">No role</Badge>
                         )}
                       </div>
                     </div>
-                    <div className="flex flex-col gap-2">
+                    <div className="flex flex-row md:flex-col gap-2">
                       <Button
                         variant="outline"
                         size="sm"
+                        className="text-xs flex-1 md:flex-none"
                         onClick={() => toggleUserStatus(user.id, user.status)}
                       >
                         {user.status === 'active' ? (
-                          <><UserX className="mr-2 h-4 w-4" /> Deactivate</>
+                          <><UserX className="mr-1 h-3 w-3" /> <span className="hidden sm:inline">Deactivate</span><span className="sm:hidden">Off</span></>
                         ) : (
-                          <><UserCheck className="mr-2 h-4 w-4" /> Activate</>
+                          <><UserCheck className="mr-1 h-3 w-3" /> <span className="hidden sm:inline">Activate</span><span className="sm:hidden">On</span></>
                         )}
                       </Button>
                       <Select
@@ -374,24 +381,24 @@ export default function Users() {
                           }
                         }}
                       >
-                        <SelectTrigger className="w-[160px]">
-                          <SelectValue placeholder="Assign Role" />
+                        <SelectTrigger className="w-[100px] md:w-[160px] text-xs">
+                          <SelectValue placeholder="Role" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="assign_role" disabled>Assign Role</SelectItem>
-                          <SelectItem value="employee">
+                          <SelectItem value="assign_role" disabled className="text-xs">Assign Role</SelectItem>
+                          <SelectItem value="employee" className="text-xs">
                             {user.roles.includes('employee') ? '✓ Employee' : 'Employee'}
                           </SelectItem>
-                          <SelectItem value="market_manager">
-                            {user.roles.includes('market_manager') ? '✓ Market Manager' : 'Market Manager'}
+                          <SelectItem value="market_manager" className="text-xs">
+                            {user.roles.includes('market_manager') ? '✓ MM' : 'Market Manager'}
                           </SelectItem>
-                          <SelectItem value="bms_executive">
-                            {user.roles.includes('bms_executive') ? '✓ BMS Executive' : 'BMS Executive'}
+                          <SelectItem value="bms_executive" className="text-xs">
+                            {user.roles.includes('bms_executive') ? '✓ BMS' : 'BMS Executive'}
                           </SelectItem>
-                          <SelectItem value="bdo">
+                          <SelectItem value="bdo" className="text-xs">
                             {user.roles.includes('bdo') ? '✓ BDO' : 'BDO'}
                           </SelectItem>
-                          <SelectItem value="admin">
+                          <SelectItem value="admin" className="text-xs">
                             {user.roles.includes('admin') ? '✓ Admin' : 'Admin'}
                           </SelectItem>
                         </SelectContent>
@@ -403,22 +410,22 @@ export default function Users() {
             ))}
 
             {users.length === 0 && (
-              <div className="text-center py-12 text-muted-foreground">No employees found</div>
+              <div className="text-center py-8 md:py-12 text-xs md:text-sm text-muted-foreground">No employees found</div>
             )}
           </div>
         </CardContent>
       </Card>
 
       <Card className="border-warning">
-        <CardHeader>
-          <CardTitle className="text-warning">Important Notes</CardTitle>
+        <CardHeader className="p-3 md:p-6">
+          <CardTitle className="text-sm md:text-base text-warning">Important Notes</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-2 text-sm">
-          <p>• Only active employees can sign in to the system</p>
-          <p>• Admin users have full access to view all sessions and manage the system</p>
-          <p>• All new employees are assigned the "employee" role by default</p>
-          <p>• Deactivating an employee blocks their login immediately</p>
-          <p>• Exercise caution when granting admin privileges</p>
+        <CardContent className="p-3 md:p-6 pt-0 space-y-1 md:space-y-2 text-[10px] md:text-sm">
+          <p>• Only active employees can sign in</p>
+          <p>• Admin users have full system access</p>
+          <p>• Default role is "employee"</p>
+          <p>• Deactivating blocks login immediately</p>
+          <p>• Use caution with admin privileges</p>
         </CardContent>
       </Card>
     </div>
