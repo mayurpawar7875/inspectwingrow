@@ -2,15 +2,25 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Download, CheckCircle, Smartphone, ArrowLeft } from 'lucide-react';
+import { Download, CheckCircle, Smartphone, ArrowLeft, Share, Plus, MoreVertical } from 'lucide-react';
 
 export default function Install() {
   const navigate = useNavigate();
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [isInstallable, setIsInstallable] = useState(false);
   const [isInstalled, setIsInstalled] = useState(false);
+  const [isIOS, setIsIOS] = useState(false);
+  const [isSafari, setIsSafari] = useState(false);
 
   useEffect(() => {
+    // Detect iOS
+    const iOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
+      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    setIsIOS(iOS);
+    
+    // Detect Safari
+    const safari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+    setIsSafari(safari);
     // Check if app is already installed
     if (window.matchMedia('(display-mode: standalone)').matches) {
       setIsInstalled(true);
@@ -102,27 +112,64 @@ export default function Install() {
                   </Button>
                 ) : (
                   <div className="space-y-4">
-                    <div className="bg-muted p-4 rounded-lg">
-                      <h3 className="font-semibold mb-2">Install Instructions</h3>
-                      <div className="space-y-3 text-sm">
-                        <div>
-                          <p className="font-medium">On iPhone/iPad:</p>
-                          <ol className="list-decimal ml-4 mt-1 space-y-1">
-                            <li>Tap the Share button in Safari</li>
-                            <li>Scroll down and tap "Add to Home Screen"</li>
-                            <li>Tap "Add" in the top right</li>
-                          </ol>
-                        </div>
-                        <div>
-                          <p className="font-medium">On Android:</p>
-                          <ol className="list-decimal ml-4 mt-1 space-y-1">
-                            <li>Tap the menu (three dots) in your browser</li>
-                            <li>Tap "Add to Home screen" or "Install app"</li>
-                            <li>Follow the prompts to install</li>
-                          </ol>
+                    {isIOS ? (
+                      <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950 dark:to-blue-900 p-5 rounded-xl border border-blue-200 dark:border-blue-800">
+                        <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
+                          <Smartphone className="h-5 w-5" />
+                          Install on iPhone/iPad
+                        </h3>
+                        <p className="text-sm text-muted-foreground mb-4">
+                          {isSafari 
+                            ? "Follow these steps to install:" 
+                            : "⚠️ Please open this page in Safari to install the app."}
+                        </p>
+                        <div className="space-y-4">
+                          <div className="flex items-start gap-3 bg-white/60 dark:bg-black/20 p-3 rounded-lg">
+                            <div className="flex-shrink-0 w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center font-bold text-sm">1</div>
+                            <div className="flex-1">
+                              <p className="font-medium">Tap the Share button</p>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                Look for the <Share className="inline h-4 w-4 mx-1" /> icon at the bottom of Safari
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-start gap-3 bg-white/60 dark:bg-black/20 p-3 rounded-lg">
+                            <div className="flex-shrink-0 w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center font-bold text-sm">2</div>
+                            <div className="flex-1">
+                              <p className="font-medium">Tap "Add to Home Screen"</p>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                Scroll down in the share sheet and look for <Plus className="inline h-4 w-4 mx-1" /> Add to Home Screen
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-start gap-3 bg-white/60 dark:bg-black/20 p-3 rounded-lg">
+                            <div className="flex-shrink-0 w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center font-bold text-sm">3</div>
+                            <div className="flex-1">
+                              <p className="font-medium">Tap "Add"</p>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                Confirm by tapping Add in the top right corner
+                              </p>
+                            </div>
+                          </div>
                         </div>
                       </div>
-                    </div>
+                    ) : (
+                      <div className="bg-muted p-4 rounded-lg">
+                        <h3 className="font-semibold mb-2">Install Instructions</h3>
+                        <div className="space-y-3 text-sm">
+                          <div>
+                            <p className="font-medium flex items-center gap-2">
+                              <MoreVertical className="h-4 w-4" /> On Android:
+                            </p>
+                            <ol className="list-decimal ml-4 mt-1 space-y-1">
+                              <li>Tap the menu (⋮) in your browser</li>
+                              <li>Tap "Add to Home screen" or "Install app"</li>
+                              <li>Follow the prompts to install</li>
+                            </ol>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
 
