@@ -150,6 +150,7 @@ export function EmployeeAllocationForm({ sessionId, onComplete }: EmployeeAlloca
     toast.success('Employee allocated successfully');
     setEmployeeName('');
     setSelectedMarket('');
+    fetchAllocations(); // Refresh list immediately
   };
 
   const handleEdit = (allocation: Allocation) => {
