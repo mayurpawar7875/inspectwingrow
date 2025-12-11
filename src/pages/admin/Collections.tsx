@@ -434,51 +434,51 @@ export default function Collections() {
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b bg-card">
-        <div className="container-responsive py-2">
-          <div className="flex items-center gap-2 mb-1">
+        <div className="container-responsive py-1.5 md:py-2">
+          <div className="flex items-center gap-1.5 md:gap-2 mb-0.5 md:mb-1">
             <Button
               variant="ghost"
               size="icon"
               onClick={() => navigate(isAdmin ? '/admin' : '/dashboard')}
-              className="h-7 w-7"
+              className="h-6 w-6 md:h-7 md:w-7"
             >
-              <ArrowLeft className="h-4 w-4" />
+              <ArrowLeft className="h-3.5 w-3.5 md:h-4 md:w-4" />
             </Button>
-            <h1 className="text-base font-bold">Rent Collections</h1>
+            <h1 className="text-sm md:text-base font-bold">Rent Collections</h1>
           </div>
           {!isAdmin && (
-            <p className="text-xs text-muted-foreground ml-9">Date: {sessionDate}</p>
+            <p className="text-[10px] md:text-xs text-muted-foreground ml-7 md:ml-9">Date: {sessionDate}</p>
           )}
         </div>
       </header>
 
-      <main className="container-responsive py-3 space-y-4">
+      <main className="container-responsive py-2 md:py-3 space-y-3 md:space-y-4">
         {/* Admin Filters */}
         {isAdmin && (
           <Card>
-            <CardContent className="p-4">
-              <div className="flex flex-wrap gap-4 items-end">
-                <div className="flex-1 min-w-[150px]">
-                  <Label className="text-xs mb-1.5 block">Select Market</Label>
+            <CardContent className="p-3 md:p-4">
+              <div className="flex flex-wrap gap-2 md:gap-4 items-end">
+                <div className="flex-1 min-w-[120px] md:min-w-[150px]">
+                  <Label className="text-[10px] md:text-xs mb-1 md:mb-1.5 block">Select Market</Label>
                   <Select value={selectedMarket} onValueChange={handleMarketChange}>
-                    <SelectTrigger className="h-9">
+                    <SelectTrigger className="h-8 md:h-9 text-xs md:text-sm">
                       <SelectValue placeholder="All Markets" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">All Markets</SelectItem>
+                      <SelectItem value="all" className="text-xs md:text-sm">All Markets</SelectItem>
                       {markets.map((m) => (
-                        <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
+                        <SelectItem key={m.id} value={m.id} className="text-xs md:text-sm">{m.name}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="flex-1 min-w-[150px]">
-                  <Label className="text-xs mb-1.5 block">Select Date</Label>
+                <div className="flex-1 min-w-[120px] md:min-w-[150px]">
+                  <Label className="text-[10px] md:text-xs mb-1 md:mb-1.5 block">Select Date</Label>
                   <Input
                     type="date"
                     value={selectedDate}
                     onChange={(e) => handleDateChange(e.target.value)}
-                    className="h-9"
+                    className="h-8 md:h-9 text-xs md:text-sm"
                   />
                 </div>
               </div>
@@ -487,12 +487,12 @@ export default function Collections() {
         )}
 
         <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">Stall Rent Collection</CardTitle>
+          <CardHeader className="p-3 md:pb-3">
+            <CardTitle className="text-sm md:text-base">Stall Rent Collection</CardTitle>
           </CardHeader>
-          <CardContent className="card-padding-responsive pt-0">
+          <CardContent className="card-padding-responsive p-3 pt-0">
             {rows.length === 0 ? (
-              <div className="text-center text-muted-foreground text-sm py-8">
+              <div className="text-center text-muted-foreground text-xs md:text-sm py-6 md:py-8">
                 No stall confirmations found for {isAdmin ? 'selected filters' : 'today'}
               </div>
             ) : (
@@ -601,16 +601,16 @@ export default function Collections() {
 
                 {/* Manual Entry Section - Only show for non-admin users */}
                 {!isAdmin && (
-                  <div className="mt-6 pt-4 border-t">
-                    <div className="flex items-center justify-between mb-3">
-                      <h3 className="text-sm font-semibold">Manual Rent Collection</h3>
+                  <div className="mt-4 md:mt-6 pt-3 md:pt-4 border-t">
+                    <div className="flex items-center justify-between mb-2 md:mb-3">
+                      <h3 className="text-xs md:text-sm font-semibold">Manual Rent Collection</h3>
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={addManualEntry}
-                        className="h-7 text-xs"
+                        className="h-6 md:h-7 text-[10px] md:text-xs"
                       >
-                        + Add Entry
+                        + Add
                       </Button>
                     </div>
                   
@@ -722,23 +722,23 @@ export default function Collections() {
                 )}
 
                 {/* Totals Summary */}
-                <div className="mt-4 pt-4 border-t space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="font-medium">Total Expected Rent:</span>
+                <div className="mt-3 md:mt-4 pt-3 md:pt-4 border-t space-y-1.5 md:space-y-2">
+                  <div className="flex justify-between text-xs md:text-sm">
+                    <span className="font-medium">Total Expected:</span>
                     <span className="font-semibold">₹{totalExpected.toLocaleString('en-IN')}</span>
                   </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="font-medium">Total Actual Rent Collected:</span>
+                  <div className="flex justify-between text-xs md:text-sm">
+                    <span className="font-medium">Total Collected:</span>
                     <span className="font-semibold text-primary">₹{grandTotalActual.toLocaleString('en-IN')}</span>
                   </div>
                   {manualEntries.length > 0 && totalManual > 0 && (
-                    <div className="flex justify-between text-xs text-muted-foreground pl-4">
-                      <span>From confirmed stalls: ₹{totalActual.toLocaleString('en-IN')}</span>
-                      <span>Manual entries: ₹{totalManual.toLocaleString('en-IN')}</span>
+                    <div className="flex justify-between text-[10px] md:text-xs text-muted-foreground pl-2 md:pl-4">
+                      <span>Confirmed: ₹{totalActual.toLocaleString('en-IN')}</span>
+                      <span>Manual: ₹{totalManual.toLocaleString('en-IN')}</span>
                     </div>
                   )}
                   {totalExpected !== grandTotalActual && (
-                    <div className="flex justify-between text-sm">
+                    <div className="flex justify-between text-xs md:text-sm">
                       <span className="font-medium">Difference:</span>
                       <span className={`font-semibold ${grandTotalActual > totalExpected ? 'text-green-600' : 'text-amber-600'}`}>
                         ₹{Math.abs(totalExpected - grandTotalActual).toLocaleString('en-IN')}
