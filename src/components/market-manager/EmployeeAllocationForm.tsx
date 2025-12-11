@@ -76,9 +76,10 @@ export function EmployeeAllocationForm({ sessionId, onComplete }: EmployeeAlloca
 
   const fetchEmployees = async () => {
     try {
+      // Only select non-sensitive fields for employee allocation
       const { data, error } = await supabase
         .from('employees')
-        .select('id, full_name, email')
+        .select('id, full_name, status')
         .eq('status', 'active')
         .order('full_name');
       

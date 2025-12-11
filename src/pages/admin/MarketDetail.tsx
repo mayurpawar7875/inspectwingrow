@@ -112,12 +112,12 @@ export default function MarketDetail() {
       if (selectedUserId) {
         const { data: emp } = await supabase
           .from('employees')
-          .select('id, full_name, phone')
+          .select('id, full_name')
           .eq('id', selectedUserId)
           .maybeSingle();
 
         if (emp) {
-          setOrganiser({ full_name: emp.full_name, phone: emp.phone, email: null });
+          setOrganiser({ full_name: emp.full_name, phone: null, email: null });
         } else {
           setOrganiser(null);
         }
