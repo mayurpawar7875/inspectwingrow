@@ -151,15 +151,15 @@ export default function MarketDetail() {
     <AdminLayout>
       <div className="space-y-6">
         {/* Breadcrumb */}
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+        <div className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm text-muted-foreground flex-wrap">
           <button onClick={() => navigate('/admin')} className="hover:text-foreground">
             Admin
           </button>
-          <ChevronRight className="h-4 w-4" />
+          <ChevronRight className="h-3 w-3 sm:h-4 sm:w-4" />
           <button onClick={() => navigate('/admin')} className="hover:text-foreground">
             Markets
           </button>
-          <ChevronRight className="h-4 w-4" />
+          <ChevronRight className="h-3 w-3 sm:h-4 sm:w-4" />
           <span className="text-foreground font-medium">
             {market.name} ({format(selectedDate, 'MMM dd, yyyy')})
           </span>
@@ -167,15 +167,15 @@ export default function MarketDetail() {
 
         {/* Filters */}
         <Card>
-          <CardHeader>
-            <CardTitle>Filters</CardTitle>
+          <CardHeader className="py-3 sm:py-6">
+            <CardTitle className="text-base sm:text-lg">Filters</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="flex flex-wrap gap-4">
-              <div className="flex-1 min-w-[200px]">
-                <label className="text-sm font-medium mb-2 block">Market</label>
+          <CardContent className="pt-0">
+            <div className="flex flex-col sm:flex-wrap sm:flex-row gap-3 sm:gap-4">
+              <div className="flex-1 min-w-0 sm:min-w-[200px]">
+                <label className="text-xs sm:text-sm font-medium mb-1.5 sm:mb-2 block">Market</label>
                 <Select value={marketId} onValueChange={(val) => navigate(`/admin/market/${val}`)}>
-                  <SelectTrigger>
+                  <SelectTrigger className="h-9 sm:h-10 text-xs sm:text-sm">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -184,12 +184,12 @@ export default function MarketDetail() {
                 </Select>
               </div>
 
-              <div className="flex-1 min-w-[200px]">
-                <label className="text-sm font-medium mb-2 block">Date</label>
+              <div className="flex-1 min-w-0 sm:min-w-[200px]">
+                <label className="text-xs sm:text-sm font-medium mb-1.5 sm:mb-2 block">Date</label>
                 <Popover>
                   <PopoverTrigger asChild>
-                    <Button variant="outline" className="w-full justify-start">
-                      <CalendarIcon className="mr-2 h-4 w-4" />
+                    <Button variant="outline" className="w-full justify-start h-9 sm:h-10 text-xs sm:text-sm">
+                      <CalendarIcon className="mr-2 h-3 w-3 sm:h-4 sm:w-4" />
                       {format(selectedDate, 'PPP')}
                     </Button>
                   </PopoverTrigger>
@@ -203,19 +203,19 @@ export default function MarketDetail() {
                 </Popover>
               </div>
 
-              <div className="flex-1 min-w-[200px]">
-                <label className="text-sm font-medium mb-2 block">Organiser</label>
+              <div className="flex-1 min-w-0 sm:min-w-[200px]">
+                <label className="text-xs sm:text-sm font-medium mb-1.5 sm:mb-2 block">Organiser</label>
                 {organiser ? (
                   <div className="flex items-center gap-2 p-2 bg-muted rounded-md">
                     <div className="flex-1">
-                      <div className="font-medium">{organiser.full_name}</div>
+                      <div className="text-sm sm:text-base font-medium">{organiser.full_name}</div>
                       {organiser.phone && (
                         <div className="text-xs text-muted-foreground">{organiser.phone}</div>
                       )}
                     </div>
                   </div>
                 ) : (
-                  <div className="p-2 bg-muted rounded-md text-sm text-muted-foreground">
+                  <div className="p-2 bg-muted rounded-md text-xs sm:text-sm text-muted-foreground">
                     No organiser assigned
                   </div>
                 )}
