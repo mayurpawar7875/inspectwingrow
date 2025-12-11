@@ -31,6 +31,11 @@ interface ManualEntry {
   screenshot_file: File | null;
 }
 
+interface Market {
+  id: string;
+  name: string;
+}
+
 export default function Collections() {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -41,6 +46,11 @@ export default function Collections() {
   const [manualEntries, setManualEntries] = useState<ManualEntry[]>([]);
   const [saving, setSaving] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  
+  // Admin filter states
+  const [markets, setMarkets] = useState<Market[]>([]);
+  const [selectedMarket, setSelectedMarket] = useState<string>('all');
+  const [selectedDate, setSelectedDate] = useState<string>('');
 
   // Get IST date string for today
   const getISTDateString = (date: Date) => {
@@ -49,6 +59,61 @@ export default function Collections() {
     const m = String(ist.getMonth() + 1).padStart(2, '0');
     const d = String(ist.getDate()).padStart(2, '0');
     return `${y}-${m}-${d}`;
+  };
+
+  // Fetch collections data for admin based on filters
+  const fetchAdminCollections = async (dateStr: string, marketId: string | null) => {
+    setLoading(true);
+    try {
+      // Build query for stall confirmations
+      let query = supabase
+        .from('stall_confirmations')
+        .select('id, farmer_name, stall_name, market_id, rent_amount')
+        .eq('market_date', dateStr)
+        .order('created_at', { ascending: true });
+
+      if (marketId && marketId !== 'all') {
+        query = query.eq('market_id', marketId);
+      }
+
+      const { data: stalls, error: stErr } = await query;
+      if (stErr) throw stErr;
+
+      // Fetch collections for these stalls
+      const stallIds = (stalls || []).map(s => s.id);
+      const { data: existingCollections } = stallIds.length > 0 
+        ? await supabase
+            .from('collections')
+            .select('stall_confirmation_id, amount, mode, screenshot_url')
+            .in('stall_confirmation_id', stallIds)
+        : { data: [] };
+
+      // Create a map
+      const collectionsMap = new Map(
+        (existingCollections || []).map(c => [c.stall_confirmation_id, c])
+      );
+
+      setRows(
+        (stalls || []).map((s) => {
+          const collection = collectionsMap.get(s.id);
+          return {
+            id: s.id,
+            farmer_name: s.farmer_name,
+            stall_name: s.stall_name,
+            expected_rent: s.rent_amount || 0,
+            actual_rent: collection?.amount?.toString() || '',
+            payment_mode: (collection?.mode as 'cash' | 'online') || 'cash',
+            screenshot_file: null,
+            screenshot_url: collection?.screenshot_url || undefined,
+          };
+        })
+      );
+    } catch (e) {
+      console.error(e);
+      toast.error('Failed to load collections data');
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -69,47 +134,19 @@ export default function Collections() {
         setIsAdmin(adminUser);
 
         if (adminUser) {
-          // For admin, fetch all collections for today across all markets
-          const dateStr = getISTDateString(new Date());
-          setSessionDate(dateStr);
+          // Fetch all markets for dropdown
+          const { data: marketsData } = await supabase
+            .from('markets')
+            .select('id, name')
+            .eq('is_active', true)
+            .order('name');
           
-          // Fetch all stall confirmations for today
-          const { data: stalls, error: stErr } = await supabase
-            .from('stall_confirmations')
-            .select('id, farmer_name, stall_name, market_id, rent_amount')
-            .eq('market_date', dateStr)
-            .order('created_at', { ascending: true });
-
-          if (stErr) throw stErr;
-
-          // Fetch all collections for today
-          const stallIds = (stalls || []).map(s => s.id);
-          const { data: existingCollections } = await supabase
-            .from('collections')
-            .select('stall_confirmation_id, amount, mode, screenshot_url')
-            .in('stall_confirmation_id', stallIds);
-
-          // Create a map of stall_confirmation_id -> collection data
-          const collectionsMap = new Map(
-            (existingCollections || []).map(c => [c.stall_confirmation_id, c])
-          );
-
-          // Build rows for admin view (read-only)
-          setRows(
-            (stalls || []).map((s) => {
-              const collection = collectionsMap.get(s.id);
-              return {
-                id: s.id,
-                farmer_name: s.farmer_name,
-                stall_name: s.stall_name,
-                expected_rent: s.rent_amount || 0,
-                actual_rent: collection?.amount?.toString() || '',
-                payment_mode: (collection?.mode as 'cash' | 'online') || 'cash',
-                screenshot_file: null,
-                screenshot_url: collection?.screenshot_url || undefined,
-              };
-            })
-          );
+          setMarkets(marketsData || []);
+          setSelectedDate(todayIST);
+          setSessionDate(todayIST);
+          
+          // Fetch collections for today (all markets)
+          await fetchAdminCollections(todayIST, 'all');
         } else {
           // For employees, find their session
           const { data: session, error: sErr } = await supabase
@@ -178,6 +215,22 @@ export default function Collections() {
 
     load();
   }, [user]);
+
+  // Handle filter changes for admin
+  const handleDateChange = (date: string) => {
+    setSelectedDate(date);
+    setSessionDate(date);
+    if (isAdmin) {
+      fetchAdminCollections(date, selectedMarket);
+    }
+  };
+
+  const handleMarketChange = (marketId: string) => {
+    setSelectedMarket(marketId);
+    if (isAdmin && selectedDate) {
+      fetchAdminCollections(selectedDate, marketId);
+    }
+  };
 
   const setRowValue = (id: string, value: string) => {
     setRows((prev) =>
@@ -382,18 +435,53 @@ export default function Collections() {
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => navigate('/dashboard')}
+              onClick={() => navigate(isAdmin ? '/admin' : '/dashboard')}
               className="h-7 w-7"
             >
               <ArrowLeft className="h-4 w-4" />
             </Button>
             <h1 className="text-base font-bold">Rent Collections</h1>
           </div>
-          <p className="text-xs text-muted-foreground ml-9">Date: {sessionDate}</p>
+          {!isAdmin && (
+            <p className="text-xs text-muted-foreground ml-9">Date: {sessionDate}</p>
+          )}
         </div>
       </header>
 
       <main className="container-responsive py-3 space-y-4">
+        {/* Admin Filters */}
+        {isAdmin && (
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex flex-wrap gap-4 items-end">
+                <div className="flex-1 min-w-[150px]">
+                  <Label className="text-xs mb-1.5 block">Select Market</Label>
+                  <Select value={selectedMarket} onValueChange={handleMarketChange}>
+                    <SelectTrigger className="h-9">
+                      <SelectValue placeholder="All Markets" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Markets</SelectItem>
+                      {markets.map((m) => (
+                        <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex-1 min-w-[150px]">
+                  <Label className="text-xs mb-1.5 block">Select Date</Label>
+                  <Input
+                    type="date"
+                    value={selectedDate}
+                    onChange={(e) => handleDateChange(e.target.value)}
+                    className="h-9"
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-base">Stall Rent Collection</CardTitle>
@@ -401,7 +489,7 @@ export default function Collections() {
           <CardContent className="card-padding-responsive pt-0">
             {rows.length === 0 ? (
               <div className="text-center text-muted-foreground text-sm py-8">
-                No stall confirmations found for today
+                No stall confirmations found for {isAdmin ? 'selected filters' : 'today'}
               </div>
             ) : (
               <>
