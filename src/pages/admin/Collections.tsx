@@ -514,57 +514,79 @@ export default function Collections() {
                             ₹{r.expected_rent.toLocaleString('en-IN')}
                           </TableCell>
                           <TableCell className="py-2">
-                            <Input
-                              type="number"
-                              min="0"
-                              inputMode="decimal"
-                              value={r.actual_rent}
-                              onChange={(e) => setRowValue(r.id, e.target.value)}
-                              placeholder="0"
-                              className="h-7 text-xs"
-                            />
+                            {isAdmin ? (
+                              <span className="text-xs font-medium">
+                                {r.actual_rent ? `₹${Number(r.actual_rent).toLocaleString('en-IN')}` : '-'}
+                              </span>
+                            ) : (
+                              <Input
+                                type="number"
+                                min="0"
+                                inputMode="decimal"
+                                value={r.actual_rent}
+                                onChange={(e) => setRowValue(r.id, e.target.value)}
+                                placeholder="0"
+                                className="h-7 text-xs"
+                              />
+                            )}
                           </TableCell>
                           <TableCell className="py-2">
-                            <Select
-                              value={r.payment_mode}
-                              onValueChange={(value: 'cash' | 'online') => setRowPaymentMode(r.id, value)}
-                            >
-                              <SelectTrigger className="h-7 text-xs">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="cash">Cash</SelectItem>
-                                <SelectItem value="online">Online</SelectItem>
-                              </SelectContent>
-                            </Select>
+                            {isAdmin ? (
+                              <span className={`text-xs px-2 py-1 rounded ${r.payment_mode === 'online' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'}`}>
+                                {r.actual_rent ? (r.payment_mode === 'online' ? 'Online' : 'Cash') : '-'}
+                              </span>
+                            ) : (
+                              <Select
+                                value={r.payment_mode}
+                                onValueChange={(value: 'cash' | 'online') => setRowPaymentMode(r.id, value)}
+                              >
+                                <SelectTrigger className="h-7 text-xs">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="cash">Cash</SelectItem>
+                                  <SelectItem value="online">Online</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            )}
                           </TableCell>
                           <TableCell className="py-2">
-                            {r.payment_mode === 'online' && (
-                              <div className="flex items-center gap-1">
-                                <Label htmlFor={`screenshot-${r.id}`} className="cursor-pointer">
-                                  <div className="flex items-center gap-1 text-xs text-primary hover:text-primary/80">
-                                    <Upload className="h-3 w-3" />
-                                    {r.screenshot_file ? r.screenshot_file.name.slice(0, 10) + '...' : 'Upload'}
-                                  </div>
-                                </Label>
-                                <Input
-                                  id={`screenshot-${r.id}`}
-                                  type="file"
-                                  accept="image/*"
-                                  className="hidden"
-                                  onChange={(e) => setRowScreenshot(r.id, e.target.files?.[0] || null)}
-                                />
-                                {r.screenshot_file && (
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => setRowScreenshot(r.id, null)}
-                                    className="h-5 w-5 p-0"
-                                  >
-                                    <X className="h-3 w-3" />
-                                  </Button>
-                                )}
-                              </div>
+                            {isAdmin ? (
+                              r.screenshot_url ? (
+                                <a href={r.screenshot_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary underline">
+                                  View
+                                </a>
+                              ) : (
+                                <span className="text-xs text-muted-foreground">-</span>
+                              )
+                            ) : (
+                              r.payment_mode === 'online' && (
+                                <div className="flex items-center gap-1">
+                                  <Label htmlFor={`screenshot-${r.id}`} className="cursor-pointer">
+                                    <div className="flex items-center gap-1 text-xs text-primary hover:text-primary/80">
+                                      <Upload className="h-3 w-3" />
+                                      {r.screenshot_file ? r.screenshot_file.name.slice(0, 10) + '...' : 'Upload'}
+                                    </div>
+                                  </Label>
+                                  <Input
+                                    id={`screenshot-${r.id}`}
+                                    type="file"
+                                    accept="image/*"
+                                    className="hidden"
+                                    onChange={(e) => setRowScreenshot(r.id, e.target.files?.[0] || null)}
+                                  />
+                                  {r.screenshot_file && (
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => setRowScreenshot(r.id, null)}
+                                      className="h-5 w-5 p-0"
+                                    >
+                                      <X className="h-3 w-3" />
+                                    </Button>
+                                  )}
+                                </div>
+                              )
                             )}
                           </TableCell>
                         </TableRow>
