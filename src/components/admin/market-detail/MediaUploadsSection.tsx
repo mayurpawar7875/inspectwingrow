@@ -6,6 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Download, Eye } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
+import { toast } from 'sonner';
 
 interface MediaUpload {
   id: string;
@@ -56,61 +57,102 @@ export function MediaUploadsSection({ marketId, marketDate, isToday }: Props) {
   const fetchUploads = async () => {
     setLoading(true);
 
-    // Fetch media uploads
-    const { data: u, error: uErr } = await supabase
-      .from('media')
-      .select('id, captured_at, media_type, is_late, file_url, session_id')
-      .eq('market_id', marketId)
-      .order('captured_at', { ascending: false });
+    try {
+      // Get sessions for this market on the specified date first
+      const { data: sessions, error: sessErr } = await supabase
+        .from('sessions')
+        .select('id, user_id')
+        .eq('market_id', marketId)
+        .eq('session_date', marketDate);
 
-    if (uErr) console.error(uErr);
+      if (sessErr) throw sessErr;
 
-    // Get user IDs from sessions
-    const sessionIds = [...new Set((u ?? []).map(r => r.session_id).filter(Boolean))];
-    const { data: sessions } = await supabase
-      .from('sessions')
-      .select('id, user_id, session_date')
-      .in('id', sessionIds)
-      .eq('session_date', marketDate);
+      const sessionIds = (sessions || []).map(s => s.id);
+      
+      if (sessionIds.length === 0) {
+        setUploads([]);
+        setLoading(false);
+        return;
+      }
 
-    const sessionUserMap = Object.fromEntries((sessions || []).map((s: any) => [s.id, s.user_id]));
-    const uUserIds = [...new Set((u ?? []).map(r => sessionUserMap[r.session_id]).filter(Boolean))];
+      // Fetch media uploads for these sessions
+      const { data: u, error: uErr } = await supabase
+        .from('media')
+        .select('id, captured_at, media_type, is_late, file_url, session_id')
+        .in('session_id', sessionIds)
+        .order('captured_at', { ascending: false });
 
-    // Fetch employees
-    const { data: uEmps, error: uEmpErr } = await supabase
-      .from('employees')
-      .select('id, full_name')
-      .in('id', uUserIds.length ? uUserIds : ['00000000-0000-0000-0000-000000000000']);
+      if (uErr) throw uErr;
 
-    if (uEmpErr) console.error(uEmpErr);
+      // Build session to user map
+      const sessionUserMap = Object.fromEntries((sessions || []).map(s => [s.id, s.user_id]));
+      const userIds = [...new Set(Object.values(sessionUserMap).filter(Boolean))];
 
-    const uEmpById: Record<string, string> = Object.fromEntries(
-      (uEmps ?? []).map(e => [e.id, e.full_name])
-    );
+      // Fetch employees
+      const { data: emps, error: empErr } = await supabase
+        .from('employees')
+        .select('id, full_name')
+        .in('id', userIds.length ? userIds : ['00000000-0000-0000-0000-000000000000']);
 
-    // Merge data
-    const media = (u ?? []).map(r => ({
-      ...r,
-      profiles: { full_name: uEmpById[sessionUserMap[r.session_id]] ?? '—' }
-    }));
+      if (empErr) throw empErr;
 
-    setUploads(media as any);
-    setLoading(false);
+      const empById: Record<string, string> = Object.fromEntries(
+        (emps ?? []).map(e => [e.id, e.full_name])
+      );
+
+      // Merge data
+      const media = (u ?? []).map(r => ({
+        ...r,
+        profiles: { full_name: empById[sessionUserMap[r.session_id]] ?? '—' }
+      }));
+
+      setUploads(media as any);
+    } catch (error: any) {
+      console.error('Error fetching media uploads:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleView = (url: string) => {
-    window.open(url, '_blank');
+  const handleView = async (url: string) => {
+    try {
+      const { data } = await supabase.storage
+        .from('employee-media')
+        .createSignedUrl(url, 3600);
+      
+      if (data?.signedUrl) {
+        window.open(data.signedUrl, '_blank');
+      } else {
+        toast.error('Failed to generate media URL');
+      }
+    } catch (error) {
+      console.error('Error generating signed URL:', error);
+      toast.error('Failed to view media');
+    }
   };
 
   const handleDownload = async (url: string, fileName: string) => {
-    const response = await fetch(url);
-    const blob = await response.blob();
-    const blobUrl = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = blobUrl;
-    a.download = fileName;
-    a.click();
-    window.URL.revokeObjectURL(blobUrl);
+    try {
+      const { data } = await supabase.storage
+        .from('employee-media')
+        .createSignedUrl(url, 3600);
+      
+      if (data?.signedUrl) {
+        const response = await fetch(data.signedUrl);
+        const blob = await response.blob();
+        const blobUrl = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = blobUrl;
+        a.download = fileName;
+        a.click();
+        window.URL.revokeObjectURL(blobUrl);
+      } else {
+        toast.error('Failed to download media');
+      }
+    } catch (error) {
+      console.error('Error downloading:', error);
+      toast.error('Failed to download media');
+    }
   };
 
   return (
