@@ -86,37 +86,37 @@ export default function RequestsManagement() {
   const pendingAssetRequests = assetRequests.filter(r => r.status === "pending").length;
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      <div className="flex items-center gap-3">
-        <ClipboardList className="h-8 w-8 text-primary" />
+    <div className="container mx-auto p-3 md:p-6 space-y-4 md:space-y-6">
+      <div className="flex items-center gap-2 md:gap-3">
+        <ClipboardList className="h-6 w-6 md:h-8 md:w-8 text-primary" />
         <div>
-          <h1 className="text-3xl font-bold">Requests Management</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-xl md:text-3xl font-bold">Requests Management</h1>
+          <p className="text-xs md:text-base text-muted-foreground">
             Review and manage all employee requests in one place
           </p>
         </div>
       </div>
 
       <Tabs defaultValue="leave" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="leave" className="flex items-center gap-2">
-            <Calendar className="h-4 w-4" />
-            Leave Requests
+        <TabsList className="w-full h-auto flex flex-wrap md:grid md:grid-cols-4 gap-1 md:gap-0">
+          <TabsTrigger value="leave" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm px-2 md:px-3 py-1.5 md:py-2">
+            <Calendar className="h-3 w-3 md:h-4 md:w-4" />
+            <span>Leave</span>
           </TabsTrigger>
-          <TabsTrigger value="asset" className="flex items-center gap-2">
-            <Package className="h-4 w-4" />
-            Asset Requests
+          <TabsTrigger value="asset" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm px-2 md:px-3 py-1.5 md:py-2">
+            <Package className="h-3 w-3 md:h-4 md:w-4" />
+            <span>Asset</span>
             {pendingAssetRequests > 0 && (
-              <Badge variant="destructive" className="ml-1">{pendingAssetRequests}</Badge>
+              <Badge variant="destructive" className="text-[10px] h-4 px-1">{pendingAssetRequests}</Badge>
             )}
           </TabsTrigger>
-          <TabsTrigger value="reimbursement" className="flex items-center gap-2">
-            <DollarSign className="h-4 w-4" />
-            Reimbursements
+          <TabsTrigger value="reimbursement" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm px-2 md:px-3 py-1.5 md:py-2">
+            <DollarSign className="h-3 w-3 md:h-4 md:w-4" />
+            <span>Reimburse</span>
           </TabsTrigger>
-          <TabsTrigger value="location" className="flex items-center gap-2">
-            <MapPin className="h-4 w-4" />
-            Location Visits
+          <TabsTrigger value="location" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm px-2 md:px-3 py-1.5 md:py-2">
+            <MapPin className="h-3 w-3 md:h-4 md:w-4" />
+            <span>Location</span>
           </TabsTrigger>
         </TabsList>
 
