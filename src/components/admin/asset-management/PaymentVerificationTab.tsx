@@ -73,62 +73,62 @@ export function PaymentVerificationTab() {
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>Payment Verification</CardTitle>
+      <CardHeader className="p-3 md:p-6">
+        <CardTitle className="text-sm md:text-lg">Payment Verification</CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className="p-3 md:p-6 pt-0 md:pt-0">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Requester</TableHead>
-              <TableHead>Asset</TableHead>
-              <TableHead>Payment Mode</TableHead>
-              <TableHead>Amount</TableHead>
-              <TableHead>Payment Date</TableHead>
-              <TableHead>Proof</TableHead>
-              <TableHead>Actions</TableHead>
+              <TableHead className="text-[10px] md:text-sm">Requester</TableHead>
+              <TableHead className="text-[10px] md:text-sm">Asset</TableHead>
+              <TableHead className="text-[10px] md:text-sm">Payment Mode</TableHead>
+              <TableHead className="text-[10px] md:text-sm">Amount</TableHead>
+              <TableHead className="text-[10px] md:text-sm hidden md:table-cell">Payment Date</TableHead>
+              <TableHead className="text-[10px] md:text-sm hidden md:table-cell">Proof</TableHead>
+              <TableHead className="text-[10px] md:text-sm">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {payments.map((payment) => (
               <TableRow key={payment.id}>
-                <TableCell>
-                  <div>{payment.asset_requests?.employees?.full_name || 'N/A'}</div>
-                  <div className="text-xs text-muted-foreground">
+                <TableCell className="py-2 md:py-4">
+                  <div className="text-[10px] md:text-sm">{payment.asset_requests?.employees?.full_name || 'N/A'}</div>
+                  <div className="text-[9px] md:text-xs text-muted-foreground hidden md:block">
                     {payment.asset_requests?.employees?.email}
                   </div>
                 </TableCell>
-                <TableCell>{payment.asset_inventory?.asset_name}</TableCell>
-                <TableCell className="capitalize">{payment.payment_mode}</TableCell>
-                <TableCell>₹{payment.amount_received}</TableCell>
-                <TableCell>{format(new Date(payment.payment_date), 'MMM dd, yyyy')}</TableCell>
-                <TableCell>
+                <TableCell className="text-[10px] md:text-sm py-2 md:py-4">{payment.asset_inventory?.asset_name}</TableCell>
+                <TableCell className="capitalize text-[10px] md:text-sm py-2 md:py-4">{payment.payment_mode}</TableCell>
+                <TableCell className="text-[10px] md:text-sm py-2 md:py-4">₹{payment.amount_received}</TableCell>
+                <TableCell className="text-[10px] md:text-sm py-2 md:py-4 hidden md:table-cell">{format(new Date(payment.payment_date), 'MMM dd, yyyy')}</TableCell>
+                <TableCell className="hidden md:table-cell py-2 md:py-4">
                   {payment.payment_proof_url ? (
                     <a
                       href={payment.payment_proof_url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center gap-1 text-primary hover:underline"
+                      className="flex items-center gap-1 text-primary hover:underline text-[10px] md:text-sm"
                     >
-                      View <ExternalLink className="h-3 w-3" />
+                      View <ExternalLink className="h-2.5 w-2.5 md:h-3 md:w-3" />
                     </a>
                   ) : (
                     '-'
                   )}
                 </TableCell>
-                <TableCell>
+                <TableCell className="py-2 md:py-4">
                   <Dialog>
                     <DialogTrigger asChild>
-                      <Button size="sm" onClick={() => setSelectedPayment(payment)}>
+                      <Button size="sm" onClick={() => setSelectedPayment(payment)} className="text-[10px] md:text-sm h-6 md:h-8 px-2 md:px-3">
                         Verify
                       </Button>
                     </DialogTrigger>
                     <DialogContent>
                       <DialogHeader>
-                        <DialogTitle>Verify Payment</DialogTitle>
+                        <DialogTitle className="text-sm md:text-lg">Verify Payment</DialogTitle>
                       </DialogHeader>
                       <div className="space-y-4">
-                        <div className="bg-muted p-4 rounded-md space-y-2">
+                        <div className="bg-muted p-3 md:p-4 rounded-md space-y-2 text-xs md:text-sm">
                           <div className="flex justify-between">
                             <span className="font-medium">Asset:</span>
                             <span>{payment.asset_inventory?.asset_name}</span>
@@ -144,19 +144,20 @@ export function PaymentVerificationTab() {
                         </div>
 
                         <div>
-                          <Label>Verification Notes (Optional)</Label>
+                          <Label className="text-xs md:text-sm">Verification Notes (Optional)</Label>
                           <Textarea
                             value={verificationNotes}
                             onChange={(e) => setVerificationNotes(e.target.value)}
                             placeholder="Add any notes about the verification"
                             rows={3}
+                            className="text-xs md:text-sm"
                           />
                         </div>
 
                         <Button
                           onClick={() => handleVerify(payment.id)}
                           disabled={loading}
-                          className="w-full"
+                          className="w-full text-xs md:text-sm h-8 md:h-10"
                         >
                           {loading ? 'Verifying...' : 'Confirm Verification'}
                         </Button>
@@ -168,7 +169,7 @@ export function PaymentVerificationTab() {
             ))}
             {payments.length === 0 && (
               <TableRow>
-                <TableCell colSpan={7} className="text-center text-muted-foreground">
+                <TableCell colSpan={7} className="text-center text-muted-foreground text-[10px] md:text-sm">
                   No pending payment verifications
                 </TableCell>
               </TableRow>

@@ -31,21 +31,21 @@ export function ReturnedAssetsTab() {
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>Returned Assets</CardTitle>
+      <CardHeader className="p-3 md:p-6">
+        <CardTitle className="text-sm md:text-lg">Returned Assets</CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className="p-3 md:p-6 pt-0 md:pt-0">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Requester</TableHead>
-              <TableHead>Role</TableHead>
-              <TableHead>Asset</TableHead>
-              <TableHead>Quantity</TableHead>
-              <TableHead>Market</TableHead>
-              <TableHead>Expected Return</TableHead>
-              <TableHead>Actual Return</TableHead>
-              <TableHead>Status</TableHead>
+              <TableHead className="text-[10px] md:text-sm">Requester</TableHead>
+              <TableHead className="text-[10px] md:text-sm hidden md:table-cell">Role</TableHead>
+              <TableHead className="text-[10px] md:text-sm">Asset</TableHead>
+              <TableHead className="text-[10px] md:text-sm">Qty</TableHead>
+              <TableHead className="text-[10px] md:text-sm hidden md:table-cell">Market</TableHead>
+              <TableHead className="text-[10px] md:text-sm hidden md:table-cell">Expected Return</TableHead>
+              <TableHead className="text-[10px] md:text-sm hidden md:table-cell">Actual Return</TableHead>
+              <TableHead className="text-[10px] md:text-sm">Status</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -56,21 +56,21 @@ export function ReturnedAssetsTab() {
 
               return (
                 <TableRow key={request.id}>
-                  <TableCell>
-                    <div>{request.employees?.full_name || 'N/A'}</div>
-                    <div className="text-xs text-muted-foreground">{request.employees?.email}</div>
+                  <TableCell className="py-2 md:py-4">
+                    <div className="text-[10px] md:text-sm">{request.employees?.full_name || 'N/A'}</div>
+                    <div className="text-[9px] md:text-xs text-muted-foreground hidden md:block">{request.employees?.email}</div>
                   </TableCell>
-                  <TableCell className="capitalize">{request.requester_role}</TableCell>
-                  <TableCell>{request.asset_inventory?.asset_name}</TableCell>
-                  <TableCell>{request.quantity}</TableCell>
-                  <TableCell>{request.markets?.name || '-'}</TableCell>
-                  <TableCell>{format(expectedDate, 'MMM dd, yyyy')}</TableCell>
-                  <TableCell>
+                  <TableCell className="capitalize text-[10px] md:text-sm py-2 md:py-4 hidden md:table-cell">{request.requester_role}</TableCell>
+                  <TableCell className="text-[10px] md:text-sm py-2 md:py-4">{request.asset_inventory?.asset_name}</TableCell>
+                  <TableCell className="text-[10px] md:text-sm py-2 md:py-4">{request.quantity}</TableCell>
+                  <TableCell className="text-[10px] md:text-sm py-2 md:py-4 hidden md:table-cell">{request.markets?.name || '-'}</TableCell>
+                  <TableCell className="text-[10px] md:text-sm py-2 md:py-4 hidden md:table-cell">{format(expectedDate, 'MMM dd, yyyy')}</TableCell>
+                  <TableCell className="text-[10px] md:text-sm py-2 md:py-4 hidden md:table-cell">
                     {actualDate ? format(actualDate, 'MMM dd, yyyy') : '-'}
                   </TableCell>
-                  <TableCell>
-                    <span className={isLate ? 'text-destructive font-medium' : 'text-foreground'}>
-                      {isLate ? 'Late Return' : 'On Time'}
+                  <TableCell className="py-2 md:py-4">
+                    <span className={`text-[10px] md:text-sm ${isLate ? 'text-destructive font-medium' : 'text-foreground'}`}>
+                      {isLate ? 'Late' : 'On Time'}
                     </span>
                   </TableCell>
                 </TableRow>
@@ -78,7 +78,7 @@ export function ReturnedAssetsTab() {
             })}
             {requests.length === 0 && (
               <TableRow>
-                <TableCell colSpan={8} className="text-center text-muted-foreground">
+                <TableCell colSpan={8} className="text-center text-muted-foreground text-[10px] md:text-sm">
                   No returned assets yet
                 </TableCell>
               </TableRow>
