@@ -56,49 +56,25 @@ export default function NextDayPlanningForm({ sessionId, marketDate, userId, onS
 
   const fetchMarkets = async () => {
     try {
-      // Calculate next day's day of week (0 = Sunday, 6 = Saturday)
+      // Calculate next day's day of week based on marketDate (0 = Sunday, 6 = Saturday)
       const currentDate = new Date(marketDate);
       const nextDay = new Date(currentDate);
       nextDay.setDate(nextDay.getDate() + 1);
       const nextDayOfWeek = nextDay.getDay();
 
-      // Get markets scheduled for next day from market_schedule
-      const { data: scheduleData, error: scheduleError } = await supabase
-        .from('market_schedule')
-        .select('market_id')
-        .eq('day_of_week', nextDayOfWeek)
-        .eq('is_active', true);
+      console.log('Market date:', marketDate, 'Next day of week:', nextDayOfWeek);
 
-      if (scheduleError) throw scheduleError;
-
-      let marketIds = scheduleData?.map(s => s.market_id) || [];
-
-      // Also check markets table for day_of_week column
-      const { data: marketsWithDayData, error: marketsDayError } = await supabase
-        .from('markets')
-        .select('id')
-        .eq('day_of_week', nextDayOfWeek)
-        .eq('is_active', true);
-
-      if (!marketsDayError && marketsWithDayData) {
-        const additionalIds = marketsWithDayData.map(m => m.id);
-        marketIds = [...new Set([...marketIds, ...additionalIds])];
-      }
-
-      // If no markets scheduled for next day, show empty dropdown
-      if (marketIds.length === 0) {
-        setMarkets([]);
-        return;
-      }
-
+      // Query markets directly from markets table using day_of_week column
       const { data, error } = await supabase
         .from('markets')
         .select('id, name, city')
-        .in('id', marketIds)
+        .eq('day_of_week', nextDayOfWeek)
         .eq('is_active', true)
         .order('name');
 
       if (error) throw error;
+      
+      console.log('Markets for next day:', data);
       setMarkets(data || []);
     } catch (error: any) {
       console.error('Error fetching markets:', error);
