@@ -1427,10 +1427,7 @@ export default function AdminDashboard() {
                   <div className="grid md:grid-cols-[38%_62%] gap-2 md:gap-3 p-3">
                     {/* Left Column: Market Info */}
                     <div className="space-y-2">
-                      <div 
-                        className="cursor-pointer"
-                        onClick={() => navigate(`/admin/market/${market.market_id}`)}
-                      >
+                      <div>
                         <div className="flex items-center justify-between">
                           <h3 className="text-base font-semibold leading-tight">{market.market_name}</h3>
                           <Badge variant="default" className="ml-2 text-[10px] px-1.5 py-0 h-5">{market.active_sessions} active</Badge>
