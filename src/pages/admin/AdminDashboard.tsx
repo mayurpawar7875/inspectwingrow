@@ -871,15 +871,33 @@ export default function AdminDashboard() {
           
           if (sessionsData && sessionsData.length > 0) {
             const userIds = [...new Set(sessionsData.map(s => s.user_id).filter(Boolean))];
-            const { data: employeesData } = await supabase
-              .from('employees')
-              .select('id, full_name')
-              .in('id', userIds);
+            const sessionIds = sessionsData.map(s => s.id);
             
-            const employeeMap = new Map(employeesData?.map(e => [e.id, e.full_name]) || []);
-            data = sessionsData.map(s => ({
-              ...s,
-              employees: { full_name: employeeMap.get(s.user_id) }
+            const [employeesData, attendanceData] = await Promise.all([
+              supabase.from('employees').select('id, full_name').in('id', userIds),
+              supabase.from('attendance_records').select('session_id, selfie_url').in('session_id', sessionIds)
+            ]);
+            
+            const employeeMap = new Map(employeesData.data?.map(e => [e.id, e.full_name]) || []);
+            const selfieMap = new Map(attendanceData.data?.map(a => [a.session_id, a.selfie_url]) || []);
+            
+            // Get signed URLs for selfies
+            data = await Promise.all(sessionsData.map(async (s) => {
+              const selfieUrl = selfieMap.get(s.id);
+              let signedSelfieUrl = null;
+              
+              if (selfieUrl) {
+                const { data: signedUrlData } = await supabase.storage
+                  .from('employee-media')
+                  .createSignedUrl(selfieUrl, 3600);
+                signedSelfieUrl = signedUrlData?.signedUrl || null;
+              }
+              
+              return {
+                ...s,
+                selfie_url: signedSelfieUrl,
+                employees: { full_name: employeeMap.get(s.user_id) }
+              };
             }));
           }
           console.log(`[${taskType}] Found ${data.length} records`);
@@ -1185,30 +1203,42 @@ export default function AdminDashboard() {
 
       case 'attendance':
         return (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Employee</TableHead>
-                <TableHead>Punch In</TableHead>
-                <TableHead>Punch Out</TableHead>
-                <TableHead>Status</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {data.map((item) => (
-                <TableRow key={item.id}>
-                  <TableCell>{item.employees?.full_name || 'N/A'}</TableCell>
-                  <TableCell>{item.punch_in_time ? format(new Date(item.punch_in_time), 'HH:mm') : 'N/A'}</TableCell>
-                  <TableCell>{item.punch_out_time ? format(new Date(item.punch_out_time), 'HH:mm') : 'N/A'}</TableCell>
-                  <TableCell>
+          <div className="space-y-4">
+            {data.map((item) => (
+              <Card key={item.id}>
+                <CardHeader className="pb-2">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-sm">{item.employees?.full_name || 'Unknown'}</CardTitle>
                     <Badge variant={item.status === 'completed' ? 'default' : 'secondary'}>
                       {item.status}
                     </Badge>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+                  </div>
+                  <CardDescription className="text-xs">
+                    Punch In: {item.punch_in_time ? format(new Date(item.punch_in_time), 'HH:mm') : 'N/A'} | 
+                    Punch Out: {item.punch_out_time ? format(new Date(item.punch_out_time), 'HH:mm') : 'N/A'}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {item.selfie_url ? (
+                    <div className="space-y-2">
+                      <img 
+                        src={item.selfie_url} 
+                        alt="Punch-in Selfie" 
+                        className="w-full max-w-[200px] rounded-md cursor-pointer hover:opacity-90 transition-opacity"
+                        onClick={() => window.open(item.selfie_url, '_blank')}
+                        onError={(e) => {
+                          e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2Y1ZjVmNSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LXNpemU9IjE0IiBmaWxsPSIjOTk5IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkeT0iLjNlbSI+SW1hZ2UgTm90IEZvdW5kPC90ZXh0Pjwvc3ZnPg==';
+                        }}
+                      />
+                      <p className="text-xs text-muted-foreground">Click image to view full size</p>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">No selfie available</p>
+                  )}
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         );
 
       case 'collections':
