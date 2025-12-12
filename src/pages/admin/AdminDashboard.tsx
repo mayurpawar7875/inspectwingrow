@@ -1368,6 +1368,48 @@ export default function AdminDashboard() {
           </Table>
         );
 
+      case 'outside_rates':
+      case 'rate_board':
+      case 'customer_feedback':
+        return (
+          <div className="space-y-4">
+            {data.map((item) => (
+              <Card key={item.id}>
+                <CardHeader>
+                  <CardTitle className="text-sm">{item.employees?.full_name || 'Unknown'}</CardTitle>
+                  <CardDescription>
+                    {format(new Date(item.created_at), 'HH:mm')}
+                    {item.gps_lat && item.gps_lng && (
+                      <span className="ml-2 text-xs">
+                        ({Number(item.gps_lat).toFixed(6)}, {Number(item.gps_lng).toFixed(6)})
+                      </span>
+                    )}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {item.content_type?.startsWith('video/') ? (
+                    <video controls className="w-full rounded-md">
+                      <source src={item.file_url} type={item.content_type} />
+                      Your browser does not support the video tag.
+                    </video>
+                  ) : (
+                    <img 
+                      src={item.file_url} 
+                      alt={taskType === 'outside_rates' ? 'Outside Rates' : taskType === 'rate_board' ? 'Rate Board' : 'Customer Feedback'} 
+                      className="w-full rounded-md cursor-pointer hover:opacity-90 transition-opacity"
+                      onClick={() => window.open(item.file_url, '_blank')}
+                      onError={(e) => {
+                        e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2Y1ZjVmNSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LXNpemU9IjE0IiBmaWxsPSIjOTk5IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkeT0iLjNlbSI+SW1hZ2UgTm90IEZvdW5kPC90ZXh0Pjwvc3ZnPg==';
+                      }}
+                    />
+                  )}
+                  <p className="text-xs text-muted-foreground mt-2">Click to view full size</p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        );
+
       default:
         return <div>Unknown task type</div>;
     }
