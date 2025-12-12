@@ -1404,6 +1404,14 @@ export default function AdminDashboard() {
                       <source src={item.file_url} type={item.content_type} />
                       Your browser does not support the video tag.
                     </video>
+                  ) : item.content_type?.startsWith('audio/') ? (
+                    <div className="space-y-2">
+                      <audio controls className="w-full">
+                        <source src={item.file_url} type={item.content_type} />
+                        Your browser does not support the audio tag.
+                      </audio>
+                      <p className="text-xs text-muted-foreground">Audio file: {item.file_name || 'Recording'}</p>
+                    </div>
                   ) : (
                     <img 
                       src={item.file_url} 
@@ -1415,7 +1423,7 @@ export default function AdminDashboard() {
                       }}
                     />
                   )}
-                  <p className="text-xs text-muted-foreground mt-2">Click to view full size</p>
+                  <p className="text-xs text-muted-foreground mt-2">Click to view/play</p>
                 </CardContent>
               </Card>
             ))}
