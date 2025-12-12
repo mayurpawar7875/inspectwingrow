@@ -85,16 +85,9 @@ export default function NextDayPlanningForm({ sessionId, marketDate, userId, onS
         marketIds = [...new Set([...marketIds, ...additionalIds])];
       }
 
-      // If no schedule data exists at all, show all active markets as fallback
+      // If no markets scheduled for next day, show empty dropdown
       if (marketIds.length === 0) {
-        const { data, error } = await supabase
-          .from('markets')
-          .select('id, name, city')
-          .eq('is_active', true)
-          .order('name');
-
-        if (error) throw error;
-        setMarkets(data || []);
+        setMarkets([]);
         return;
       }
 
