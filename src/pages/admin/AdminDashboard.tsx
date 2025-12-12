@@ -816,8 +816,9 @@ export default function AdminDashboard() {
         case 'market_video':
           const { data: marketVideosData } = await supabase
             .from('media')
-            .select('*, sessions!inner(user_id, market_id)')
+            .select('*, sessions!inner(user_id, market_id, session_date)')
             .eq('sessions.market_id', marketId)
+            .eq('sessions.session_date', todayDate)
             .eq('media_type', 'market_video' as any)
             .order('created_at', { ascending: false });
           
@@ -840,8 +841,9 @@ export default function AdminDashboard() {
         case 'cleaning_video':
           const { data: cleaningVideosData } = await supabase
             .from('media')
-            .select('*, sessions!inner(user_id, market_id)')
+            .select('*, sessions!inner(user_id, market_id, session_date)')
             .eq('sessions.market_id', marketId)
+            .eq('sessions.session_date', todayDate)
             .eq('media_type', 'cleaning_video' as any)
             .order('created_at', { ascending: false });
           
@@ -918,8 +920,9 @@ export default function AdminDashboard() {
         case 'selfie_gps':
           const { data: selfieData } = await supabase
             .from('media')
-            .select('*, sessions!inner(user_id, market_id)')
+            .select('*, sessions!inner(user_id, market_id, session_date)')
             .eq('sessions.market_id', marketId)
+            .eq('sessions.session_date', todayDate)
             .eq('media_type', 'selfie_gps')
             .order('created_at', { ascending: false });
           
@@ -938,6 +941,99 @@ export default function AdminDashboard() {
                 .from('employee-media')
                 .createSignedUrl(m.file_url, 3600); // 1 hour expiry
               
+              return {
+                ...m,
+                file_url: signedUrlData?.signedUrl || m.file_url,
+                employees: { full_name: employeeMap.get(m.sessions?.user_id) }
+              };
+            }));
+          }
+          console.log(`[${taskType}] Found ${data.length} records`);
+          break;
+
+        case 'outside_rates':
+          const { data: outsideRatesData } = await supabase
+            .from('media')
+            .select('*, sessions!inner(user_id, market_id, session_date)')
+            .eq('sessions.market_id', marketId)
+            .eq('sessions.session_date', todayDate)
+            .eq('media_type', 'outside_rates')
+            .order('created_at', { ascending: false });
+          
+          if (outsideRatesData && outsideRatesData.length > 0) {
+            const userIds = [...new Set(outsideRatesData.map((m: any) => m.sessions?.user_id).filter(Boolean))];
+            const { data: employeesData } = await supabase
+              .from('employees')
+              .select('id, full_name')
+              .in('id', userIds);
+            
+            const employeeMap = new Map(employeesData?.map(e => [e.id, e.full_name]) || []);
+            data = await Promise.all(outsideRatesData.map(async (m: any) => {
+              const { data: signedUrlData } = await supabase.storage
+                .from('employee-media')
+                .createSignedUrl(m.file_url, 3600);
+              return {
+                ...m,
+                file_url: signedUrlData?.signedUrl || m.file_url,
+                employees: { full_name: employeeMap.get(m.sessions?.user_id) }
+              };
+            }));
+          }
+          console.log(`[${taskType}] Found ${data.length} records`);
+          break;
+
+        case 'rate_board':
+          const { data: rateBoardData } = await supabase
+            .from('media')
+            .select('*, sessions!inner(user_id, market_id, session_date)')
+            .eq('sessions.market_id', marketId)
+            .eq('sessions.session_date', todayDate)
+            .eq('media_type', 'rate_board')
+            .order('created_at', { ascending: false });
+          
+          if (rateBoardData && rateBoardData.length > 0) {
+            const userIds = [...new Set(rateBoardData.map((m: any) => m.sessions?.user_id).filter(Boolean))];
+            const { data: employeesData } = await supabase
+              .from('employees')
+              .select('id, full_name')
+              .in('id', userIds);
+            
+            const employeeMap = new Map(employeesData?.map(e => [e.id, e.full_name]) || []);
+            data = await Promise.all(rateBoardData.map(async (m: any) => {
+              const { data: signedUrlData } = await supabase.storage
+                .from('employee-media')
+                .createSignedUrl(m.file_url, 3600);
+              return {
+                ...m,
+                file_url: signedUrlData?.signedUrl || m.file_url,
+                employees: { full_name: employeeMap.get(m.sessions?.user_id) }
+              };
+            }));
+          }
+          console.log(`[${taskType}] Found ${data.length} records`);
+          break;
+
+        case 'customer_feedback':
+          const { data: customerFeedbackData } = await supabase
+            .from('media')
+            .select('*, sessions!inner(user_id, market_id, session_date)')
+            .eq('sessions.market_id', marketId)
+            .eq('sessions.session_date', todayDate)
+            .eq('media_type', 'customer_feedback')
+            .order('created_at', { ascending: false });
+          
+          if (customerFeedbackData && customerFeedbackData.length > 0) {
+            const userIds = [...new Set(customerFeedbackData.map((m: any) => m.sessions?.user_id).filter(Boolean))];
+            const { data: employeesData } = await supabase
+              .from('employees')
+              .select('id, full_name')
+              .in('id', userIds);
+            
+            const employeeMap = new Map(employeesData?.map(e => [e.id, e.full_name]) || []);
+            data = await Promise.all(customerFeedbackData.map(async (m: any) => {
+              const { data: signedUrlData } = await supabase.storage
+                .from('employee-media')
+                .createSignedUrl(m.file_url, 3600);
               return {
                 ...m,
                 file_url: signedUrlData?.signedUrl || m.file_url,
@@ -969,6 +1065,9 @@ export default function AdminDashboard() {
       attendance: 'Attendance Records',
       collections: 'Collections',
       selfie_gps: 'Selfie GPS Uploads',
+      outside_rates: 'Outside Rates',
+      rate_board: 'Rate Board',
+      customer_feedback: 'Customer Feedback',
     };
     return titles[taskType] || taskType;
   };
