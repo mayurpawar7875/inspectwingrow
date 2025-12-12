@@ -7,19 +7,19 @@ import { AssetInventoryTab } from './asset-management/AssetInventoryTab';
 
 export function AssetManagement() {
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       <div>
-        <h1 className="text-3xl font-bold mb-2">Asset Management</h1>
-        <p className="text-muted-foreground">Manage asset requests, payments, and inventory</p>
+        <h1 className="text-xl md:text-3xl font-bold mb-1 md:mb-2">Asset Management</h1>
+        <p className="text-xs md:text-base text-muted-foreground">Manage asset requests, payments, and inventory</p>
       </div>
 
       <Tabs defaultValue="pending" className="w-full">
         <TabsList className="grid w-full grid-cols-5">
-          <TabsTrigger value="pending">Pending</TabsTrigger>
-          <TabsTrigger value="approved">Approved</TabsTrigger>
-          <TabsTrigger value="payments">Payments</TabsTrigger>
-          <TabsTrigger value="returned">Returned</TabsTrigger>
-          <TabsTrigger value="inventory">Inventory</TabsTrigger>
+          <TabsTrigger value="pending" className="text-[10px] md:text-sm px-1 md:px-3">Pending</TabsTrigger>
+          <TabsTrigger value="approved" className="text-[10px] md:text-sm px-1 md:px-3">Approved</TabsTrigger>
+          <TabsTrigger value="payments" className="text-[10px] md:text-sm px-1 md:px-3">Payments</TabsTrigger>
+          <TabsTrigger value="returned" className="text-[10px] md:text-sm px-1 md:px-3">Returned</TabsTrigger>
+          <TabsTrigger value="inventory" className="text-[10px] md:text-sm px-1 md:px-3">Inventory</TabsTrigger>
         </TabsList>
 
         <TabsContent value="pending" className="mt-6">

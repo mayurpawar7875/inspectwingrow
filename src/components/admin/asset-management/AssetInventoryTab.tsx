@@ -95,37 +95,38 @@ export function AssetInventoryTab() {
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle>Asset Inventory</CardTitle>
-        <div className="flex items-center gap-2">
-          <Button onClick={handleExport} variant="outline" size="sm" disabled={inventory.length === 0}>
-            <Download className="h-4 w-4 mr-2" />
-            Export CSV
+      <CardHeader className="flex flex-row items-center justify-between p-3 md:p-6">
+        <CardTitle className="text-sm md:text-lg">Asset Inventory</CardTitle>
+        <div className="flex items-center gap-1 md:gap-2">
+          <Button onClick={handleExport} variant="outline" size="sm" disabled={inventory.length === 0} className="text-[10px] md:text-sm h-7 md:h-9 px-2 md:px-3">
+            <Download className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2" />
+            Export
           </Button>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
-            <Button>
-              <Plus className="h-4 w-4 mr-2" />
-              Add Asset
+            <Button size="sm" className="text-[10px] md:text-sm h-7 md:h-9 px-2 md:px-3">
+              <Plus className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2" />
+              Add
             </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Add New Asset</DialogTitle>
+              <DialogTitle className="text-sm md:text-lg">Add New Asset</DialogTitle>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <Label htmlFor="assetName">Asset Name *</Label>
+                <Label htmlFor="assetName" className="text-xs md:text-sm">Asset Name *</Label>
                 <Input
                   id="assetName"
                   value={formData.assetName}
                   onChange={(e) => setFormData({ ...formData, assetName: e.target.value })}
                   required
+                  className="text-xs md:text-sm h-8 md:h-10"
                 />
               </div>
 
               <div>
-                <Label htmlFor="totalQuantity">Total Quantity *</Label>
+                <Label htmlFor="totalQuantity" className="text-xs md:text-sm">Total Quantity *</Label>
                 <Input
                   id="totalQuantity"
                   type="number"
@@ -133,31 +134,34 @@ export function AssetInventoryTab() {
                   value={formData.totalQuantity}
                   onChange={(e) => setFormData({ ...formData, totalQuantity: e.target.value })}
                   required
+                  className="text-xs md:text-sm h-8 md:h-10"
                 />
               </div>
 
               <div>
-                <Label htmlFor="unitPrice">Unit Price (Optional)</Label>
+                <Label htmlFor="unitPrice" className="text-xs md:text-sm">Unit Price (Optional)</Label>
                 <Input
                   id="unitPrice"
                   type="number"
                   step="0.01"
                   value={formData.unitPrice}
                   onChange={(e) => setFormData({ ...formData, unitPrice: e.target.value })}
+                  className="text-xs md:text-sm h-8 md:h-10"
                 />
               </div>
 
               <div>
-                <Label htmlFor="description">Description (Optional)</Label>
+                <Label htmlFor="description" className="text-xs md:text-sm">Description (Optional)</Label>
                 <Textarea
                   id="description"
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   rows={3}
+                  className="text-xs md:text-sm"
                 />
               </div>
 
-              <Button type="submit" disabled={loading} className="w-full">
+              <Button type="submit" disabled={loading} className="w-full text-xs md:text-sm h-8 md:h-10">
                 {loading ? 'Adding...' : 'Add Asset'}
               </Button>
             </form>
@@ -165,32 +169,28 @@ export function AssetInventoryTab() {
           </Dialog>
         </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="p-3 md:p-6 pt-0 md:pt-0">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Asset Name</TableHead>
-              <TableHead>Total Quantity</TableHead>
-              <TableHead>Available</TableHead>
-              <TableHead>Issued</TableHead>
-              <TableHead>Unit Price</TableHead>
-              <TableHead>Description</TableHead>
+              <TableHead className="text-[10px] md:text-sm">Asset Name</TableHead>
+              <TableHead className="text-[10px] md:text-sm">Total Qty</TableHead>
+              <TableHead className="text-[10px] md:text-sm">Available</TableHead>
+              <TableHead className="text-[10px] md:text-sm">Issued</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {inventory.map((item) => (
               <TableRow key={item.id}>
-                <TableCell className="font-medium">{item.asset_name}</TableCell>
-                <TableCell>{item.total_quantity}</TableCell>
-                <TableCell>{item.available_quantity}</TableCell>
-                <TableCell>{item.issued_quantity}</TableCell>
-                <TableCell>{item.unit_price ? `₹${item.unit_price}` : '-'}</TableCell>
-                <TableCell className="max-w-xs truncate">{item.description || '-'}</TableCell>
+                <TableCell className="font-medium text-[10px] md:text-sm py-2 md:py-4">{item.asset_name}</TableCell>
+                <TableCell className="text-[10px] md:text-sm py-2 md:py-4">{item.total_quantity}</TableCell>
+                <TableCell className="text-[10px] md:text-sm py-2 md:py-4">{item.available_quantity}</TableCell>
+                <TableCell className="text-[10px] md:text-sm py-2 md:py-4">{item.issued_quantity}</TableCell>
               </TableRow>
             ))}
             {inventory.length === 0 && (
               <TableRow>
-                <TableCell colSpan={6} className="text-center text-muted-foreground">
+                <TableCell colSpan={4} className="text-center text-muted-foreground text-[10px] md:text-sm">
                   No assets in inventory
                 </TableCell>
               </TableRow>
