@@ -74,7 +74,10 @@ export default function MediaUpload() {
     if (!user) return;
 
     try {
-      const today = new Date().toISOString().split('T')[0];
+      // Use IST date for consistency
+      const now = new Date();
+      const istDate = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
+      const today = istDate.toISOString().split('T')[0];
       
       // Fetch only today's session for this user
       const { data: sessionsData } = await supabase
@@ -161,20 +164,29 @@ export default function MediaUpload() {
 
     setUploading(true);
     try {
-      // Get market from today's active session
-      const today = new Date().toISOString().split('T')[0];
-      const { data: sessionData } = await supabase
+      // Get market from today's session (use IST date)
+      const now = new Date();
+      const istDate = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
+      const today = istDate.toISOString().split('T')[0];
+      
+      console.log('Looking for session on date:', today, 'for user:', user.id);
+      
+      const { data: sessionData, error: sessionError } = await supabase
         .from('sessions')
-        .select('id, market_id')
+        .select('id, market_id, status')
         .eq('user_id', user.id)
         .eq('session_date', today)
+        .order('created_at', { ascending: false })
+        .limit(1)
         .maybeSingle();
+      
+      console.log('Session query result:', sessionData, 'error:', sessionError);
       
       const marketId = sessionData?.market_id;
       const sessionId = sessionData?.id;
       
       if (!marketId || !sessionId) {
-        toast.error('No active session found. Please start a session from the dashboard first');
+        toast.error('No session found for today. Please punch in first from the dashboard');
         navigate('/dashboard');
         return;
       }
