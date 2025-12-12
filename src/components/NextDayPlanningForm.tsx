@@ -168,7 +168,7 @@ export default function NextDayPlanningForm({ sessionId, marketDate, userId, onS
       nextDay.setDate(nextDay.getDate() + 1);
       const nextDayStr = nextDay.toISOString().split('T')[0];
 
-      // Find market by name for next day
+      // Find market by name for next day - market_id is required
       const { data: marketData, error: marketError } = await supabase
         .from('markets')
         .select('id')
@@ -177,6 +177,12 @@ export default function NextDayPlanningForm({ sessionId, marketDate, userId, onS
 
       if (marketError) throw marketError;
 
+      if (!marketData?.id) {
+        toast.error('Selected market not found. Please select a valid market.');
+        setSaving(false);
+        return;
+      }
+
       // Save or update next day planning
       if (existingPlan) {
         const { error } = await supabase
@@ -184,6 +190,7 @@ export default function NextDayPlanningForm({ sessionId, marketDate, userId, onS
           .update({
             next_day_market_name: marketName.trim(),
             stall_list: stallListJson,
+            market_id: marketData.id,
           })
           .eq('id', existingPlan.id);
 
@@ -195,7 +202,7 @@ export default function NextDayPlanningForm({ sessionId, marketDate, userId, onS
             user_id: userId,
             session_id: sessionId,
             market_date: marketDate,
-            market_id: marketData?.id || null,
+            market_id: marketData.id,
             next_day_market_name: marketName.trim(),
             stall_list: stallListJson,
           });
@@ -203,36 +210,31 @@ export default function NextDayPlanningForm({ sessionId, marketDate, userId, onS
         if (error) throw error;
       }
 
-      // Create stall confirmations for next day if market exists
-      if (marketData?.id) {
-        // First, delete existing stall confirmations for this user, market, and date
-        await supabase
-          .from('stall_confirmations')
-          .delete()
-          .eq('created_by', userId)
-          .eq('market_id', marketData.id)
-          .eq('market_date', nextDayStr);
+      // Delete existing stall confirmations for this user, market, and date
+      await supabase
+        .from('stall_confirmations')
+        .delete()
+        .eq('created_by', userId)
+        .eq('market_id', marketData.id)
+        .eq('market_date', nextDayStr);
 
-        // Insert new stall confirmations
-        const stallConfirmationsToInsert = confirmations.map((conf, index) => ({
-          farmer_name: conf.farmerName,
-          stall_name: conf.stallName,
-          stall_no: `${index + 1}`, // Auto-generate stall numbers
-          created_by: userId,
-          market_id: marketData.id,
-          market_date: nextDayStr,
-        }));
+      // Insert new stall confirmations
+      const stallConfirmationsToInsert = confirmations.map((conf, index) => ({
+        farmer_name: conf.farmerName,
+        stall_name: conf.stallName,
+        stall_no: `${index + 1}`, // Auto-generate stall numbers
+        created_by: userId,
+        market_id: marketData.id,
+        market_date: nextDayStr,
+      }));
 
-        const { error: stallError } = await supabase
-          .from('stall_confirmations')
-          .insert(stallConfirmationsToInsert);
+      const { error: stallError } = await supabase
+        .from('stall_confirmations')
+        .insert(stallConfirmationsToInsert);
 
-        if (stallError) throw stallError;
+      if (stallError) throw stallError;
 
-        toast.success('Next day planning saved and stall confirmations created!');
-      } else {
-        toast.success('Next day planning saved (market will need to be selected)');
-      }
+      toast.success('Next day planning saved and stall confirmations created!');
 
       await fetchExistingPlan();
       onSuccess?.();
