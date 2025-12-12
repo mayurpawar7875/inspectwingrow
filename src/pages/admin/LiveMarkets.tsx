@@ -448,7 +448,7 @@ export default function LiveMarkets() {
       <div>
         <Button 
           variant="ghost" 
-          onClick={() => navigate('/bdo-dashboard')}
+          onClick={() => navigate(-1)}
           className="mb-4"
         >
           <ArrowLeft className="h-4 w-4 mr-2" />

@@ -8,10 +8,21 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
-import { Plus } from 'lucide-react';
+import { Plus, Download } from 'lucide-react';
+import { exportCSV } from '@/lib/utils';
+
+interface AssetInventoryItem {
+  id: string;
+  asset_name: string;
+  total_quantity: number;
+  available_quantity: number;
+  issued_quantity: number;
+  unit_price: number | null;
+  description: string | null;
+}
 
 export function AssetInventoryTab() {
-  const [inventory, setInventory] = useState<any[]>([]);
+  const [inventory, setInventory] = useState<AssetInventoryItem[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -39,7 +50,7 @@ export function AssetInventoryTab() {
       .from('asset_inventory')
       .select('*')
       .order('asset_name');
-    setInventory(data || []);
+    setInventory((data ?? []) as AssetInventoryItem[]);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -69,11 +80,29 @@ export function AssetInventoryTab() {
     }
   };
 
+  const handleExport = () => {
+    const headers = ['Asset Name', 'Total Quantity', 'Available', 'Issued', 'Unit Price', 'Description'];
+    const rows = inventory.map((item) => [
+      item.asset_name,
+      item.total_quantity,
+      item.available_quantity,
+      item.issued_quantity,
+      item.unit_price ?? '',
+      item.description ?? ''
+    ]);
+    exportCSV('asset_inventory', headers, rows);
+  };
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>Asset Inventory</CardTitle>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <div className="flex items-center gap-2">
+          <Button onClick={handleExport} variant="outline" size="sm" disabled={inventory.length === 0}>
+            <Download className="h-4 w-4 mr-2" />
+            Export CSV
+          </Button>
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
             <Button>
               <Plus className="h-4 w-4 mr-2" />
@@ -133,7 +162,8 @@ export function AssetInventoryTab() {
               </Button>
             </form>
           </DialogContent>
-        </Dialog>
+          </Dialog>
+        </div>
       </CardHeader>
       <CardContent>
         <Table>

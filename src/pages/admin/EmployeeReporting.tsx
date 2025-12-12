@@ -123,24 +123,24 @@ export default function EmployeeReporting() {
         <Button 
           variant="outline" 
           size="sm" 
-          onClick={() => marketId ? navigate(`/admin/employee-reporting/city/${encodeURIComponent(cityName)}`) : navigate('/admin')}
+          onClick={() => navigate(-1)}
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
-          {marketId ? 'Back to Markets' : 'Back to Dashboard'}
+          Back
         </Button>
         <div className="flex-1">
           {marketId && (
             <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
               <span 
                 className="cursor-pointer hover:text-primary" 
-                onClick={() => navigate('/admin/employee-reporting')}
+                onClick={() => navigate(-1)}
               >
                 Employee Reporting
               </span>
               <ChevronRight className="h-4 w-4" />
               <span 
                 className="cursor-pointer hover:text-primary" 
-                onClick={() => navigate(`/admin/employee-reporting/city/${encodeURIComponent(cityName)}`)}
+                onClick={() => navigate(-1)}
               >
                 {cityName}
               </span>

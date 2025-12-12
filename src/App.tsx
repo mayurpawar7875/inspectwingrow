@@ -106,6 +106,7 @@ const App = () => (
                 <Route path="/admin/leaves" element={<ProtectedRoute><AdminLayout><LeaveRequests /></AdminLayout></ProtectedRoute>} />
                 <Route path="/admin/collections" element={<ProtectedRoute><AdminLayout><Collections /></AdminLayout></ProtectedRoute>} />
                 <Route path="/admin/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+                <Route path="/admin/settings/:section" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
                 <Route path="/admin/market/:marketId" element={<ProtectedRoute><MarketDetail /></ProtectedRoute>} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
@@ -118,3 +119,25 @@ const App = () => (
 );
 
 export default App;
+
+// Prefetch common routes after idle time to reduce perceived loading
+if (typeof window !== "undefined") {
+  const prefetch = () => {
+    import("./pages/admin/AdminDashboard");
+    import("./pages/admin/Settings");
+    import("./pages/admin/LiveMarkets");
+    import("./pages/admin/MarketDetail");
+    import("./pages/admin/Users");
+    import("./pages/admin/Collections");
+  };
+  // Use requestIdleCallback if available, otherwise a short timeout
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-ignore
+  const ric = window.requestIdleCallback as undefined | ((cb: () => void) => void);
+  if (ric) {
+    // @ts-ignore
+    ric(prefetch);
+  } else {
+    setTimeout(prefetch, 1200);
+  }
+}
