@@ -62,7 +62,7 @@ export default function NextDayPlanningForm({ sessionId, marketDate, userId, onS
       nextDay.setDate(nextDay.getDate() + 1);
       const nextDayOfWeek = nextDay.getDay();
 
-      // Get markets scheduled for next day
+      // Get markets scheduled for next day from market_schedule
       const { data: scheduleData, error: scheduleError } = await supabase
         .from('market_schedule')
         .select('market_id')
@@ -71,12 +71,32 @@ export default function NextDayPlanningForm({ sessionId, marketDate, userId, onS
 
       if (scheduleError) throw scheduleError;
 
-      if (!scheduleData || scheduleData.length === 0) {
-        setMarkets([]);
-        return;
+      let marketIds = scheduleData?.map(s => s.market_id) || [];
+
+      // Also check markets table for day_of_week column
+      const { data: marketsWithDayData, error: marketsDayError } = await supabase
+        .from('markets')
+        .select('id')
+        .eq('day_of_week', nextDayOfWeek)
+        .eq('is_active', true);
+
+      if (!marketsDayError && marketsWithDayData) {
+        const additionalIds = marketsWithDayData.map(m => m.id);
+        marketIds = [...new Set([...marketIds, ...additionalIds])];
       }
 
-      const marketIds = scheduleData.map(s => s.market_id);
+      // If no schedule data exists at all, show all active markets as fallback
+      if (marketIds.length === 0) {
+        const { data, error } = await supabase
+          .from('markets')
+          .select('id, name, city')
+          .eq('is_active', true)
+          .order('name');
+
+        if (error) throw error;
+        setMarkets(data || []);
+        return;
+      }
 
       const { data, error } = await supabase
         .from('markets')
