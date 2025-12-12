@@ -1450,13 +1450,16 @@ export default function AdminDashboard() {
                             {market.employees.map((employee) => (
                               <HoverCard key={employee.id}>
                                 <HoverCardTrigger asChild>
-                                  <div className="flex items-center gap-1.5 px-1.5 md:px-2 py-0.5 md:py-1 rounded-md bg-muted hover:bg-muted/80 cursor-pointer transition-colors">
+                                  <div 
+                                    className="flex items-center gap-1.5 px-1.5 md:px-2 py-0.5 md:py-1 rounded-md bg-muted hover:bg-muted/80 cursor-pointer transition-colors"
+                                    onClick={() => navigate(`/admin/employee/${employee.id}/markets`)}
+                                  >
                                     <span className={`h-1.5 w-1.5 md:h-2 md:w-2 rounded-full shrink-0 ${
                                       employee.status === 'active' ? 'bg-green-500' :
                                       employee.status === 'half_day' ? 'bg-yellow-500' :
                                       'bg-red-500'
                                     }`} />
-                                    <span className="text-[10px] md:text-xs font-medium truncate max-w-[80px] md:max-w-[120px]">{employee.name}</span>
+                                    <span className="text-[10px] md:text-xs font-medium truncate max-w-[80px] md:max-w-[120px] underline">{employee.name}</span>
                                   </div>
                                 </HoverCardTrigger>
                                 <HoverCardContent className="w-80">
