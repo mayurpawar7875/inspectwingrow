@@ -830,9 +830,15 @@ export default function AdminDashboard() {
               .in('id', userIds);
             
             const employeeMap = new Map(employeesData?.map(e => [e.id, e.full_name]) || []);
-            data = marketVideosData.map((m: any) => ({
-              ...m,
-              employees: { full_name: employeeMap.get(m.sessions?.user_id) }
+            data = await Promise.all(marketVideosData.map(async (m: any) => {
+              const { data: signedUrlData } = await supabase.storage
+                .from('employee-media')
+                .createSignedUrl(m.file_url, 3600);
+              return {
+                ...m,
+                file_url: signedUrlData?.signedUrl || m.file_url,
+                employees: { full_name: employeeMap.get(m.sessions?.user_id) }
+              };
             }));
           }
           console.log(`[${taskType}] Found ${data.length} records`);
@@ -855,9 +861,15 @@ export default function AdminDashboard() {
               .in('id', userIds);
             
             const employeeMap = new Map(employeesData?.map(e => [e.id, e.full_name]) || []);
-            data = cleaningVideosData.map((m: any) => ({
-              ...m,
-              employees: { full_name: employeeMap.get(m.sessions?.user_id) }
+            data = await Promise.all(cleaningVideosData.map(async (m: any) => {
+              const { data: signedUrlData } = await supabase.storage
+                .from('employee-media')
+                .createSignedUrl(m.file_url, 3600);
+              return {
+                ...m,
+                file_url: signedUrlData?.signedUrl || m.file_url,
+                employees: { full_name: employeeMap.get(m.sessions?.user_id) }
+              };
             }));
           }
           console.log(`[${taskType}] Found ${data.length} records`);
@@ -1249,7 +1261,7 @@ export default function AdminDashboard() {
                     {format(new Date(item.created_at), 'HH:mm')}
                     {item.gps_lat && item.gps_lng && (
                       <span className="ml-2 text-xs">
-                        ({item.gps_lat.toFixed(6)}, {item.gps_lng.toFixed(6)})
+                        ({Number(item.gps_lat).toFixed(6)}, {Number(item.gps_lng).toFixed(6)})
                       </span>
                     )}
                   </CardDescription>
