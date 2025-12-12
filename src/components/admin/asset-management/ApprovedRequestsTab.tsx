@@ -59,54 +59,55 @@ export function ApprovedRequestsTab() {
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>Approved Asset Requests</CardTitle>
+      <CardHeader className="p-3 md:p-6">
+        <CardTitle className="text-sm md:text-lg">Approved Asset Requests</CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className="p-3 md:p-6 pt-0 md:pt-0">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Requester</TableHead>
-              <TableHead>Role</TableHead>
-              <TableHead>Asset</TableHead>
-              <TableHead>Quantity</TableHead>
-              <TableHead>Market</TableHead>
-              <TableHead>Approval Date</TableHead>
-              <TableHead>Expected Return</TableHead>
-              <TableHead>Actions</TableHead>
+              <TableHead className="text-[10px] md:text-sm">Requester</TableHead>
+              <TableHead className="text-[10px] md:text-sm hidden md:table-cell">Role</TableHead>
+              <TableHead className="text-[10px] md:text-sm">Asset</TableHead>
+              <TableHead className="text-[10px] md:text-sm">Qty</TableHead>
+              <TableHead className="text-[10px] md:text-sm hidden md:table-cell">Market</TableHead>
+              <TableHead className="text-[10px] md:text-sm hidden md:table-cell">Approval Date</TableHead>
+              <TableHead className="text-[10px] md:text-sm hidden md:table-cell">Expected Return</TableHead>
+              <TableHead className="text-[10px] md:text-sm">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {requests.map((request) => (
               <TableRow key={request.id}>
-                <TableCell>
-                  <div>{request.employees?.full_name || 'N/A'}</div>
-                  <div className="text-xs text-muted-foreground">{request.employees?.email}</div>
+                <TableCell className="py-2 md:py-4">
+                  <div className="text-[10px] md:text-sm">{request.employees?.full_name || 'N/A'}</div>
+                  <div className="text-[9px] md:text-xs text-muted-foreground hidden md:block">{request.employees?.email}</div>
                 </TableCell>
-                <TableCell className="capitalize">{request.requester_role}</TableCell>
-                <TableCell>{request.asset_inventory?.asset_name}</TableCell>
-                <TableCell>{request.quantity}</TableCell>
-                <TableCell>{request.markets?.name || '-'}</TableCell>
-                <TableCell>
+                <TableCell className="capitalize text-[10px] md:text-sm py-2 md:py-4 hidden md:table-cell">{request.requester_role}</TableCell>
+                <TableCell className="text-[10px] md:text-sm py-2 md:py-4">{request.asset_inventory?.asset_name}</TableCell>
+                <TableCell className="text-[10px] md:text-sm py-2 md:py-4">{request.quantity}</TableCell>
+                <TableCell className="text-[10px] md:text-sm py-2 md:py-4 hidden md:table-cell">{request.markets?.name || '-'}</TableCell>
+                <TableCell className="text-[10px] md:text-sm py-2 md:py-4 hidden md:table-cell">
                   {request.approval_date ? format(new Date(request.approval_date), 'MMM dd, yyyy') : '-'}
                 </TableCell>
-                <TableCell>
+                <TableCell className="text-[10px] md:text-sm py-2 md:py-4 hidden md:table-cell">
                   {format(new Date(request.expected_return_date), 'MMM dd, yyyy')}
                 </TableCell>
-                <TableCell>
+                <TableCell className="py-2 md:py-4">
                   <Button
                     size="sm"
                     onClick={() => handleMarkReturned(request.id)}
                     disabled={loading}
+                    className="text-[9px] md:text-sm h-6 md:h-8 px-1.5 md:px-3"
                   >
-                    Mark Returned
+                    Return
                   </Button>
                 </TableCell>
               </TableRow>
             ))}
             {requests.length === 0 && (
               <TableRow>
-                <TableCell colSpan={8} className="text-center text-muted-foreground">
+                <TableCell colSpan={8} className="text-center text-muted-foreground text-[10px] md:text-sm">
                   No approved requests
                 </TableCell>
               </TableRow>
