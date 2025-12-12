@@ -56,20 +56,120 @@ function SettingsContent() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-5 lg:grid-cols-11">
-          <TabsTrigger value="general">General</TabsTrigger>
-          <TabsTrigger value="markets">Markets</TabsTrigger>
-          <TabsTrigger value="farmers">Farmers</TabsTrigger>
-          <TabsTrigger value="time">Time</TabsTrigger>
-          <TabsTrigger value="attendance">Attendance</TabsTrigger>
-          <TabsTrigger value="notifications">Notifications</TabsTrigger>
-          <TabsTrigger value="roles">Roles</TabsTrigger>
-          <TabsTrigger value="data">Data</TabsTrigger>
-          <TabsTrigger value="security">Security</TabsTrigger>
-          <TabsTrigger value="pwa">PWA</TabsTrigger>
-          <TabsTrigger value="audit">Audit</TabsTrigger>
+        {!section && (
+        <TabsList className="grid w-full gap-3 grid-cols-3 lg:grid-cols-5 bg-transparent p-0 h-auto">
+          <TabsTrigger
+            value="general"
+            onClick={() => navigate('/admin/settings/general')}
+            className="group flex flex-col items-center gap-2 bg-transparent p-0 data-[state=active]:bg-transparent"
+          >
+            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full border bg-card shadow-sm flex items-center justify-center transition group-data-[state=active]:border-primary group-data-[state=active]:ring-2 group-data-[state=active]:ring-primary/20">
+              <span className="text-lg font-semibold">G</span>
+            </div>
+            <span className="text-sm max-w-[6rem] text-center truncate">General</span>
+          </TabsTrigger>
+          <TabsTrigger
+            value="markets"
+            onClick={() => navigate('/admin/settings/markets')}
+            className="group flex flex-col items-center gap-2 bg-transparent p-0 data-[state=active]:bg-transparent"
+          >
+            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full border bg-card shadow-sm flex items-center justify-center transition group-data-[state=active]:border-primary group-data-[state=active]:ring-2 group-data-[state=active]:ring-primary/20">
+              <span className="text-lg font-semibold">M</span>
+            </div>
+            <span className="text-sm max-w-[6rem] text-center truncate">Markets</span>
+          </TabsTrigger>
+          <TabsTrigger
+            value="farmers"
+            onClick={() => navigate('/admin/settings/farmers')}
+            className="group flex flex-col items-center gap-2 bg-transparent p-0 data-[state=active]:bg-transparent"
+          >
+            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full border bg-card shadow-sm flex items-center justify-center transition group-data-[state=active]:border-primary group-data-[state=active]:ring-2 group-data-[state=active]:ring-primary/20">
+              <span className="text-lg font-semibold">F</span>
+            </div>
+            <span className="text-sm max-w-[6rem] text-center truncate">Farmers</span>
+          </TabsTrigger>
+          <TabsTrigger
+            value="time"
+            onClick={() => navigate('/admin/settings/time')}
+            className="group flex flex-col items-center gap-2 bg-transparent p-0 data-[state=active]:bg-transparent"
+          >
+            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full border bg-card shadow-sm flex items-center justify-center transition group-data-[state=active]:border-primary group-data-[state=active]:ring-2 group-data-[state=active]:ring-primary/20">
+              <span className="text-lg font-semibold">T</span>
+            </div>
+            <span className="text-sm max-w-[6rem] text-center truncate">Time</span>
+          </TabsTrigger>
+          <TabsTrigger
+            value="attendance"
+            onClick={() => navigate('/admin/settings/attendance')}
+            className="group flex flex-col items-center gap-2 bg-transparent p-0 data-[state=active]:bg-transparent"
+          >
+            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full border bg-card shadow-sm flex items-center justify-center transition group-data-[state=active]:border-primary group-data-[state=active]:ring-2 group-data-[state=active]:ring-primary/20">
+              <span className="text-lg font-semibold">A</span>
+            </div>
+            <span className="text-sm max-w-[6rem] text-center truncate">Attendance</span>
+          </TabsTrigger>
+          <TabsTrigger
+            value="notifications"
+            onClick={() => navigate('/admin/settings/notifications')}
+            className="group flex flex-col items-center gap-2 bg-transparent p-0 data-[state=active]:bg-transparent"
+          >
+            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full border bg-card shadow-sm flex items-center justify-center transition group-data-[state=active]:border-primary group-data-[state=active]:ring-2 group-data-[state=active]:ring-primary/20">
+              <span className="text-lg font-semibold">N</span>
+            </div>
+            <span className="text-sm max-w-[6rem] text-center truncate">Notifications</span>
+          </TabsTrigger>
+          <TabsTrigger
+            value="roles"
+            onClick={() => navigate('/admin/settings/roles')}
+            className="group flex flex-col items-center gap-2 bg-transparent p-0 data-[state=active]:bg-transparent"
+          >
+            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full border bg-card shadow-sm flex items-center justify-center transition group-data-[state=active]:border-primary group-data-[state=active]:ring-2 group-data-[state=active]:ring-primary/20">
+              <span className="text-lg font-semibold">R</span>
+            </div>
+            <span className="text-sm max-w-[6rem] text-center truncate">Roles</span>
+          </TabsTrigger>
+          <TabsTrigger
+            value="data"
+            onClick={() => navigate('/admin/settings/data')}
+            className="group flex flex-col items-center gap-2 bg-transparent p-0 data-[state=active]:bg-transparent"
+          >
+            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full border bg-card shadow-sm flex items-center justify-center transition group-data-[state=active]:border-primary group-data-[state=active]:ring-2 group-data-[state=active]:ring-primary/20">
+              <span className="text-lg font-semibold">D</span>
+            </div>
+            <span className="text-sm max-w-[6rem] text-center truncate">Data</span>
+          </TabsTrigger>
+          <TabsTrigger
+            value="security"
+            onClick={() => navigate('/admin/settings/security')}
+            className="group flex flex-col items-center gap-2 bg-transparent p-0 data-[state=active]:bg-transparent"
+          >
+            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full border bg-card shadow-sm flex items-center justify-center transition group-data-[state=active]:border-primary group-data-[state=active]:ring-2 group-data-[state=active]:ring-primary/20">
+              <span className="text-lg font-semibold">S</span>
+            </div>
+            <span className="text-sm max-w-[6rem] text-center truncate">Security</span>
+          </TabsTrigger>
+          <TabsTrigger
+            value="pwa"
+            onClick={() => navigate('/admin/settings/pwa')}
+            className="group flex flex-col items-center gap-2 bg-transparent p-0 data-[state=active]:bg-transparent"
+          >
+            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full border bg-card shadow-sm flex items-center justify-center transition group-data-[state=active]:border-primary group-data-[state=active]:ring-2 group-data-[state=active]:ring-primary/20">
+              <span className="text-lg font-semibold">P</span>
+            </div>
+            <span className="text-sm max-w-[6rem] text-center truncate">PWA</span>
+          </TabsTrigger>
+          <TabsTrigger
+            value="audit"
+            onClick={() => navigate('/admin/settings/audit')}
+            className="group flex flex-col items-center gap-2 bg-transparent p-0 data-[state=active]:bg-transparent"
+          >
+            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full border bg-card shadow-sm flex items-center justify-center transition group-data-[state=active]:border-primary group-data-[state=active]:ring-2 group-data-[state=active]:ring-primary/20">
+              <span className="text-lg font-semibold">A</span>
+            </div>
+            <span className="text-sm max-w-[6rem] text-center truncate">Audit</span>
+          </TabsTrigger>
         </TabsList>
-        )
+        )}
 
         {section && (
           <div className="space-y-4">
