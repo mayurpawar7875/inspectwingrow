@@ -12,8 +12,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
 import { ArrowLeft, Upload, Trash2, Play, Eye } from 'lucide-react';
-import { validateImage, validateVideo, generateUploadPath } from '@/lib/fileValidation';
+import { validateImage, validateVideo, generateUploadPath, MAX_VIDEO_SIZE } from '@/lib/fileValidation';
 import { getSignedUrl } from '@/lib/storageHelpers';
+import { compressVideo, needsCompression, getFileSizeMB } from '@/lib/videoCompression';
 
 interface MediaFile {
   id: string;
@@ -191,19 +192,42 @@ export default function MediaUpload() {
         return;
       }
 
-      // Validate file based on media type and file type
+      // Check if video needs compression
       const isVideo = mediaType === 'market_video' || mediaType === 'cleaning_video';
       const isAudio = file.type.startsWith('audio/');
       
+      let fileToUpload = file;
+      
+      // Auto-compress video if larger than 50MB
+      if (isVideo && needsCompression(file)) {
+        try {
+          fileToUpload = await compressVideo(file);
+        } catch (compressError) {
+          console.error('Compression failed:', compressError);
+          setUploading(false);
+          return;
+        }
+      }
+      
+      // Validate file based on media type and file type
       if (isVideo) {
-        validateVideo(file);
+        validateVideo(fileToUpload);
       } else if (isAudio) {
         const { validateAudio } = await import('@/lib/fileValidation');
         validateAudio(file);
       } else if (mediaType === 'customer_feedback') {
         // Customer feedback can be video or audio
         if (file.type.startsWith('video/')) {
-          validateVideo(file);
+          if (needsCompression(file)) {
+            try {
+              fileToUpload = await compressVideo(file);
+            } catch (compressError) {
+              console.error('Compression failed:', compressError);
+              setUploading(false);
+              return;
+            }
+          }
+          validateVideo(fileToUpload);
         } else if (file.type.startsWith('audio/')) {
           const { validateAudio } = await import('@/lib/fileValidation');
           validateAudio(file);
@@ -215,10 +239,10 @@ export default function MediaUpload() {
       }
 
       // Generate safe upload path
-      const fileName = generateUploadPath(user.id, file.name);
+      const fileName = generateUploadPath(user.id, fileToUpload.name);
       const { error: uploadError } = await supabase.storage
         .from('employee-media')
-        .upload(fileName, file);
+        .upload(fileName, fileToUpload);
 
       if (uploadError) throw uploadError;
 
@@ -228,8 +252,8 @@ export default function MediaUpload() {
         market_id: marketId,
         media_type: mediaType,
         file_url: fileName,
-        file_name: file.name,
-        content_type: file.type,
+        file_name: fileToUpload.name,
+        content_type: fileToUpload.type,
         gps_lat: gpsLat || null,
         gps_lng: gpsLng || null,
         captured_at: new Date().toISOString(),
@@ -397,10 +421,23 @@ export default function MediaUpload() {
             console.log('Found existing market:', existingMarket.id, existingMarket.name);
           }
 
-          const fileName = `${user.id}/${Date.now()}-${marketData.videoFile.name}`;
+          // Compress video if larger than 50MB
+          let videoToUpload = marketData.videoFile;
+          if (needsCompression(marketData.videoFile)) {
+            try {
+              videoToUpload = await compressVideo(marketData.videoFile);
+            } catch (compressError) {
+              console.error('Compression failed for market:', marketData.marketName, compressError);
+              toast.error(`Compression failed for ${marketData.marketName}`);
+              errorCount++;
+              continue;
+            }
+          }
+
+          const fileName = `${user.id}/${Date.now()}-${videoToUpload.name}`;
           const { error: uploadError } = await supabase.storage
             .from('employee-media')
-            .upload(fileName, marketData.videoFile);
+            .upload(fileName, videoToUpload);
 
           if (uploadError) {
             console.error('File upload error:', uploadError);
