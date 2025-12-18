@@ -514,11 +514,11 @@ export default function AdminDashboard() {
               .eq('market_id', market.id)
               .eq('market_date', todayDate);
 
-            const { count: mediaCount } = await (supabase as any)
+            const { count: mediaCount } = await supabase
               .from('media')
               .select('*', { count: 'exact', head: true })
-              .eq('market_id', market.id)
-              .eq('market_date', todayDate);
+              .in('session_id', safeSessionIds);
+
             
             return {
               market_id: market.id,

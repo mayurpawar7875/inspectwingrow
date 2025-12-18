@@ -323,7 +323,7 @@ export default function LiveMarket() {
         event: '*', 
         schema: 'public', 
         table: 'media',
-        filter: `market_id=eq.${selectedMarket},market_date=eq.${dateStr}`
+        filter: `market_id=eq.${selectedMarket}`
       }, (payload) => {
         console.log('Media change:', payload);
         fetchMediaUploads();
