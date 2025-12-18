@@ -16,7 +16,7 @@ const nextDayPlanSchema = z.object({
 });
 
 interface Props {
-  sessionId: string;
+  sessionId?: string | null;
   marketDate: string;
   userId: string;
   onSuccess?: () => void;
@@ -189,7 +189,7 @@ export default function NextDayPlanningForm({ sessionId, marketDate, userId, onS
           .from('next_day_planning')
           .insert({
             user_id: userId,
-            session_id: sessionId,
+            session_id: sessionId || null,
             market_date: marketDate,
             market_id: marketData.id,
             next_day_market_name: marketName.trim(),

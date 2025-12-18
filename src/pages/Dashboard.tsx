@@ -584,7 +584,57 @@ export default function Dashboard() {
 
       {/* Main Content */}
       <main className="container mx-auto px-2 sm:px-4 py-2 sm:py-6 md:py-8">
-        {!todaySession ? (
+        {/* Check if today is Monday (no markets - planning only day) */}
+        {(() => {
+          const ist = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
+          const isMonday = ist.getDay() === 1;
+          return isMonday;
+        })() ? (
+          <div className="space-y-4">
+            {/* Monday - Planning Only Day */}
+            <Card className="bg-info/10 border-info/20">
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <Calendar className="h-5 w-5 text-info" />
+                  <CardTitle className="text-info">Monday - Planning Day</CardTitle>
+                </div>
+                <CardDescription className="text-info-foreground">
+                  No markets are scheduled today. You can only submit Next Day Planning for tomorrow's market.
+                </CardDescription>
+              </CardHeader>
+            </Card>
+            
+            {/* Next Day Planning Card - Only available task on Monday */}
+            <Card className="cursor-pointer hover:shadow-lg transition-shadow border-primary/30" onClick={() => setPlanningDialog(true)}>
+              <CardHeader className="p-4 sm:p-6">
+                <Calendar className="h-8 w-8 sm:h-10 sm:w-10 text-primary mb-2" />
+                <CardTitle className="text-base sm:text-lg">Next Day Planning</CardTitle>
+                <CardDescription className="text-xs sm:text-sm">
+                  Plan stall confirmations for tomorrow's market
+                </CardDescription>
+              </CardHeader>
+            </Card>
+            
+            {/* Session History - Always available */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
+                  <History className="h-4 w-4 sm:h-5 sm:w-5" />
+                  View Your Session History
+                </CardTitle>
+                <CardDescription className="text-xs sm:text-sm">
+                  See all the markets you've attended and track your past sessions
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button onClick={() => navigate('/my-sessions')} variant="outline" size="sm">
+                  <History className="mr-2 h-4 w-4" />
+                  View Session History
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        ) : !todaySession ? (
           <div className="space-y-4">
             <Card>
               <CardHeader>
@@ -1175,13 +1225,17 @@ export default function Dashboard() {
             <DialogTitle>Next Day Market Planning</DialogTitle>
           </DialogHeader>
           <Suspense fallback={<div className="p-6 text-center text-muted-foreground">Loading form...</div>}>
-            {todaySession && (
+            {/* Render form when session exists OR on Monday (no session) */}
+            {(todaySession || (() => {
+              const ist = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
+              return ist.getDay() === 1;
+            })()) && (
               <NextDayPlanningForm
-                sessionId={todaySession.id}
-                marketDate={todaySession.session_date}
+                sessionId={todaySession?.id || null}
+                marketDate={todaySession?.session_date || getISTDateString(new Date())}
                 userId={user!.id}
                 onSuccess={() => {
-                  fetchTodaySession();
+                  if (todaySession) fetchTodaySession();
                   setPlanningDialog(false);
                 }}
               />
