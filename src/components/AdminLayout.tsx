@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { LogOut, ArrowLeft } from 'lucide-react';
 import { NotificationBell } from './NotificationBell';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { MobileBottomNav } from './MobileBottomNav';
 
 interface AdminLayoutProps {
   children: ReactNode;
@@ -64,8 +65,9 @@ export function AdminLayout({
               </Button>
             </div>
           </header>
-          <main className="flex-1 p-2 sm:p-3 md:p-6 overflow-auto">{children}</main>
+          <main className="flex-1 p-2 sm:p-3 md:p-6 overflow-auto pb-20 md:pb-6">{children}</main>
         </div>
+        <MobileBottomNav />
       </div>
     </SidebarProvider>;
 }
