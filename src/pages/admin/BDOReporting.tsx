@@ -44,7 +44,7 @@ export default function BDOReporting() {
 
       setStats({
         totalSubmissions: markets.length + stalls.length,
-        pendingMarkets: markets.filter(m => m.status === 'pending').length,
+        pendingMarkets: markets.filter(m => m.status === 'pending' || m.status === 'pending_review').length,
         pendingStalls: stalls.filter(s => s.status === 'pending').length,
         approvedMarkets: markets.filter(m => m.status === 'approved').length,
       });

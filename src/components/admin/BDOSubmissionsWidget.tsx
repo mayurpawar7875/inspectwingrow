@@ -127,7 +127,6 @@ export default function BDOSubmissionsWidget({ filter = 'all' }: BDOSubmissionsW
         .from('bdo_market_submissions')
         .update({
           status,
-          review_notes: notes,
           reviewed_at: new Date().toISOString(),
         })
         .eq('id', marketId);
@@ -179,12 +178,15 @@ export default function BDOSubmissionsWidget({ filter = 'all' }: BDOSubmissionsW
         return <Badge className="bg-green-500"><CheckCircle className="h-3 w-3 mr-1" />Approved</Badge>;
       case 'rejected':
         return <Badge variant="destructive"><XCircle className="h-3 w-3 mr-1" />Rejected</Badge>;
-      default:
+      case 'pending':
+      case 'pending_review':
         return <Badge variant="secondary"><Clock className="h-3 w-3 mr-1" />Pending</Badge>;
+      default:
+        return <Badge variant="secondary"><Clock className="h-3 w-3 mr-1" />{status}</Badge>;
     }
   };
 
-  const pendingMarkets = marketSubmissions.filter(m => m.status === 'pending');
+  const pendingMarkets = marketSubmissions.filter(m => m.status === 'pending' || m.status === 'pending_review');
   const pendingStalls = stallSubmissions.filter(s => s.status === 'pending');
   const approvedMarkets = marketSubmissions.filter(m => m.status === 'approved');
 
