@@ -949,7 +949,6 @@ export default function BDODashboard() {
           <LeaveRequestsWidget />
           <LocationVisitsWidget />
         </div>
-        <LiveMarketsWidget />
       </main>
       <MobileBottomNav />
       <div className="h-16 md:hidden" /> {/* Spacer for bottom nav */}
