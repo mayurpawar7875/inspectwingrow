@@ -11,6 +11,7 @@ import { Users, Building2, ClipboardList, MapPin, TrendingUp, Activity, ChevronR
 import { MobileBottomNav } from '@/components/MobileBottomNav';
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
 import { format } from 'date-fns';
+import { useAdminDashboardData } from '@/hooks/useAdminDashboardData';
 
 interface EmployeeStatus {
   id: string;
@@ -68,17 +69,14 @@ interface MarketManagerSession {
 export default function AdminDashboard() {
   const { isAdmin } = useAuth();
   const navigate = useNavigate();
-  const [bdoStats, setBdoStats] = useState({
-    pending: 0,
-    lastUpdate: '',
-  });
+  
+  // Use optimized React Query hook for dashboard data
+  const { liveMarkets, bdoStats, mmSessions, isLoading: loading, refetchAll } = useAdminDashboardData();
+  
   const [marketStats, setMarketStats] = useState({
     live: 0,
     lastUpdate: '',
   });
-  const [liveMarkets, setLiveMarkets] = useState<LiveMarket[]>([]);
-  const [mmSessions, setMmSessions] = useState<MarketManagerSession[]>([]);
-  const [loading, setLoading] = useState(true);
   const [taskDialog, setTaskDialog] = useState<{
     open: boolean;
     taskType: string;
@@ -86,562 +84,51 @@ export default function AdminDashboard() {
     marketName: string;
   }>({ open: false, taskType: '', data: [], marketName: '' });
 
+  // Update market stats when liveMarkets changes
+  useEffect(() => {
+    setMarketStats({
+      live: liveMarkets.length,
+      lastUpdate: new Date().toISOString(),
+    });
+  }, [liveMarkets]);
+
   useEffect(() => {
     if (!isAdmin) {
       navigate('/dashboard');
       return;
     }
-    fetchAllStats();
-    fetchLiveMarkets();
-    fetchMMSessions();
 
+    // Only subscribe to realtime updates - data fetching is handled by React Query
     const statsChannel = supabase
       .channel('dashboard-overview')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'bdo_market_submissions' }, fetchAllStats)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'bdo_stall_submissions' }, fetchAllStats)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'sessions' }, () => {
-        fetchAllStats();
-        fetchLiveMarkets();
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'media' }, () => {
-        fetchAllStats();
-        fetchLiveMarkets();
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'collections' }, fetchLiveMarkets)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'bdo_market_submissions' }, refetchAll)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'bdo_stall_submissions' }, refetchAll)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'sessions' }, refetchAll)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'media' }, refetchAll)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'collections' }, refetchAll)
       .subscribe();
 
     const stallsChannel = supabase
       .channel('live-markets-stalls')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'stall_confirmations' }, fetchLiveMarkets)
-      .subscribe();
-
-    const scheduleChannel = supabase
-      .channel('live-markets-schedule')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'market_schedule' }, fetchLiveMarkets)
-      .subscribe();
-
-    // BDO and Market Manager real-time subscriptions
-    const bdoChannel = supabase
-      .channel('bdo-realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'bdo_sessions' }, () => {
-        fetchAllStats();
-        fetchLiveMarkets();
-      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'stall_confirmations' }, refetchAll)
       .subscribe();
 
     const marketManagerChannel = supabase
       .channel('market-manager-realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'market_manager_sessions' }, () => {
-        fetchAllStats();
-        fetchLiveMarkets();
-        fetchMMSessions();
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'market_manager_punchin' }, () => {
-        fetchLiveMarkets();
-        fetchMMSessions();
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'market_manager_punchout' }, () => {
-        fetchLiveMarkets();
-        fetchMMSessions();
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'employee_allocations' }, fetchLiveMarkets)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'market_land_search' }, fetchLiveMarkets)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'market_inspection_updates' }, fetchLiveMarkets)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'stall_searching_updates' }, fetchLiveMarkets)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'assets_usage' }, fetchLiveMarkets)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'assets_money_recovery' }, fetchLiveMarkets)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'bms_stall_feedbacks' }, fetchLiveMarkets)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'market_manager_sessions' }, refetchAll)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'market_manager_punchin' }, refetchAll)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'market_manager_punchout' }, refetchAll)
       .subscribe();
 
     return () => {
       supabase.removeChannel(statsChannel);
       supabase.removeChannel(stallsChannel);
-      supabase.removeChannel(scheduleChannel);
-      supabase.removeChannel(bdoChannel);
       supabase.removeChannel(marketManagerChannel);
     };
-  }, [isAdmin, navigate]);
+  }, [isAdmin, navigate, refetchAll]);
 
-  const fetchTaskStats = async (marketId: string, todayDate: string) => {
-    try {
-      const { count: attendanceCount } = await supabase
-        .from('sessions')
-        .select('*', { count: 'exact', head: true })
-        .eq('market_id', marketId)
-        .eq('session_date', todayDate)
-        .not('punch_in_time', 'is', null);
+  // Old fetch functions removed - now using useAdminDashboardData hook
 
-      const { count: stallsCount } = await supabase
-        .from('stall_confirmations')
-        .select('*', { count: 'exact', head: true })
-        .eq('market_id', marketId)
-        .eq('market_date', todayDate);
-
-      // Get session IDs for this market today
-      const { data: marketSessions } = await supabase
-        .from('sessions')
-        .select('id')
-        .eq('market_id', marketId)
-        .eq('session_date', todayDate);
-      
-      const sessionIds = (marketSessions || []).map(s => s.id);
-
-      const safeSessionIds = sessionIds.length > 0 ? sessionIds : ['00000000-0000-0000-0000-000000000000'];
-
-      const { count: outsideRatesCount } = await supabase
-        .from('media')
-        .select('*', { count: 'exact', head: true })
-        .in('session_id', safeSessionIds)
-        .eq('media_type', 'outside_rates' as any);
-
-      const { count: rateBoardCount } = await supabase
-        .from('media')
-        .select('*', { count: 'exact', head: true })
-        .in('session_id', safeSessionIds)
-        .eq('media_type', 'rate_board' as any);
-
-      const { count: marketVideoCount } = await supabase
-        .from('media')
-        .select('*', { count: 'exact', head: true })
-        .in('session_id', safeSessionIds)
-        .eq('media_type', 'market_video' as any);
-
-      const { count: cleaningVideoCount } = await supabase
-        .from('media')
-        .select('*', { count: 'exact', head: true })
-        .in('session_id', safeSessionIds)
-        .eq('media_type', 'cleaning_video' as any);
-
-      const { count: customerFeedbackCount } = await supabase
-        .from('media')
-        .select('*', { count: 'exact', head: true })
-        .in('session_id', safeSessionIds)
-        .eq('media_type', 'customer_feedback' as any);
-
-      const { count: offersCount } = await supabase
-        .from('offers')
-        .select('*', { count: 'exact', head: true })
-        .eq('market_id', marketId)
-        .eq('market_date', todayDate);
-
-      const { count: commoditiesCount } = await supabase
-        .from('non_available_commodities')
-        .select('*', { count: 'exact', head: true })
-        .eq('market_id', marketId)
-        .eq('market_date', todayDate);
-
-      const { count: feedbackCount } = await supabase
-        .from('organiser_feedback')
-        .select('*', { count: 'exact', head: true })
-        .eq('market_id', marketId)
-        .eq('market_date', todayDate);
-
-      const { count: inspectionsCount } = await supabase
-        .from('stall_inspections')
-        .select('*', { count: 'exact', head: true })
-        .eq('market_id', marketId)
-        .in('session_id', sessionIds.length > 0 ? sessionIds : ['00000000-0000-0000-0000-000000000000']);
-
-    const { count: planningCount } = await supabase
-      .from('next_day_planning')
-      .select('*', { count: 'exact', head: true })
-      .eq('market_id', marketId)
-      .eq('market_date', todayDate);
-
-    const { count: collectionsCount } = await supabase
-      .from('collections')
-      .select('*', { count: 'exact', head: true })
-      .eq('market_id', marketId)
-      .eq('collection_date', todayDate);
-
-    return {
-      attendance: attendanceCount || 0,
-      stall_confirmations: stallsCount || 0,
-      outside_rates: outsideRatesCount || 0,
-      rate_board: rateBoardCount || 0,
-      market_video: marketVideoCount || 0,
-      cleaning_video: cleaningVideoCount || 0,
-      customer_feedback: customerFeedbackCount || 0,
-      offers: offersCount || 0,
-      commodities: commoditiesCount || 0,
-      feedback: feedbackCount || 0,
-      inspections: inspectionsCount || 0,
-      planning: planningCount || 0,
-      collections: collectionsCount || 0,
-    };
-    } catch (error) {
-      console.error('Error fetching task stats:', error);
-      return {
-        attendance: 0,
-        stall_confirmations: 0,
-        outside_rates: 0,
-        rate_board: 0,
-        market_video: 0,
-        cleaning_video: 0,
-        customer_feedback: 0,
-        offers: 0,
-        commodities: 0,
-        feedback: 0,
-        inspections: 0,
-        planning: 0,
-        collections: 0,
-      };
-    }
-  };
-
-  const fetchLiveMarkets = async () => {
-    try {
-      const istNow = new Date(
-        new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' })
-      );
-      const todayDate = istNow.toISOString().split('T')[0];
-      const dayOfWeek = istNow.getDay(); // 0 = Sunday, 1 = Monday, etc.
-
-      // Get markets scheduled for today based on day_of_week
-      const { data: todaysMarkets, error: marketsError } = await supabase
-        .from('markets')
-        .select('id, name, city, location')
-        .eq('is_active', true)
-        .eq('day_of_week', dayOfWeek);
-
-      if (marketsError) throw marketsError;
-
-      if (todaysMarkets && todaysMarkets.length > 0) {
-        // Fetch all recent activity times for markets today
-        const marketIds = todaysMarkets.map(m => m.id);
-        
-        // Get latest media uploads per market
-        const { data: mediaActivity } = await supabase
-          .from('media')
-          .select('market_id, captured_at')
-          .in('market_id', marketIds)
-          .gte('captured_at', `${todayDate}T00:00:00`)
-          .order('captured_at', { ascending: false });
-        
-        // Get latest stall confirmations per market
-        const { data: stallActivity } = await supabase
-          .from('stall_confirmations')
-          .select('market_id, created_at')
-          .in('market_id', marketIds)
-          .gte('market_date', todayDate)
-          .order('created_at', { ascending: false });
-        
-        // Find the latest activity time for each market
-        const lastTaskByMarket: Record<string, string> = {};
-        
-        mediaActivity?.forEach(item => {
-          if (!lastTaskByMarket[item.market_id] || item.captured_at > lastTaskByMarket[item.market_id]) {
-            lastTaskByMarket[item.market_id] = item.captured_at;
-          }
-        });
-        
-        stallActivity?.forEach(item => {
-          if (!lastTaskByMarket[item.market_id] || item.created_at > lastTaskByMarket[item.market_id]) {
-            lastTaskByMarket[item.market_id] = item.created_at;
-          }
-        });
-        
-        const marketsWithStats = await Promise.all(
-          todaysMarkets.map(async (market: any) => {
-
-            const taskStats = await fetchTaskStats(market.id, todayDate);
-            
-            // Get all sessions for this market today
-            const { data: sessionsData } = await supabase
-              .from('sessions')
-              .select('id, user_id, punch_in_time, punch_out_time, status')
-              .eq('market_id', market.id)
-              .eq('session_date', todayDate);
-
-            // Fetch employee details
-            const userIds = sessionsData?.map((s: any) => s.user_id).filter(Boolean) || [];
-            let employeeDetailsMap = new Map();
-            
-            if (userIds.length > 0) {
-              const { data: employeesData } = await supabase
-                .from('employees')
-                .select('id, full_name')
-                .in('id', userIds);
-              
-              employeeDetailsMap = new Map(employeesData?.map(e => [e.id, e.full_name]) || []);
-            }
-
-            // Fetch actual completion data from various tables
-            const sessionIds = sessionsData?.map((s: any) => s.id) || [];
-            
-            // Fetch stall confirmations
-            const { data: stallsData } = await supabase
-              .from('stall_confirmations')
-              .select('created_by, market_date')
-              .eq('market_id', market.id)
-              .eq('market_date', todayDate);
-            
-            // Fetch media uploads by type - use session_id instead of market_id
-            const safeSessionIds = sessionIds.length > 0 ? sessionIds : ['00000000-0000-0000-0000-000000000000'];
-            const { data: mediaData } = await supabase
-              .from('media')
-              .select('session_id, media_type')
-              .in('session_id', safeSessionIds);
-            
-            // Map media to user_id via sessions
-            const sessionToUserMap = new Map(sessionsData?.map((s: any) => [s.id, s.user_id]) || []);
-            
-            // Fetch offers
-            const { data: offersData } = await supabase
-              .from('offers')
-              .select('user_id, market_date')
-              .eq('market_id', market.id)
-              .eq('market_date', todayDate);
-            
-            // Fetch non-available commodities
-            const { data: commoditiesData } = await supabase
-              .from('non_available_commodities')
-              .select('user_id, market_date')
-              .eq('market_id', market.id)
-              .eq('market_date', todayDate);
-            
-            // Fetch organiser feedback
-            const { data: feedbackData } = await supabase
-              .from('organiser_feedback')
-              .select('user_id, market_date')
-              .eq('market_id', market.id)
-              .eq('market_date', todayDate);
-            
-            // Fetch stall inspections - filter by today's sessions
-            const inspectionsResult: any = await (supabase as any)
-              .from('stall_inspections')
-              .select('session_id')
-              .eq('market_id', market.id)
-              .in('session_id', safeSessionIds);
-            
-            const { data: inspectionsData } = inspectionsResult;
-
-            // All 13 tasks that need to be completed
-            const totalTasksCount = 13;
-
-            // Fetch next day planning
-            const { data: planningData } = await supabase
-              .from('next_day_planning')
-              .select('user_id, market_date')
-              .eq('market_id', market.id)
-              .eq('market_date', todayDate);
-            
-            // Fetch collections
-            const { data: collectionsData } = await supabase
-              .from('collections')
-              .select('collected_by, collection_date')
-              .eq('market_id', market.id)
-              .eq('collection_date', todayDate);
-
-            const employees: EmployeeStatus[] = (sessionsData || []).map((session: any) => {
-              const fullName = employeeDetailsMap.get(session.user_id) || 'Unknown';
-              const nameParts = fullName.split(' ');
-              const initials = nameParts.map((n: string) => n[0]).join('').toUpperCase().slice(0, 2);
-
-              // Count actual completed tasks for this user
-              let completedTasks = 0;
-              
-              // 1. Punch In (if punched in)
-              if (session.punch_in_time) completedTasks++;
-              
-              // 2. Stall confirmations
-              if (stallsData?.some((s: any) => s.created_by === session.user_id)) completedTasks++;
-              
-              // 3. Outside rates photo
-              if (mediaData?.some((m: any) => m.session_id === session.id && m.media_type === 'outside_rates')) completedTasks++;
-              
-              // 4. Rate board photo
-              if (mediaData?.some((m: any) => m.session_id === session.id && m.media_type === 'rate_board')) completedTasks++;
-              
-              // 5. Market video
-              if (mediaData?.some((m: any) => m.session_id === session.id && m.media_type === 'market_video')) completedTasks++;
-              
-              // 6. Cleaning video
-              if (mediaData?.some((m: any) => m.session_id === session.id && m.media_type === 'cleaning_video')) completedTasks++;
-              
-              // 7. Customer feedback video
-              if (mediaData?.some((m: any) => m.session_id === session.id && m.media_type === 'customer_feedback')) completedTasks++;
-              
-              // 8. Today's offers
-              if (offersData?.some((o: any) => o.user_id === session.user_id)) completedTasks++;
-              
-              // 9. Non-available commodities
-              if (commoditiesData?.some((c: any) => c.user_id === session.user_id)) completedTasks++;
-              
-              // 10. Organiser feedback
-              if (feedbackData?.some((f: any) => f.user_id === session.user_id)) completedTasks++;
-              
-              // 11. Stall inspection
-              if (inspectionsData?.some((i: any) => i.session_id === session.id)) completedTasks++;
-              
-              // 12. Next day planning
-              if (planningData?.some((p: any) => p.user_id === session.user_id)) completedTasks++;
-              
-              // 13. Collections
-              if (collectionsData?.some((c: any) => c.collected_by === session.user_id)) completedTasks++;
-
-              // Determine status based on task completion
-              let status: 'active' | 'half_day' | 'completed' = 'active';
-              if (completedTasks === totalTasksCount) {
-                status = 'completed';
-              } else if (completedTasks > 0) {
-                status = 'half_day';
-              }
-
-              const duration = session.punch_in_time && session.punch_out_time
-                ? Math.floor((new Date(session.punch_out_time).getTime() - new Date(session.punch_in_time).getTime()) / (1000 * 60))
-                : null;
-
-              return {
-                id: session.user_id,
-                name: fullName,
-                initials,
-                status,
-                punch_in_time: session.punch_in_time,
-                punch_out_time: session.punch_out_time,
-                duration,
-                completed_tasks: completedTasks,
-                total_tasks: totalTasksCount,
-              };
-            });
-
-            const employeeNames = employees.map(e => e.name);
-
-            // Get counts
-            const { count: stallsCount } = await supabase
-              .from('stall_confirmations')
-              .select('*', { count: 'exact', head: true })
-              .eq('market_id', market.id)
-              .eq('market_date', todayDate);
-
-            const { count: mediaCount } = await supabase
-              .from('media')
-              .select('*', { count: 'exact', head: true })
-              .in('session_id', safeSessionIds);
-
-            
-            return {
-              market_id: market.id,
-              market_name: market.name,
-              city: market.city,
-              active_sessions: sessionsData?.length || 0,
-              active_employees: employees.filter(e => e.status === 'active').length,
-              stall_confirmations_count: stallsCount || 0,
-              media_uploads_count: mediaCount || 0,
-              last_upload_time: lastTaskByMarket[market.id] || null,
-              last_punch_in: null,
-              task_stats: taskStats,
-              employee_names: employeeNames,
-              employees: employees
-            };
-          })
-        );
-        
-        setLiveMarkets(marketsWithStats.filter(m => m !== null) as LiveMarket[]);
-      } else {
-        setLiveMarkets([]);
-      }
-    } catch (error) {
-      console.error('Error fetching live markets:', error);
-    }
-  };
-
-  const fetchAllStats = async () => {
-    try {
-      const today = new Date().toISOString().split('T')[0];
-
-      const [
-        bdoMarketsRes,
-        bdoStallsRes,
-        activeSessionsRes,
-        liveMarketsRes,
-      ] = await Promise.all([
-        supabase.from('bdo_market_submissions').select('status, updated_at').eq('status', 'pending'),
-        supabase.from('bdo_stall_submissions').select('status, updated_at').eq('status', 'pending'),
-        supabase
-          .from('sessions')
-          .select('id, updated_at', { count: 'exact' })
-          .eq('status', 'active')
-          .eq('session_date', today),
-        supabase.from('live_markets_today').select('*'),
-      ]);
-
-      const bdoPending = (bdoMarketsRes.data?.length || 0) + (bdoStallsRes.data?.length || 0);
-      const bdoLatest = [...(bdoMarketsRes.data || []), ...(bdoStallsRes.data || [])]
-        .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())[0];
-
-      const activeSessions = activeSessionsRes.data || [];
-      const sessionLatest = activeSessions.sort((a, b) => 
-        new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
-      )[0];
-
-      setBdoStats({
-        pending: bdoPending,
-        lastUpdate: bdoLatest?.updated_at || '',
-      });
-
-      setMarketStats({
-        live: liveMarketsRes.data?.length || 0,
-        lastUpdate: new Date().toISOString(),
-      });
-
-      await fetchLiveMarkets();
-    } catch (error) {
-      console.error('Error fetching stats:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchMMSessions = async () => {
-    try {
-      const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
-      
-      // Fetch today's market manager sessions
-      const { data: sessions, error: sessionsError } = await supabase
-        .from('market_manager_sessions')
-        .select('*')
-        .eq('session_date', today)
-        .order('created_at', { ascending: false });
-      
-      if (sessionsError) throw sessionsError;
-      
-      if (!sessions || sessions.length === 0) {
-        setMmSessions([]);
-        return;
-      }
-      
-      // Get user IDs and fetch punch-in/out data
-      const userIds = sessions.map(s => s.user_id);
-      const sessionIds = sessions.map(s => s.id);
-      
-      const [employeesRes, punchInRes, punchOutRes] = await Promise.all([
-        supabase.from('profiles').select('id, full_name').in('id', userIds),
-        supabase.from('market_manager_punchin').select('session_id, punched_at').in('session_id', sessionIds),
-        supabase.from('market_manager_punchout').select('session_id, punched_at').in('session_id', sessionIds),
-      ]);
-      
-      const employeesMap = new Map(employeesRes.data?.map(e => [e.id, e.full_name]) || []);
-      const punchInMap = new Map(punchInRes.data?.map(p => [p.session_id, p.punched_at]) || []);
-      const punchOutMap = new Map(punchOutRes.data?.map(p => [p.session_id, p.punched_at]) || []);
-      
-      const enrichedSessions: MarketManagerSession[] = sessions.map(session => ({
-        id: session.id,
-        user_id: session.user_id,
-        manager_name: employeesMap.get(session.user_id) || 'Unknown',
-        session_date: session.session_date,
-        status: session.status,
-        attendance_status: session.attendance_status,
-        working_hours: session.working_hours,
-        punch_in_time: punchInMap.get(session.id) || null,
-        punch_out_time: punchOutMap.get(session.id) || null,
-      }));
-      
-      setMmSessions(enrichedSessions);
-    } catch (error) {
-      console.error('Error fetching MM sessions:', error);
-    }
-  };
 
   const getTimeAgo = (dateString: string) => {
     if (!dateString) return 'No updates yet';
