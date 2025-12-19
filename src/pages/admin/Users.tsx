@@ -374,32 +374,32 @@ export default function Users() {
                         )}
                       </Button>
                       <Select
-                        value="assign_role"
+                        value=""
                         onValueChange={(value) => {
-                          if (value !== 'assign_role') {
+                          if (value) {
                             toggleRole(user.id, value, user.roles);
                           }
                         }}
                       >
                         <SelectTrigger className="w-[100px] md:w-[160px] text-xs">
-                          <SelectValue placeholder="Role" />
+                          <Shield className="mr-1 h-3 w-3" />
+                          <span>Assign Role</span>
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="assign_role" disabled className="text-xs">Assign Role</SelectItem>
                           <SelectItem value="employee" className="text-xs">
-                            {user.roles.includes('employee') ? '✓ Employee' : 'Employee'}
+                            {user.roles.includes('employee') ? '✓ Remove Employee' : '+ Add Employee'}
                           </SelectItem>
                           <SelectItem value="market_manager" className="text-xs">
-                            {user.roles.includes('market_manager') ? '✓ MM' : 'Market Manager'}
+                            {user.roles.includes('market_manager') ? '✓ Remove Market Manager' : '+ Add Market Manager'}
                           </SelectItem>
                           <SelectItem value="bms_executive" className="text-xs">
-                            {user.roles.includes('bms_executive') ? '✓ BMS' : 'BMS Executive'}
+                            {user.roles.includes('bms_executive') ? '✓ Remove BMS Executive' : '+ Add BMS Executive'}
                           </SelectItem>
                           <SelectItem value="bdo" className="text-xs">
-                            {user.roles.includes('bdo') ? '✓ BDO' : 'BDO'}
+                            {user.roles.includes('bdo') ? '✓ Remove BDO' : '+ Add BDO'}
                           </SelectItem>
                           <SelectItem value="admin" className="text-xs">
-                            {user.roles.includes('admin') ? '✓ Admin' : 'Admin'}
+                            {user.roles.includes('admin') ? '✓ Remove Admin' : '+ Add Admin'}
                           </SelectItem>
                         </SelectContent>
                       </Select>
