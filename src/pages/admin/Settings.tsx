@@ -14,6 +14,7 @@ import { DataTab } from '@/components/admin/settings/DataTab';
 import { SecurityTab } from '@/components/admin/settings/SecurityTab';
 import { PWATab } from '@/components/admin/settings/PWATab';
 import { AuditTab } from '@/components/admin/settings/AuditTab';
+import { UsersTab } from '@/components/admin/settings/UsersTab';
 import { useNavigate, useParams } from 'react-router-dom';
 
 function SettingsContent() {
@@ -28,6 +29,7 @@ function SettingsContent() {
     time: 'Time',
     attendance: 'Attendance',
     notifications: 'Notifications',
+    users: 'Users',
     roles: 'Roles',
     data: 'Data',
     security: 'Security',
@@ -119,6 +121,16 @@ function SettingsContent() {
             <span className="text-sm max-w-[6rem] text-center truncate">Notifications</span>
           </TabsTrigger>
           <TabsTrigger
+            value="users"
+            onClick={() => navigate('/admin/settings/users')}
+            className="group flex flex-col items-center gap-2 bg-transparent p-0 data-[state=active]:bg-transparent"
+          >
+            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full border bg-card shadow-sm flex items-center justify-center transition group-data-[state=active]:border-primary group-data-[state=active]:ring-2 group-data-[state=active]:ring-primary/20">
+              <span className="text-lg font-semibold">U</span>
+            </div>
+            <span className="text-sm max-w-[6rem] text-center truncate">Users</span>
+          </TabsTrigger>
+          <TabsTrigger
             value="roles"
             onClick={() => navigate('/admin/settings/roles')}
             className="group flex flex-col items-center gap-2 bg-transparent p-0 data-[state=active]:bg-transparent"
@@ -196,6 +208,9 @@ function SettingsContent() {
             </TabsContent>
             <TabsContent value="notifications">
               {section === 'notifications' && <NotificationsTab onChangeMade={() => setHasChanges(true)} />}
+            </TabsContent>
+            <TabsContent value="users">
+              {section === 'users' && <UsersTab onChangeMade={() => setHasChanges(true)} />}
             </TabsContent>
             <TabsContent value="roles">
               {section === 'roles' && <RolesTab onChangeMade={() => setHasChanges(true)} />}
