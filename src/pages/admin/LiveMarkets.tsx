@@ -213,15 +213,16 @@ export default function LiveMarkets() {
               .not('punch_in_time', 'is', null);
             
             const userIds = sessionsData?.map((s: any) => s.user_id).filter(Boolean) || [];
+            const uniqueUserIds = [...new Set(userIds)];
             let employeeNames: string[] = [];
             
-            if (userIds.length > 0) {
+            if (uniqueUserIds.length > 0) {
               const { data: employeesData } = await supabase
                 .from('employees')
                 .select('full_name')
-                .in('id', userIds);
+                .in('id', uniqueUserIds);
               
-              employeeNames = employeesData?.map((e: any) => e.full_name).filter(Boolean) || [];
+              employeeNames = [...new Set((employeesData || []).map((e: any) => e.full_name).filter(Boolean))];
               console.log('Employee names fetched:', employeeNames);
             }
             
@@ -312,15 +313,16 @@ export default function LiveMarkets() {
               .not('punch_in_time', 'is', null);
             
             const userIds = sessionsData?.map((s: any) => s.user_id).filter(Boolean) || [];
+            const uniqueUserIds = [...new Set(userIds)];
             let employeeNames: string[] = [];
             
-            if (userIds.length > 0) {
+            if (uniqueUserIds.length > 0) {
               const { data: employeesData } = await supabase
                 .from('employees')
                 .select('full_name')
-                .in('id', userIds);
+                .in('id', uniqueUserIds);
               
-              employeeNames = employeesData?.map((e: any) => e.full_name).filter(Boolean) || [];
+              employeeNames = [...new Set((employeesData || []).map((e: any) => e.full_name).filter(Boolean))];
             }
             
             return { ...market, task_stats: taskStats, employee_names: employeeNames };
