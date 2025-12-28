@@ -100,7 +100,7 @@ const fetchBatchedTaskStats = async (marketIds: string[], todayDate: string) => 
   ] = await Promise.all([
     // Employees lookup
     allUserIds.length > 0 
-      ? supabase.from('employees').select('id, full_name').in('id', [...new Set(allUserIds)])
+      ? supabase.from('employees').select('id, full_name, status').in('id', [...new Set(allUserIds)])
       : Promise.resolve({ data: [] }),
     // Stall confirmations - fetch all at once
     supabase.from('stall_confirmations')
@@ -143,8 +143,8 @@ const fetchBatchedTaskStats = async (marketIds: string[], todayDate: string) => 
       .eq('collection_date', todayDate)
   ]);
 
-  const employeeMap = new Map<string, string>(
-    (employeesRes.data || []).map(e => [e.id, e.full_name] as [string, string])
+  const employeeMap = new Map<string, { name: string; status: string }>(
+    (employeesRes.data || []).map((e: any) => [e.id, { name: e.full_name, status: e.status }])
   );
   
   // Group data by market_id
@@ -258,7 +258,7 @@ const fetchLiveMarketsData = async () => {
 
   // Process each market using batched data
   const marketsWithStats: LiveMarket[] = todaysMarkets.map((market: any) => {
-    const sessionsData = batchedData.sessionsByMarket.get(market.id) || [];
+    const sessionsData = (batchedData.sessionsByMarket.get(market.id) || []).filter((s: any) => (batchedData.employeeMap.get(s.user_id)?.status ?? 'active') !== 'inactive');
     const sessionIds = sessionsData.map(s => s.id);
     const stallsData = batchedData.stallsByMarket.get(market.id) || [];
     const offersData = batchedData.offersByMarket.get(market.id) || [];
@@ -307,7 +307,7 @@ const fetchLiveMarketsData = async () => {
     });
 
     const employees: EmployeeStatus[] = Array.from(sessionsByUser.entries()).map(([userId, userSessions]) => {
-      const fullName = (batchedData.employeeMap.get(userId) || 'Unknown') as string;
+      const fullName = batchedData.employeeMap.get(userId)?.name || 'Unknown';
       const nameParts = fullName.split(' ').filter(Boolean);
       const initials = nameParts.map((n: string) => n[0]).join('').toUpperCase().slice(0, 2);
 
