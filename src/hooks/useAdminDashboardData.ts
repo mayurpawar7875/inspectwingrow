@@ -67,7 +67,7 @@ const fetchBatchedTaskStats = async (marketIds: string[], todayDate: string) => 
   // Single query to get all sessions for all markets today
   const { data: allSessions } = await supabase
     .from('sessions')
-    .select('id, market_id, user_id, punch_in_time, punch_out_time, status')
+    .select('id, market_id, user_id, punch_in_time, punch_out_time, status, created_at')
     .in('market_id', marketIds)
     .eq('session_date', todayDate);
 
@@ -298,29 +298,48 @@ const fetchLiveMarketsData = async () => {
       collections: collectionsData.length,
     };
 
-    // Process employees
-    const employees: EmployeeStatus[] = sessionsData.map((session: any) => {
-      const fullName = (batchedData.employeeMap.get(session.user_id) || 'Unknown') as string;
-      const nameParts = fullName.split(' ');
+    // Process employees (dedupe by user_id)
+    const sessionsByUser = new Map<string, any[]>();
+    sessionsData.forEach((s: any) => {
+      if (!s.user_id) return;
+      if (!sessionsByUser.has(s.user_id)) sessionsByUser.set(s.user_id, []);
+      sessionsByUser.get(s.user_id)!.push(s);
+    });
+
+    const employees: EmployeeStatus[] = Array.from(sessionsByUser.entries()).map(([userId, userSessions]) => {
+      const fullName = (batchedData.employeeMap.get(userId) || 'Unknown') as string;
+      const nameParts = fullName.split(' ').filter(Boolean);
       const initials = nameParts.map((n: string) => n[0]).join('').toUpperCase().slice(0, 2);
 
-      // Count completed tasks for this user/session
+      // Choose primary session for timestamps/status display (latest created_at)
+      const primarySession = [...userSessions].sort((a, b) =>
+        new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()
+      )[0];
+
+      // Aggregate media + inspections across all sessions for this user in this market
+      const userMedia = userSessions.flatMap((s: any) => batchedData.mediaBySession.get(s.id) || []);
+      const userInspectionsCount = userSessions.reduce(
+        (sum: number, s: any) => sum + ((batchedData.inspectionsBySession.get(s.id) || []).length || 0),
+        0
+      );
+
+      // Count completed tasks for this user (across sessions)
       let completedTasks = 0;
-      if (session.punch_in_time) completedTasks++;
-      if (stallsData.some(s => s.created_by === session.user_id)) completedTasks++;
-      
-      const sessionMedia = batchedData.mediaBySession.get(session.id) || [];
-      if (sessionMedia.some(m => m.media_type === 'outside_rates')) completedTasks++;
-      if (sessionMedia.some(m => m.media_type === 'rate_board')) completedTasks++;
-      if (sessionMedia.some(m => m.media_type === 'market_video')) completedTasks++;
-      if (sessionMedia.some(m => m.media_type === 'cleaning_video')) completedTasks++;
-      if (sessionMedia.some(m => m.media_type === 'customer_feedback')) completedTasks++;
-      if (offersData.some(o => o.user_id === session.user_id)) completedTasks++;
-      if (commoditiesData.some(c => c.user_id === session.user_id)) completedTasks++;
-      if (feedbackData.some(f => f.user_id === session.user_id)) completedTasks++;
-      if ((batchedData.inspectionsBySession.get(session.id) || []).length > 0) completedTasks++;
-      if (planningData.some(p => p.user_id === session.user_id)) completedTasks++;
-      if (collectionsData.some(c => c.collected_by === session.user_id)) completedTasks++;
+      if (userSessions.some((s: any) => s.punch_in_time)) completedTasks++;
+      if (stallsData.some(s => s.created_by === userId)) completedTasks++;
+
+      if (userMedia.some(m => m.media_type === 'outside_rates')) completedTasks++;
+      if (userMedia.some(m => m.media_type === 'rate_board')) completedTasks++;
+      if (userMedia.some(m => m.media_type === 'market_video')) completedTasks++;
+      if (userMedia.some(m => m.media_type === 'cleaning_video')) completedTasks++;
+      if (userMedia.some(m => m.media_type === 'customer_feedback')) completedTasks++;
+
+      if (offersData.some(o => o.user_id === userId)) completedTasks++;
+      if (commoditiesData.some(c => c.user_id === userId)) completedTasks++;
+      if (feedbackData.some(f => f.user_id === userId)) completedTasks++;
+      if (userInspectionsCount > 0) completedTasks++;
+      if (planningData.some(p => p.user_id === userId)) completedTasks++;
+      if (collectionsData.some(c => c.collected_by === userId)) completedTasks++;
 
       let status: 'active' | 'half_day' | 'completed' = 'active';
       if (completedTasks === totalTasksCount) {
@@ -329,17 +348,22 @@ const fetchLiveMarketsData = async () => {
         status = 'half_day';
       }
 
-      const duration = session.punch_in_time && session.punch_out_time
-        ? Math.floor((new Date(session.punch_out_time).getTime() - new Date(session.punch_in_time).getTime()) / (1000 * 60))
+      const punchInTimes = userSessions.map((s: any) => s.punch_in_time).filter(Boolean).map((t: string) => new Date(t).getTime());
+      const punchOutTimes = userSessions.map((s: any) => s.punch_out_time).filter(Boolean).map((t: string) => new Date(t).getTime());
+      const earliestIn = punchInTimes.length ? new Date(Math.min(...punchInTimes)).toISOString() : null;
+      const latestOut = punchOutTimes.length ? new Date(Math.max(...punchOutTimes)).toISOString() : null;
+
+      const duration = earliestIn && latestOut
+        ? Math.floor((new Date(latestOut).getTime() - new Date(earliestIn).getTime()) / (1000 * 60))
         : null;
 
       return {
-        id: session.user_id,
+        id: userId,
         name: fullName,
         initials,
         status,
-        punch_in_time: session.punch_in_time,
-        punch_out_time: session.punch_out_time,
+        punch_in_time: primarySession?.punch_in_time || earliestIn,
+        punch_out_time: primarySession?.punch_out_time || latestOut,
         duration,
         completed_tasks: completedTasks,
         total_tasks: totalTasksCount,
