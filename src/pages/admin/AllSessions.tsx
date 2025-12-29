@@ -50,6 +50,39 @@ export default function AllSessions() {
   });
   const [markets, setMarkets] = useState<any[]>([]);
 
+  const resolveStorageRef = (input: string): { bucket: string; path: string } | null => {
+    if (!input) return null;
+
+    // If it's already a full URL, try to extract bucket/path from standard storage URL patterns.
+    if (input.startsWith('http://') || input.startsWith('https://')) {
+      try {
+        const u = new URL(input);
+        const p = u.pathname;
+
+        const publicPrefix = '/storage/v1/object/public/';
+        const signPrefix = '/storage/v1/object/sign/';
+
+        const stripPrefix = (prefix: string) => {
+          const rest = p.slice(prefix.length);
+          const [bucket, ...pathParts] = rest.split('/').filter(Boolean);
+          const path = pathParts.join('/');
+          if (!bucket || !path) return null;
+          return { bucket, path };
+        };
+
+        if (p.startsWith(publicPrefix)) return stripPrefix(publicPrefix);
+        if (p.startsWith(signPrefix)) return stripPrefix(signPrefix);
+      } catch {
+        // fallthrough
+      }
+      return null;
+    }
+
+    // In this app, media.file_url is stored as a path within the 'employee-media' bucket.
+    // Example: "<userId>/<timestamp>-filename.jpg"
+    return { bucket: 'employee-media', path: input.replace(/^\/+/, '') };
+  };
+
   useEffect(() => {
     fetchMarkets();
     fetchSessions();
@@ -59,7 +92,7 @@ export default function AllSessions() {
     // Apply filters based on navigation state
     const state = location.state as any;
     const today = new Date().toISOString().split('T')[0];
-    
+
     if (state?.filterToday) {
       setFilters(prev => ({ ...prev, dateFrom: today, dateTo: today, status: '' }));
     } else if (state?.filterCompleted) {
@@ -654,14 +687,17 @@ export default function AllSessions() {
                               size="sm" 
                               className="text-xs"
                               onClick={async () => {
-                                // Extract bucket and path from file_url
-                                // file_url format: bucket_name/path/to/file.jpg
-                                const url = media.file_url;
-                                const parts = url.split('/');
-                                const bucket = parts[0];
-                                const path = parts.slice(1).join('/');
-                                
-                                const signedUrl = await getSignedUrl(bucket, path);
+                                const raw = String(media.file_url || '');
+                                const ref = resolveStorageRef(raw);
+
+                                // If this is not a storage reference we understand, fall back to opening the raw value.
+                                if (!ref) {
+                                  if (raw) window.open(raw, '_blank');
+                                  else toast.error('File URL missing');
+                                  return;
+                                }
+
+                                const signedUrl = await getSignedUrl(ref.bucket, ref.path);
                                 if (signedUrl) {
                                   window.open(signedUrl, '_blank');
                                 } else {
