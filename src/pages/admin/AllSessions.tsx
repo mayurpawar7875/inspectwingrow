@@ -17,6 +17,7 @@ import {
 import { SessionComments } from '@/components/SessionComments';
 import { toast } from 'sonner';
 import { Download, Eye, Filter, MapPin, Calendar, Clock, User } from 'lucide-react';
+import { getSignedUrl } from '@/lib/storageHelpers';
 
 interface Session {
   id: string;
@@ -648,10 +649,27 @@ export default function AllSessions() {
                                 </p>
                               )}
                             </div>
-                            <Button variant="outline" size="sm" asChild className="text-xs">
-                              <a href={media.file_url} target="_blank" rel="noopener noreferrer">
-                                View File
-                              </a>
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              className="text-xs"
+                              onClick={async () => {
+                                // Extract bucket and path from file_url
+                                // file_url format: bucket_name/path/to/file.jpg
+                                const url = media.file_url;
+                                const parts = url.split('/');
+                                const bucket = parts[0];
+                                const path = parts.slice(1).join('/');
+                                
+                                const signedUrl = await getSignedUrl(bucket, path);
+                                if (signedUrl) {
+                                  window.open(signedUrl, '_blank');
+                                } else {
+                                  toast.error('Failed to load file. Please try again.');
+                                }
+                              }}
+                            >
+                              View File
                             </Button>
                           </div>
                         </CardContent>
