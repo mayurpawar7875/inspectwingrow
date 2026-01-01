@@ -83,7 +83,9 @@ export default function Dashboard() {
   const { user, signOut, currentRole, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
-  const [todaySession, setTodaySession] = useState<Session | null>(null);
+  const [todaySessions, setTodaySessions] = useState<Session[]>([]);
+  const [selectedSessionIndex, setSelectedSessionIndex] = useState(0);
+  const todaySession = todaySessions[selectedSessionIndex] || null;
   const [sessionSummary, setSessionSummary] = useState<SessionSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [viewDialog, setViewDialog] = useState<'stalls' | 'media' | 'late' | null>(null);
@@ -238,7 +240,7 @@ export default function Dashboard() {
         setAttendanceStats(stats);
       }
       
-      const { data, error } = await supabase
+      const { data: sessionsData, error } = await supabase
         .from('sessions')
         .select(`
           *,
@@ -247,129 +249,133 @@ export default function Dashboard() {
         `)
         .eq('user_id', user.id)
         .eq('session_date', today)
-        .maybeSingle();
+        .order('created_at', { ascending: true });
 
       if (error) {
         console.error('Error fetching session:', error);
         throw error;
       }
       
-      // Calculate task completion and status
-      if (data) {
-        const todayIST = getISTDateString(new Date());
-        const dateStr = todayIST;
+      // Process all sessions with task completion data
+      if (sessionsData && sessionsData.length > 0) {
+        const processedSessions: Session[] = [];
         
-        // Task 1: Punch In
-        let totalTasks = 13;
-        let completedTasks = 0;
-        const taskDetails: TaskStatus[] = [];
-        
-        const punchInCompleted = !!data.punch_in_time;
-        if (punchInCompleted) completedTasks++;
-        taskDetails.push({ name: 'Punch In', completed: punchInCompleted, icon: Clock });
-        
-        // Task 2: Stall Confirmations (at least 1)
-        const { count: stallCount, error: stallCountError } = await supabase
-          .from('stall_confirmations')
-          .select('*', { count: 'exact', head: true })
-          .eq('market_id', data.market_id)
-          .eq('market_date', dateStr);
-        
-        const stallsCompleted = !stallCountError && (stallCount || 0) > 0;
-        if (!stallCountError) {
-          setStallsCount(stallCount || 0);
+        for (const data of sessionsData) {
+          const todayIST = getISTDateString(new Date());
+          const dateStr = todayIST;
+          
+          // Task 1: Punch In
+          let totalTasks = 13;
+          let completedTasks = 0;
+          const taskDetails: TaskStatus[] = [];
+          
+          const punchInCompleted = !!data.punch_in_time;
+          if (punchInCompleted) completedTasks++;
+          taskDetails.push({ name: 'Punch In', completed: punchInCompleted, icon: Clock });
+          
+          // Task 2: Stall Confirmations (at least 1)
+          const { count: stallCount, error: stallCountError } = await supabase
+            .from('stall_confirmations')
+            .select('*', { count: 'exact', head: true })
+            .eq('market_id', data.market_id)
+            .eq('market_date', dateStr);
+          
+          const stallsCompleted = !stallCountError && (stallCount || 0) > 0;
+          if (!stallCountError && processedSessions.length === 0) {
+            // Only set stalls count for first session (selected by default)
+            setStallsCount(stallCount || 0);
+          }
           if (stallsCompleted) completedTasks++;
-        } else {
-          setStallsCount(0);
-        }
-        taskDetails.push({ name: 'Stall Confirmations', completed: stallsCompleted, icon: FileText });
-        
-        // Task 3-8: Media uploads (6 types) - run in parallel
-        const mediaTypes: Array<{type: 'outside_rates' | 'rate_board' | 'market_video' | 'cleaning_video' | 'customer_feedback' | 'selfie_gps', label: string, icon: any}> = [
-          { type: 'outside_rates', label: 'Outside Rates', icon: Upload },
-          { type: 'rate_board', label: 'Rate Board Photo', icon: ImageIcon },
-          { type: 'market_video', label: 'Market Video', icon: Video },
-          { type: 'cleaning_video', label: 'Cleaning Video', icon: Sparkles },
-          { type: 'customer_feedback', label: 'Customer Feedback', icon: MessageSquare },
-          { type: 'selfie_gps', label: 'Selfie with GPS', icon: Camera },
-        ];
-        
-        // Run all media queries in parallel
-        const mediaResults = await Promise.all(
-          mediaTypes.map(mediaType => 
-            supabase
-              .from('media')
-              .select('*', { count: 'exact', head: true })
-              .eq('session_id', data.id)
-              .eq('media_type', mediaType.type)
-          )
-        );
-        
-        mediaResults.forEach((result, index) => {
-          const mediaCompleted = (result.count || 0) > 0;
-          if (mediaCompleted) completedTasks++;
-          taskDetails.push({ name: mediaTypes[index].label, completed: mediaCompleted, icon: mediaTypes[index].icon });
-        });
-        
-        // Task 9-13: Run remaining queries in parallel
-        const [offersResult, commoditiesResult, inspectionsResult, feedbackResult, planningResult] = await Promise.all([
-          supabase.from('offers').select('*', { count: 'exact', head: true }).eq('market_id', data.market_id).eq('market_date', dateStr).eq('session_id', data.id),
-          supabase.from('non_available_commodities').select('*', { count: 'exact', head: true }).eq('market_id', data.market_id).eq('market_date', dateStr).eq('session_id', data.id),
-          supabase.from('stall_inspections').select('*', { count: 'exact', head: true }).eq('session_id', data.id),
-          supabase.from('organiser_feedback').select('*', { count: 'exact', head: true }).eq('market_id', data.market_id).eq('market_date', dateStr).eq('session_id', data.id),
-          supabase.from('next_day_planning').select('*', { count: 'exact', head: true }).eq('market_id', data.market_id).eq('market_date', dateStr).eq('session_id', data.id),
-        ]);
+          taskDetails.push({ name: 'Stall Confirmations', completed: stallsCompleted, icon: FileText });
+          
+          // Task 3-8: Media uploads (6 types) - run in parallel
+          const mediaTypes: Array<{type: 'outside_rates' | 'rate_board' | 'market_video' | 'cleaning_video' | 'customer_feedback' | 'selfie_gps', label: string, icon: any}> = [
+            { type: 'outside_rates', label: 'Outside Rates', icon: Upload },
+            { type: 'rate_board', label: 'Rate Board Photo', icon: ImageIcon },
+            { type: 'market_video', label: 'Market Video', icon: Video },
+            { type: 'cleaning_video', label: 'Cleaning Video', icon: Sparkles },
+            { type: 'customer_feedback', label: 'Customer Feedback', icon: MessageSquare },
+            { type: 'selfie_gps', label: 'Selfie with GPS', icon: Camera },
+          ];
+          
+          // Run all media queries in parallel
+          const mediaResults = await Promise.all(
+            mediaTypes.map(mediaType => 
+              supabase
+                .from('media')
+                .select('*', { count: 'exact', head: true })
+                .eq('session_id', data.id)
+                .eq('media_type', mediaType.type)
+            )
+          );
+          
+          mediaResults.forEach((result, index) => {
+            const mediaCompleted = (result.count || 0) > 0;
+            if (mediaCompleted) completedTasks++;
+            taskDetails.push({ name: mediaTypes[index].label, completed: mediaCompleted, icon: mediaTypes[index].icon });
+          });
+          
+          // Task 9-13: Run remaining queries in parallel
+          const [offersResult, commoditiesResult, inspectionsResult, feedbackResult, planningResult] = await Promise.all([
+            supabase.from('offers').select('*', { count: 'exact', head: true }).eq('market_id', data.market_id).eq('market_date', dateStr).eq('session_id', data.id),
+            supabase.from('non_available_commodities').select('*', { count: 'exact', head: true }).eq('market_id', data.market_id).eq('market_date', dateStr).eq('session_id', data.id),
+            supabase.from('stall_inspections').select('*', { count: 'exact', head: true }).eq('session_id', data.id),
+            supabase.from('organiser_feedback').select('*', { count: 'exact', head: true }).eq('market_id', data.market_id).eq('market_date', dateStr).eq('session_id', data.id),
+            supabase.from('next_day_planning').select('*', { count: 'exact', head: true }).eq('market_id', data.market_id).eq('market_date', dateStr).eq('session_id', data.id),
+          ]);
 
-        // Task 9: Today's Offers
-        const offersCompleted = (offersResult.count || 0) > 0;
-        if (offersCompleted) completedTasks++;
-        taskDetails.push({ name: "Today's Offers", completed: offersCompleted, icon: FileText });
-        
-        // Task 10: Non-Available Commodities
-        const commoditiesCompleted = (commoditiesResult.count || 0) > 0;
-        if (commoditiesCompleted) completedTasks++;
-        taskDetails.push({ name: 'Non-Available Commodities', completed: commoditiesCompleted, icon: AlertCircle });
-        
-        // Task 11: Stall Inspections (at least 1)
-        const inspectionsCompleted = (inspectionsResult.count || 0) > 0;
-        if (inspectionsCompleted) completedTasks++;
-        taskDetails.push({ name: 'Stall Inspections', completed: inspectionsCompleted, icon: ClipboardCheck });
-        
-        // Task 12: Punch Out
-        const punchOutCompleted = !!data.punch_out_time;
-        if (punchOutCompleted) completedTasks++;
-        taskDetails.push({ name: 'Punch Out', completed: punchOutCompleted, icon: LogOut });
-        
-        // Task 13: Organiser Feedback or Next Day Planning (either one counts)
-        const feedbackCompleted = (feedbackResult.count || 0) > 0 || (planningResult.count || 0) > 0;
-        if (feedbackCompleted) completedTasks++;
-        taskDetails.push({ name: 'Feedback / Next Day Plan', completed: feedbackCompleted, icon: Calendar });
-        
-        // Determine status based on task completion and expiration
-        const sessionDate = data.session_date;
-        const currentDateTime = new Date();
-        const sessionDateTime = new Date(sessionDate + 'T23:59:59');
-        
-        let computedStatus = 'incomplete';
-        
-        if (completedTasks === totalTasks) {
-          computedStatus = 'completed';
-        } else if (currentDateTime > sessionDateTime) {
-          computedStatus = 'incomplete_expired';
-        } else {
-          computedStatus = 'incomplete';
+          // Task 9: Today's Offers
+          const offersCompleted = (offersResult.count || 0) > 0;
+          if (offersCompleted) completedTasks++;
+          taskDetails.push({ name: "Today's Offers", completed: offersCompleted, icon: FileText });
+          
+          // Task 10: Non-Available Commodities
+          const commoditiesCompleted = (commoditiesResult.count || 0) > 0;
+          if (commoditiesCompleted) completedTasks++;
+          taskDetails.push({ name: 'Non-Available Commodities', completed: commoditiesCompleted, icon: AlertCircle });
+          
+          // Task 11: Stall Inspections (at least 1)
+          const inspectionsCompleted = (inspectionsResult.count || 0) > 0;
+          if (inspectionsCompleted) completedTasks++;
+          taskDetails.push({ name: 'Stall Inspections', completed: inspectionsCompleted, icon: ClipboardCheck });
+          
+          // Task 12: Punch Out
+          const punchOutCompleted = !!data.punch_out_time;
+          if (punchOutCompleted) completedTasks++;
+          taskDetails.push({ name: 'Punch Out', completed: punchOutCompleted, icon: LogOut });
+          
+          // Task 13: Organiser Feedback or Next Day Planning (either one counts)
+          const feedbackCompleted = (feedbackResult.count || 0) > 0 || (planningResult.count || 0) > 0;
+          if (feedbackCompleted) completedTasks++;
+          taskDetails.push({ name: 'Feedback / Next Day Plan', completed: feedbackCompleted, icon: Calendar });
+          
+          // Determine status based on task completion and expiration
+          const sessionDate = data.session_date;
+          const currentDateTime = new Date();
+          const sessionDateTime = new Date(sessionDate + 'T23:59:59');
+          
+          let computedStatus = 'incomplete';
+          
+          if (completedTasks === totalTasks) {
+            computedStatus = 'completed';
+          } else if (currentDateTime > sessionDateTime) {
+            computedStatus = 'incomplete_expired';
+          } else {
+            computedStatus = 'incomplete';
+          }
+          
+          processedSessions.push({
+            ...data,
+            total_tasks: totalTasks,
+            completed_tasks: completedTasks,
+            computed_status: computedStatus,
+            task_details: taskDetails
+          });
         }
         
-        // Set session with computed values
-        setTodaySession({
-          ...data,
-          total_tasks: totalTasks,
-          completed_tasks: completedTasks,
-          computed_status: computedStatus,
-          task_details: taskDetails
-        });
+        setTodaySessions(processedSessions);
       } else {
-        setTodaySession(data);
+        setTodaySessions([]);
         setStallsCount(0);
       }
       
@@ -670,6 +676,41 @@ export default function Dashboard() {
           </div>
         ) : (
           <div className="space-y-2 sm:space-y-6">
+            {/* Session Selector - shown when multiple sessions exist */}
+            {todaySessions.length > 1 && (
+              <Card className="bg-info/10 border-info/20">
+                <CardContent className="p-3 sm:p-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                    <span className="text-sm font-medium text-info">Multiple Sessions Today:</span>
+                    <div className="flex flex-wrap gap-2">
+                      {todaySessions.map((session, index) => (
+                        <Button
+                          key={session.id}
+                          variant={selectedSessionIndex === index ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setSelectedSessionIndex(index)}
+                          className="text-xs"
+                        >
+                          {session.market.name}
+                          {session.computed_status === 'completed' && (
+                            <CheckCircle className="ml-1 h-3 w-3 text-success" />
+                          )}
+                        </Button>
+                      ))}
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => navigate('/market-selection')}
+                      className="text-xs ml-auto"
+                    >
+                      + Add Session
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             {/* Session Info */}
             <Card>
               <CardHeader className="p-3 sm:pb-6 sm:px-6 sm:pt-6">
