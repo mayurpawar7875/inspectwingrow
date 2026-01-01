@@ -21,52 +21,34 @@ export default function MarketSelection() {
   const [markets, setMarkets] = useState<Market[]>([]);
   const [selectedMarket, setSelectedMarket] = useState<string>('');
   const [loading, setLoading] = useState(false);
+  const [existingSessionMarkets, setExistingSessionMarkets] = useState<string[]>([]);
 
   useEffect(() => {
-    fetchMarkets();
-    checkExistingSession();
-  }, []);
-
-  const checkExistingSession = async () => {
-    if (!user) return;
-
-    try {
-      const getISTDateString = (date: Date) => {
-        const ist = new Date(date.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
-        const y = ist.getFullYear();
-        const m = String(ist.getMonth() + 1).padStart(2, '0');
-        const d = String(ist.getDate()).padStart(2, '0');
-        return `${y}-${m}-${d}`;
-      };
-      const today = getISTDateString(new Date());
-
-      const { data, error } = await supabase
-        .from('sessions')
-        .select('id')
-        .eq('user_id', user.id)
-        .eq('session_date', today)
-        .maybeSingle();
-
-      if (error) throw error;
-
-      // If session exists for today, redirect to dashboard
-      if (data) {
-        navigate('/dashboard');
-      }
-    } catch (error) {
-      console.error('Error checking session:', error);
+    if (user) {
+      fetchMarketsAndSessions();
     }
+  }, [user]);
+
+  const getISTDateString = (date: Date) => {
+    const ist = new Date(date.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
+    const y = ist.getFullYear();
+    const m = String(ist.getMonth() + 1).padStart(2, '0');
+    const d = String(ist.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
   };
 
-  const fetchMarkets = async () => {
+  const fetchMarketsAndSessions = async () => {
+    if (!user) return;
+
     try {
       const istNow = new Date(
         new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' })
       );
       const dow = istNow.getDay(); // 0=Sun..6=Sat
-      const istDateStr = istNow.toISOString().split('T')[0];
+      const today = getISTDateString(new Date());
 
-      const [byWeekday, scheduleRows] = await Promise.all([
+      // Fetch markets and existing sessions in parallel
+      const [byWeekday, scheduleRows, existingSessions] = await Promise.all([
         supabase
           .from('markets')
           .select('id, name, location')
@@ -78,7 +60,16 @@ export default function MarketSelection() {
           .select('market_id')
           .eq('day_of_week', dow)
           .eq('is_active', true),
+        supabase
+          .from('sessions')
+          .select('market_id')
+          .eq('user_id', user.id)
+          .eq('session_date', today),
       ]);
+
+      // Track markets that already have sessions today
+      const existingMarketIds = (existingSessions.data || []).map((s: any) => s.market_id);
+      setExistingSessionMarkets(existingMarketIds);
 
       const scheduleIds = (scheduleRows.data || []).map((r: any) => r.market_id).filter(Boolean);
 
@@ -96,9 +87,13 @@ export default function MarketSelection() {
       (byWeekday.data || []).forEach((m: any) => map.set(m.id, m));
       scheduledMarkets.forEach((m: any) => map.set(m.id, m));
 
-      const list = Array.from(map.values());
-      setMarkets(list);
-      if (list.length > 0) setSelectedMarket(list[0].id);
+      // Filter out markets that already have sessions
+      const availableMarkets = Array.from(map.values()).filter(
+        (m) => !existingMarketIds.includes(m.id)
+      );
+      
+      setMarkets(availableMarkets);
+      if (availableMarkets.length > 0) setSelectedMarket(availableMarkets[0].id);
     } catch (error: any) {
       toast.error('Failed to load markets');
       console.error(error);
@@ -113,14 +108,6 @@ export default function MarketSelection() {
 
     setLoading(true);
     try {
-      // Use IST date for session creation
-      const getISTDateString = (date: Date) => {
-        const ist = new Date(date.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
-        const y = ist.getFullYear();
-        const m = String(ist.getMonth() + 1).padStart(2, '0');
-        const d = String(ist.getDate()).padStart(2, '0');
-        return `${y}-${m}-${d}`;
-      };
       const today = getISTDateString(new Date());
 
       const { data, error } = await supabase
@@ -191,12 +178,20 @@ export default function MarketSelection() {
               </Select>
             </div>
 
-            <div className="bg-muted p-4 rounded-lg">
-              <p className="text-sm text-muted-foreground">
-                <strong>Note:</strong> Once you create a session, you cannot change the market for today. Make
-                sure to select the correct market.
-              </p>
-            </div>
+            {markets.length === 0 && existingSessionMarkets.length > 0 ? (
+              <div className="bg-muted p-4 rounded-lg">
+                <p className="text-sm text-muted-foreground">
+                  <strong>Note:</strong> You have already created sessions for all available markets today.
+                </p>
+              </div>
+            ) : (
+              <div className="bg-muted p-4 rounded-lg">
+                <p className="text-sm text-muted-foreground">
+                  <strong>Note:</strong> You can create multiple sessions for different markets on the same day 
+                  (e.g., morning and evening markets).
+                </p>
+              </div>
+            )}
 
             <Button onClick={handleSubmit} disabled={loading || !selectedMarket} className="w-full" size="lg">
               {loading ? 'Creating Session...' : 'Start Session'}
