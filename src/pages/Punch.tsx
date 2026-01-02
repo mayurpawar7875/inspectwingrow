@@ -315,20 +315,21 @@ export default function Punch() {
       
       // Note: Punch in (selfie_gps) is already done, counts as 1 task automatically
       
-      // Determine status based on task completion
-      // Full day (present): All tasks completed
-      // Half day: At least 1 task completed but not all
-      // Absent: No tasks completed
+      // Determine status based on task completion percentage
+      // Full day (present): All tasks completed (100%)
+      // Half day: 50% or more tasks completed but not all
+      // Absent: Less than 50% tasks completed
+      const completionPercentage = (completedTasks / totalTasks) * 100;
       let attendanceStatus: string;
       if (completedTasks === totalTasks) {
         attendanceStatus = 'present';
-      } else if (completedTasks > 0) {
+      } else if (completionPercentage >= 50) {
         attendanceStatus = 'half_day';
       } else {
         attendanceStatus = 'absent';
       }
       
-      console.log('Task completion:', { completedTasks, totalTasks, status: attendanceStatus });
+      console.log('Task completion:', { completedTasks, totalTasks, completionPercentage: completionPercentage.toFixed(1), status: attendanceStatus });
       
       // Update session with punch_out_time and status='completed'
       const { error: sessionError } = await supabase
