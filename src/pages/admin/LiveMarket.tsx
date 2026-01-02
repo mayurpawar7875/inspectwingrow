@@ -8,7 +8,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { CalendarIcon, Download, Eye, Users, Store, Image, AlertCircle } from 'lucide-react';
+import { CalendarIcon, Download, Eye, Users, Store, Image, AlertCircle, MapPin } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -27,6 +27,11 @@ interface EmployeeOnDuty {
   punch_out: string | null;
   last_activity: string | null;
   tasks_done: number;
+  punch_in_lat: number | null;
+  punch_in_lng: number | null;
+  punch_out_lat: number | null;
+  punch_out_lng: number | null;
+  selfie_url: string | null;
 }
 
 interface StallConfirmation {
@@ -142,6 +147,13 @@ export default function LiveMarket() {
 
           const lastActivity = lastMedia?.created_at || null;
 
+          // Get attendance record with GPS coordinates
+          const { data: attendance } = await supabase
+            .from('attendance_records')
+            .select('punch_in_lat, punch_in_lng, punch_out_lat, punch_out_lng, selfie_url')
+            .eq('session_id', session.id)
+            .maybeSingle();
+
           return {
             employee_id: session.user_id,
             employee_name: session.profiles.full_name,
@@ -149,7 +161,12 @@ export default function LiveMarket() {
             punch_in: session.punch_in_time,
             punch_out: session.punch_out_time,
             last_activity: lastActivity,
-            tasks_done: tasksCompleted
+            tasks_done: tasksCompleted,
+            punch_in_lat: attendance?.punch_in_lat || null,
+            punch_in_lng: attendance?.punch_in_lng || null,
+            punch_out_lat: attendance?.punch_out_lat || null,
+            punch_out_lng: attendance?.punch_out_lng || null,
+            selfie_url: attendance?.selfie_url || null
           };
         })
       );
@@ -625,25 +642,103 @@ export default function LiveMarket() {
         </CardContent>
       </Card>
 
-      {/* Employee Timeline Sheet */}
       <Sheet open={!!selectedEmployee} onOpenChange={() => setSelectedEmployee(null)}>
-        <SheetContent className="w-[500px] sm:w-[600px]">
+        <SheetContent className="w-[500px] sm:w-[600px] overflow-y-auto">
           <SheetHeader>
             <SheetTitle>
               {selectedEmployee?.employee_name} - Activity Timeline
             </SheetTitle>
           </SheetHeader>
-          <div className="mt-6 space-y-4">
-            <div className="space-y-2">
-              <p className="text-sm text-muted-foreground">
-                Punch In: {formatTime(selectedEmployee?.punch_in || null)}
-              </p>
-              <p className="text-sm text-muted-foreground">
-                Punch Out: {selectedEmployee?.punch_out ? formatTime(selectedEmployee.punch_out) : 'Active'}
-              </p>
-              <p className="text-sm text-muted-foreground">
-                Total Tasks: {selectedEmployee?.tasks_done || 0}
-              </p>
+          <div className="mt-6 space-y-6">
+            {/* Selfie */}
+            {selectedEmployee?.selfie_url && (
+              <div className="space-y-2">
+                <h4 className="font-semibold text-sm">Punch-In Selfie</h4>
+                <img 
+                  src={`${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/employee-media/${selectedEmployee.selfie_url}`}
+                  alt="Punch-in selfie"
+                  className="w-full max-w-[300px] rounded-lg border"
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                  }}
+                />
+                <a 
+                  href={`${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/employee-media/${selectedEmployee.selfie_url}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm text-primary hover:underline"
+                >
+                  Click image to view full size
+                </a>
+              </div>
+            )}
+
+            {/* Punch Times */}
+            <div className="space-y-3">
+              <div>
+                <p className="text-sm font-medium">Punch In</p>
+                <p className="text-sm text-muted-foreground">
+                  {formatTime(selectedEmployee?.punch_in || null)}
+                </p>
+              </div>
+              <div>
+                <p className="text-sm font-medium">Punch Out</p>
+                <p className="text-sm text-muted-foreground">
+                  {selectedEmployee?.punch_out ? formatTime(selectedEmployee.punch_out) : 'Active'}
+                </p>
+              </div>
+              <div>
+                <p className="text-sm font-medium">Total Tasks</p>
+                <p className="text-sm text-muted-foreground">{selectedEmployee?.tasks_done || 0}</p>
+              </div>
+            </div>
+
+            {/* GPS Coordinates */}
+            <div className="space-y-3">
+              <h4 className="font-semibold text-sm flex items-center gap-2">
+                <MapPin className="h-4 w-4" />
+                GPS Coordinates
+              </h4>
+              
+              {selectedEmployee?.punch_in_lat && selectedEmployee?.punch_in_lng ? (
+                <div className="p-3 bg-muted rounded-lg space-y-2">
+                  <p className="text-sm font-medium">Punch-In Location</p>
+                  <p className="text-xs text-muted-foreground">
+                    Lat: {selectedEmployee.punch_in_lat.toFixed(6)}, Lng: {selectedEmployee.punch_in_lng.toFixed(6)}
+                  </p>
+                  <a 
+                    href={`https://www.google.com/maps?q=${selectedEmployee.punch_in_lat},${selectedEmployee.punch_in_lng}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                  >
+                    <MapPin className="h-3 w-3" />
+                    View on Google Maps
+                  </a>
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">Punch-in GPS not available</p>
+              )}
+
+              {selectedEmployee?.punch_out_lat && selectedEmployee?.punch_out_lng ? (
+                <div className="p-3 bg-muted rounded-lg space-y-2">
+                  <p className="text-sm font-medium">Punch-Out Location</p>
+                  <p className="text-xs text-muted-foreground">
+                    Lat: {selectedEmployee.punch_out_lat.toFixed(6)}, Lng: {selectedEmployee.punch_out_lng.toFixed(6)}
+                  </p>
+                  <a 
+                    href={`https://www.google.com/maps?q=${selectedEmployee.punch_out_lat},${selectedEmployee.punch_out_lng}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                  >
+                    <MapPin className="h-3 w-3" />
+                    View on Google Maps
+                  </a>
+                </div>
+              ) : selectedEmployee?.punch_out ? (
+                <p className="text-sm text-muted-foreground">Punch-out GPS not available</p>
+              ) : null}
             </div>
           </div>
         </SheetContent>
