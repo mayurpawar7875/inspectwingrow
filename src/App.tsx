@@ -95,6 +95,7 @@ const App = () => (
                 <Route path="/admin/employee-reporting" element={<ProtectedRoute><AdminLayout><EmployeeCitySelection /></AdminLayout></ProtectedRoute>} />
                 <Route path="/admin/employee-reporting/city/:city" element={<ProtectedRoute><AdminLayout><EmployeeMarketsList /></AdminLayout></ProtectedRoute>} />
                 <Route path="/admin/employee-reporting/market/:marketId" element={<ProtectedRoute><AdminLayout><EmployeeReporting /></AdminLayout></ProtectedRoute>} />
+                <Route path="/admin/employee/:userId/markets" element={<ProtectedRoute><AdminLayout><EmployeeMarketsList /></AdminLayout></ProtectedRoute>} />
                 <Route path="/admin/market-reporting" element={<ProtectedRoute><AdminLayout><MarketManagerReporting /></AdminLayout></ProtectedRoute>} />
                 <Route path="/admin/attendance" element={<ProtectedRoute><AdminLayout><AttendanceReporting /></AdminLayout></ProtectedRoute>} />
                 <Route path="/my-attendance" element={<ProtectedRoute><MyAttendance /></ProtectedRoute>} />
