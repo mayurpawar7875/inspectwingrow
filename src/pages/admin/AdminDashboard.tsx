@@ -1238,7 +1238,7 @@ export default function AdminDashboard() {
                       </div>
 
                       {/* Employee Locations Map - Below Market Info */}
-                      <div className="pt-2 border-t hidden md:block">
+                      <div className="pt-2 border-t">
                         <h4 className="text-xs font-semibold mb-1.5 flex items-center gap-1">
                           <MapPin className="h-3 w-3" />
                           Employee Locations
