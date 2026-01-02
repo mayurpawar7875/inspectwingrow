@@ -7,11 +7,12 @@ import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Users, Building2, ClipboardList, MapPin, TrendingUp, Activity, ChevronRight, Clock, Upload, Calendar } from 'lucide-react';
+import { Users, Building2, ClipboardList, MapPin, TrendingUp, Activity, ChevronRight, Clock, Upload, Calendar, Navigation } from 'lucide-react';
 import { MobileBottomNav } from '@/components/MobileBottomNav';
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
 import { format } from 'date-fns';
 import { useAdminDashboardData } from '@/hooks/useAdminDashboardData';
+import EmployeeLocationMiniMap from '@/components/admin/EmployeeLocationMiniMap';
 
 interface EmployeeStatus {
   id: string;
@@ -23,6 +24,8 @@ interface EmployeeStatus {
   duration: number | null;
   completed_tasks: number;
   total_tasks: number;
+  punch_in_lat: number | null;
+  punch_in_lng: number | null;
 }
 
 interface LiveMarket {
@@ -1109,7 +1112,7 @@ export default function AdminDashboard() {
             <div className="grid gap-2.5">
               {liveMarkets.map((market) => (
                 <Card key={market.market_id} className="overflow-hidden hover:shadow-md transition-shadow">
-                  <div className="grid md:grid-cols-[38%_62%] gap-2 md:gap-3 p-3">
+                  <div className="grid md:grid-cols-[32%_25%_43%] gap-2 md:gap-3 p-3">
                     {/* Left Column: Market Info */}
                     <div className="space-y-2">
                       <div>
@@ -1203,6 +1206,19 @@ export default function AdminDashboard() {
                                           </span>
                                         )}
                                       </div>
+
+                                      {employee.punch_in_lat && employee.punch_in_lng && (
+                                        <a
+                                          href={`https://www.google.com/maps/dir/?api=1&destination=${employee.punch_in_lat},${employee.punch_in_lng}`}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="flex items-center gap-2 text-primary hover:underline"
+                                          onClick={(e) => e.stopPropagation()}
+                                        >
+                                          <Navigation className="h-3 w-3" />
+                                          <span>Navigate to Location</span>
+                                        </a>
+                                      )}
                                     </div>
                                   </div>
                                 </HoverCardContent>
@@ -1218,6 +1234,26 @@ export default function AdminDashboard() {
                           <span>Last upload: {formatTime(market.last_upload_time)}</span>
                         </div>
                       </div>
+                    </div>
+
+                    {/* Middle Column: Mini Map */}
+                    <div className="md:border-l md:pl-3 hidden md:block">
+                      <h4 className="text-xs font-semibold mb-1.5 flex items-center gap-1">
+                        <MapPin className="h-3 w-3" />
+                        Employee Locations
+                      </h4>
+                      <EmployeeLocationMiniMap 
+                        employees={market.employees
+                          .filter(e => e.punch_in_lat && e.punch_in_lng)
+                          .map(e => ({
+                            id: e.id,
+                            name: e.name,
+                            initials: e.initials,
+                            lat: e.punch_in_lat!,
+                            lng: e.punch_in_lng!,
+                          }))}
+                        className="h-[140px]"
+                      />
                     </div>
 
                     {/* Right Column: Task Status */}
