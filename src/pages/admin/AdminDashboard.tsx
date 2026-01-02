@@ -376,15 +376,19 @@ export default function AdminDashboard() {
             
             const [employeesData, attendanceData] = await Promise.all([
               supabase.from('employees').select('id, full_name').in('id', userIds),
-              supabase.from('attendance_records').select('session_id, selfie_url').in('session_id', sessionIds)
+              supabase
+                .from('attendance_records')
+                .select('session_id, selfie_url, punch_in_lat, punch_in_lng, punch_out_lat, punch_out_lng')
+                .in('session_id', sessionIds)
             ]);
             
             const employeeMap = new Map(employeesData.data?.map(e => [e.id, e.full_name]) || []);
-            const selfieMap = new Map(attendanceData.data?.map(a => [a.session_id, a.selfie_url]) || []);
+            const attendanceMap = new Map(attendanceData.data?.map(a => [a.session_id, a]) || []);
             
             // Get signed URLs for selfies
             data = await Promise.all(sessionsData.map(async (s) => {
-              const selfieUrl = selfieMap.get(s.id);
+              const attendance = attendanceMap.get(s.id);
+              const selfieUrl = attendance?.selfie_url;
               let signedSelfieUrl = null;
               
               if (selfieUrl) {
@@ -397,6 +401,10 @@ export default function AdminDashboard() {
               return {
                 ...s,
                 selfie_url: signedSelfieUrl,
+                punch_in_lat: attendance?.punch_in_lat ?? null,
+                punch_in_lng: attendance?.punch_in_lng ?? null,
+                punch_out_lat: attendance?.punch_out_lat ?? null,
+                punch_out_lng: attendance?.punch_out_lng ?? null,
                 employees: { full_name: employeeMap.get(s.user_id) }
               };
             }));
@@ -812,8 +820,37 @@ export default function AdminDashboard() {
                     </Badge>
                   </div>
                   <CardDescription className="text-xs">
-                    Punch In: {item.punch_in_time ? format(new Date(item.punch_in_time), 'HH:mm') : 'N/A'} | 
-                    Punch Out: {item.punch_out_time ? format(new Date(item.punch_out_time), 'HH:mm') : 'N/A'}
+                    <div>
+                      Punch In: {item.punch_in_time ? format(new Date(item.punch_in_time), 'HH:mm') : 'N/A'} | 
+                      Punch Out: {item.punch_out_time ? format(new Date(item.punch_out_time), 'HH:mm') : 'N/A'}
+                    </div>
+
+                    {(item.punch_in_lat && item.punch_in_lng) || (item.punch_out_lat && item.punch_out_lng) ? (
+                      <div className="mt-1 space-y-1">
+                        {item.punch_in_lat && item.punch_in_lng ? (
+                          <a
+                            href={`https://www.google.com/maps?q=${item.punch_in_lat},${item.punch_in_lng}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                          >
+                            Punch-In GPS: ({Number(item.punch_in_lat).toFixed(6)}, {Number(item.punch_in_lng).toFixed(6)})
+                          </a>
+                        ) : null}
+                        {item.punch_out_lat && item.punch_out_lng ? (
+                          <a
+                            href={`https://www.google.com/maps?q=${item.punch_out_lat},${item.punch_out_lng}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                          >
+                            Punch-Out GPS: ({Number(item.punch_out_lat).toFixed(6)}, {Number(item.punch_out_lng).toFixed(6)})
+                          </a>
+                        ) : null}
+                      </div>
+                    ) : (
+                      <div className="mt-1 text-xs text-muted-foreground">GPS not available</div>
+                    )}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
