@@ -1112,148 +1112,150 @@ export default function AdminDashboard() {
             <div className="grid gap-2.5">
               {liveMarkets.map((market) => (
                 <Card key={market.market_id} className="overflow-hidden hover:shadow-md transition-shadow">
-                  <div className="grid md:grid-cols-[32%_25%_43%] gap-2 md:gap-3 p-3">
-                    {/* Left Column: Market Info */}
-                    <div className="space-y-2">
-                      <div>
-                        <div className="flex items-center justify-between">
-                          <h3 className="text-base font-semibold leading-tight">{market.market_name}</h3>
-                          <Badge variant="default" className="ml-2 text-[10px] px-1.5 py-0 h-5">{market.active_sessions} active</Badge>
+                  <div className="grid md:grid-cols-[40%_60%] gap-2 md:gap-3 p-3">
+                    {/* Left Column: Market Info + Employee Locations */}
+                    <div className="space-y-3">
+                      <div className="space-y-2">
+                        <div>
+                          <div className="flex items-center justify-between">
+                            <h3 className="text-base font-semibold leading-tight">{market.market_name}</h3>
+                            <Badge variant="default" className="ml-2 text-[10px] px-1.5 py-0 h-5">{market.active_sessions} active</Badge>
+                          </div>
+                          <p className="text-[11px] text-muted-foreground flex items-center gap-1 mt-0.5">
+                            <MapPin className="h-3 w-3" />
+                            {market.city || 'N/A'}
+                          </p>
                         </div>
-                        <p className="text-[11px] text-muted-foreground flex items-center gap-1 mt-0.5">
-                          <MapPin className="h-3 w-3" />
-                          {market.city || 'N/A'}
-                        </p>
-                      </div>
 
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                          <Users className="h-3 w-3" />
-                          <span>Employees ({market.employees.length})</span>
-                        </div>
-                        {market.employees.length === 0 ? (
-                          <p className="text-[11px] text-muted-foreground italic">No active employees</p>
-                        ) : (
-                          <div className="flex flex-wrap gap-2 mt-1">
-                            {market.employees.map((employee) => (
-                              <HoverCard key={employee.id}>
-                                <HoverCardTrigger asChild>
-                                  <div 
-                                    className="flex items-center gap-1.5 px-1.5 md:px-2 py-0.5 md:py-1 rounded-md bg-muted hover:bg-muted/80 cursor-pointer transition-colors"
-                                    onClick={() => navigate(`/admin/employee/${employee.id}/markets`)}
-                                  >
-                                    <span className={`h-1.5 w-1.5 md:h-2 md:w-2 rounded-full shrink-0 ${
-                                      employee.status === 'active' ? 'bg-green-500' :
-                                      employee.status === 'half_day' ? 'bg-yellow-500' :
-                                      'bg-red-500'
-                                    }`} />
-                                    <span className="text-[10px] md:text-xs font-medium truncate max-w-[80px] md:max-w-[120px] underline">{employee.name}</span>
-                                  </div>
-                                </HoverCardTrigger>
-                                <HoverCardContent className="w-80">
-                                  <div className="space-y-2">
-                                    <div className="flex items-center justify-between">
-                                      <h4 className="font-semibold">{employee.name}</h4>
-                                      <Badge variant={
-                                        employee.status === 'completed' ? 'default' :
-                                        employee.status === 'half_day' ? 'secondary' :
-                                        'outline'
-                                      }>
-                                        {employee.status === 'completed' ? '🟢 Completed' :
-                                         employee.status === 'half_day' ? '🟡 Incomplete' :
-                                         '🔴 Active'}
-                                      </Badge>
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                            <Users className="h-3 w-3" />
+                            <span>Employees ({market.employees.length})</span>
+                          </div>
+                          {market.employees.length === 0 ? (
+                            <p className="text-[11px] text-muted-foreground italic">No active employees</p>
+                          ) : (
+                            <div className="flex flex-wrap gap-2 mt-1">
+                              {market.employees.map((employee) => (
+                                <HoverCard key={employee.id}>
+                                  <HoverCardTrigger asChild>
+                                    <div 
+                                      className="flex items-center gap-1.5 px-1.5 md:px-2 py-0.5 md:py-1 rounded-md bg-muted hover:bg-muted/80 cursor-pointer transition-colors"
+                                      onClick={() => navigate(`/admin/employee/${employee.id}/markets`)}
+                                    >
+                                      <span className={`h-1.5 w-1.5 md:h-2 md:w-2 rounded-full shrink-0 ${
+                                        employee.status === 'active' ? 'bg-green-500' :
+                                        employee.status === 'half_day' ? 'bg-yellow-500' :
+                                        'bg-red-500'
+                                      }`} />
+                                      <span className="text-[10px] md:text-xs font-medium truncate max-w-[80px] md:max-w-[120px] underline">{employee.name}</span>
                                     </div>
-                                    
-                                    <div className="space-y-1.5 text-sm">
-                                      {employee.punch_in_time && (
-                                        <div className="flex items-center gap-2">
-                                          <Clock className="h-3 w-3 text-muted-foreground" />
-                                          <span className="text-muted-foreground">Punch In:</span>
-                                          <span className="font-medium">
-                                            {format(new Date(employee.punch_in_time), 'hh:mm a')}
-                                          </span>
-                                        </div>
-                                      )}
+                                  </HoverCardTrigger>
+                                  <HoverCardContent className="w-80">
+                                    <div className="space-y-2">
+                                      <div className="flex items-center justify-between">
+                                        <h4 className="font-semibold">{employee.name}</h4>
+                                        <Badge variant={
+                                          employee.status === 'completed' ? 'default' :
+                                          employee.status === 'half_day' ? 'secondary' :
+                                          'outline'
+                                        }>
+                                          {employee.status === 'completed' ? '🟢 Completed' :
+                                           employee.status === 'half_day' ? '🟡 Incomplete' :
+                                           '🔴 Active'}
+                                        </Badge>
+                                      </div>
                                       
-                                      {employee.punch_out_time && (
+                                      <div className="space-y-1.5 text-sm">
+                                        {employee.punch_in_time && (
+                                          <div className="flex items-center gap-2">
+                                            <Clock className="h-3 w-3 text-muted-foreground" />
+                                            <span className="text-muted-foreground">Punch In:</span>
+                                            <span className="font-medium">
+                                              {format(new Date(employee.punch_in_time), 'hh:mm a')}
+                                            </span>
+                                          </div>
+                                        )}
+                                        
+                                        {employee.punch_out_time && (
+                                          <div className="flex items-center gap-2">
+                                            <Clock className="h-3 w-3 text-muted-foreground" />
+                                            <span className="text-muted-foreground">Punch Out:</span>
+                                            <span className="font-medium">
+                                              {format(new Date(employee.punch_out_time), 'hh:mm a')}
+                                            </span>
+                                          </div>
+                                        )}
+                                        
+                                        {employee.duration && (
+                                          <div className="flex items-center gap-2">
+                                            <span className="text-muted-foreground">Duration:</span>
+                                            <span className="font-medium">
+                                              {Math.floor(employee.duration / 60)}h {employee.duration % 60}m
+                                            </span>
+                                          </div>
+                                        )}
+                                        
                                         <div className="flex items-center gap-2">
-                                          <Clock className="h-3 w-3 text-muted-foreground" />
-                                          <span className="text-muted-foreground">Punch Out:</span>
+                                          <span className="text-muted-foreground">Task Progress:</span>
                                           <span className="font-medium">
-                                            {format(new Date(employee.punch_out_time), 'hh:mm a')}
+                                            {employee.completed_tasks}/{employee.total_tasks}
                                           </span>
+                                          {employee.total_tasks > 0 && (
+                                            <span className="text-xs text-muted-foreground">
+                                              ({Math.round((employee.completed_tasks / employee.total_tasks) * 100)}%)
+                                            </span>
+                                          )}
                                         </div>
-                                      )}
-                                      
-                                      {employee.duration && (
-                                        <div className="flex items-center gap-2">
-                                          <span className="text-muted-foreground">Duration:</span>
-                                          <span className="font-medium">
-                                            {Math.floor(employee.duration / 60)}h {employee.duration % 60}m
-                                          </span>
-                                        </div>
-                                      )}
-                                      
-                                      <div className="flex items-center gap-2">
-                                        <span className="text-muted-foreground">Task Progress:</span>
-                                        <span className="font-medium">
-                                          {employee.completed_tasks}/{employee.total_tasks}
-                                        </span>
-                                        {employee.total_tasks > 0 && (
-                                          <span className="text-xs text-muted-foreground">
-                                            ({Math.round((employee.completed_tasks / employee.total_tasks) * 100)}%)
-                                          </span>
+
+                                        {employee.punch_in_lat && employee.punch_in_lng && (
+                                          <a
+                                            href={`https://www.google.com/maps/dir/?api=1&destination=${employee.punch_in_lat},${employee.punch_in_lng}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="flex items-center gap-2 text-primary hover:underline"
+                                            onClick={(e) => e.stopPropagation()}
+                                          >
+                                            <Navigation className="h-3 w-3" />
+                                            <span>Navigate to Location</span>
+                                          </a>
                                         )}
                                       </div>
-
-                                      {employee.punch_in_lat && employee.punch_in_lng && (
-                                        <a
-                                          href={`https://www.google.com/maps/dir/?api=1&destination=${employee.punch_in_lat},${employee.punch_in_lng}`}
-                                          target="_blank"
-                                          rel="noopener noreferrer"
-                                          className="flex items-center gap-2 text-primary hover:underline"
-                                          onClick={(e) => e.stopPropagation()}
-                                        >
-                                          <Navigation className="h-3 w-3" />
-                                          <span>Navigate to Location</span>
-                                        </a>
-                                      )}
                                     </div>
-                                  </div>
-                                </HoverCardContent>
-                              </HoverCard>
-                            ))}
-                          </div>
-                        )}
-                      </div>
+                                  </HoverCardContent>
+                                </HoverCard>
+                              ))}
+                            </div>
+                          )}
+                        </div>
 
-                      <div className="pt-1 border-t">
-                        <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
-                          <Clock className="h-3 w-3" />
-                          <span>Last upload: {formatTime(market.last_upload_time)}</span>
+                        <div className="pt-1 border-t">
+                          <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                            <Clock className="h-3 w-3" />
+                            <span>Last upload: {formatTime(market.last_upload_time)}</span>
+                          </div>
                         </div>
                       </div>
-                    </div>
 
-                    {/* Middle Column: Mini Map */}
-                    <div className="md:border-l md:pl-3 hidden md:block">
-                      <h4 className="text-xs font-semibold mb-1.5 flex items-center gap-1">
-                        <MapPin className="h-3 w-3" />
-                        Employee Locations
-                      </h4>
-                      <EmployeeLocationMiniMap 
-                        employees={market.employees
-                          .filter(e => e.punch_in_lat && e.punch_in_lng)
-                          .map(e => ({
-                            id: e.id,
-                            name: e.name,
-                            initials: e.initials,
-                            lat: e.punch_in_lat!,
-                            lng: e.punch_in_lng!,
-                          }))}
-                        className="h-[140px]"
-                      />
+                      {/* Employee Locations Map - Below Market Info */}
+                      <div className="pt-2 border-t hidden md:block">
+                        <h4 className="text-xs font-semibold mb-1.5 flex items-center gap-1">
+                          <MapPin className="h-3 w-3" />
+                          Employee Locations
+                        </h4>
+                        <EmployeeLocationMiniMap 
+                          employees={market.employees
+                            .filter(e => e.punch_in_lat && e.punch_in_lng)
+                            .map(e => ({
+                              id: e.id,
+                              name: e.name,
+                              initials: e.initials,
+                              lat: e.punch_in_lat!,
+                              lng: e.punch_in_lng!,
+                            }))}
+                          className="h-[140px]"
+                        />
+                      </div>
                     </div>
 
                     {/* Right Column: Task Status */}
