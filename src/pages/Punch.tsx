@@ -316,7 +316,17 @@ export default function Punch() {
       // Note: Punch in (selfie_gps) is already done, counts as 1 task automatically
       
       // Determine status based on task completion
-      const attendanceStatus = completedTasks === totalTasks ? 'present' : 'half_day';
+      // Full day (present): All tasks completed
+      // Half day: At least 1 task completed but not all
+      // Absent: No tasks completed
+      let attendanceStatus: string;
+      if (completedTasks === totalTasks) {
+        attendanceStatus = 'present';
+      } else if (completedTasks > 0) {
+        attendanceStatus = 'half_day';
+      } else {
+        attendanceStatus = 'absent';
+      }
       
       console.log('Task completion:', { completedTasks, totalTasks, status: attendanceStatus });
       
@@ -345,7 +355,9 @@ export default function Punch() {
 
       const statusMessage = attendanceStatus === 'present' 
         ? 'All tasks completed! Marked as full day present.'
-        : `${completedTasks}/${totalTasks} tasks completed. Marked as half day.`;
+        : attendanceStatus === 'half_day'
+        ? `${completedTasks}/${totalTasks} tasks completed. Marked as half day.`
+        : 'No tasks completed. Marked as absent.';
       
       toast.success(`Session completed! ${statusMessage}`);
       
