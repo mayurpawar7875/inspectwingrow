@@ -11,6 +11,8 @@ interface EmployeeStatus {
   duration: number | null;
   completed_tasks: number;
   total_tasks: number;
+  punch_in_lat: number | null;
+  punch_in_lng: number | null;
 }
 
 interface LiveMarket {
@@ -96,7 +98,8 @@ const fetchBatchedTaskStats = async (marketIds: string[], todayDate: string) => 
     feedbackRes,
     inspectionsRes,
     planningRes,
-    collectionsRes
+    collectionsRes,
+    attendanceRes
   ] = await Promise.all([
     // Employees lookup
     allUserIds.length > 0 
@@ -140,7 +143,11 @@ const fetchBatchedTaskStats = async (marketIds: string[], todayDate: string) => 
     supabase.from('collections')
       .select('market_id, collected_by')
       .in('market_id', marketIds)
-      .eq('collection_date', todayDate)
+      .eq('collection_date', todayDate),
+    // Attendance records for GPS coordinates
+    supabase.from('attendance_records')
+      .select('session_id, user_id, punch_in_lat, punch_in_lng')
+      .in('session_id', safeSessionIds)
   ]);
 
   const employeeMap = new Map<string, { name: string; status: string }>(
@@ -197,6 +204,14 @@ const fetchBatchedTaskStats = async (marketIds: string[], todayDate: string) => 
     collectionsByMarket.get(c.market_id)!.push(c);
   });
 
+  // GPS coordinates by user_id (from attendance records)
+  const gpsByUser = new Map<string, { lat: number; lng: number }>();
+  attendanceRes.data?.forEach(a => {
+    if (a.user_id && a.punch_in_lat && a.punch_in_lng) {
+      gpsByUser.set(a.user_id, { lat: a.punch_in_lat, lng: a.punch_in_lng });
+    }
+  });
+
   return {
     sessionsByMarket,
     employeeMap,
@@ -207,7 +222,8 @@ const fetchBatchedTaskStats = async (marketIds: string[], todayDate: string) => 
     feedbackByMarket,
     inspectionsBySession,
     planningByMarket,
-    collectionsByMarket
+    collectionsByMarket,
+    gpsByUser
   };
 };
 
@@ -357,6 +373,9 @@ const fetchLiveMarketsData = async () => {
         ? Math.floor((new Date(latestOut).getTime() - new Date(earliestIn).getTime()) / (1000 * 60))
         : null;
 
+      // Get GPS coordinates for this user
+      const userGps = batchedData.gpsByUser.get(userId);
+
       return {
         id: userId,
         name: fullName,
@@ -367,6 +386,8 @@ const fetchLiveMarketsData = async () => {
         duration,
         completed_tasks: completedTasks,
         total_tasks: totalTasksCount,
+        punch_in_lat: userGps?.lat ?? null,
+        punch_in_lng: userGps?.lng ?? null,
       };
     });
 
