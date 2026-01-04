@@ -183,6 +183,25 @@ export default function MyAttendance() {
           ...prev,
           [sessionId]: { completed, total: EMPLOYEE_TOTAL_TASKS, loading: false },
         }));
+
+        // Persist computed tasks + derived attendance status so the calendar/reports match.
+        // Only update rows that are still in the initial 'present' state.
+        if (user?.id) {
+          const completionPercentage = (completed / EMPLOYEE_TOTAL_TASKS) * 100;
+          const computedStatus =
+            completionPercentage >= 95 ? 'full_day' : completionPercentage >= 55 ? 'half_day' : 'absent';
+
+          await supabase
+            .from('attendance_records')
+            .update({
+              completed_tasks: completed,
+              total_tasks: EMPLOYEE_TOTAL_TASKS,
+              status: computedStatus,
+            })
+            .eq('user_id', user.id)
+            .eq('session_id', sessionId)
+            .in('status', ['present']);
+        }
       } catch {
         // If anything fails, keep UI stable with a safe default.
         setTaskProgressBySession((prev) => ({
@@ -191,7 +210,7 @@ export default function MyAttendance() {
         }));
       }
     },
-    [EMPLOYEE_TOTAL_TASKS, taskProgressBySession]
+    [EMPLOYEE_TOTAL_TASKS, taskProgressBySession, user?.id]
   );
 
 
@@ -226,7 +245,8 @@ export default function MyAttendance() {
     }
     
     // If DB has a valid calculated status (full_day, half_day, absent), use it directly
-    if (dbStatus === 'full_day' || dbStatus === 'present') {
+    // NOTE: 'present' means "punched-in" and still needs calculation (tasks/hours).
+    if (dbStatus === 'full_day') {
       return 'full_day';
     }
     if (dbStatus === 'half_day') {
@@ -431,6 +451,19 @@ export default function MyAttendance() {
 
     const record = getRecordForDate(date);
     if (record) {
+      const roleToUse = record.role || currentRole || 'employee';
+
+      // For organisers, prefer task-based status once task progress is computed.
+      if (roleToUse === 'employee' && record.session_id) {
+        const progress = taskProgressBySession[record.session_id];
+        if (progress && !progress.loading && progress.total > 0) {
+          const completionPercentage = (progress.completed / progress.total) * 100;
+          if (completionPercentage >= 95) return 'full_day';
+          if (completionPercentage >= 55) return 'half_day';
+          return 'absent';
+        }
+      }
+
       return record.status;
     }
 
