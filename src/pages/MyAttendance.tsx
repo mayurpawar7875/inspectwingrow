@@ -208,25 +208,28 @@ export default function MyAttendance() {
     return records.find(r => r.attendance_date === dateStr);
   };
 
-  const getDayStatus = (date: Date): 'full_day' | 'half_day' | 'absent' | 'weekly_off' | 'future' | 'no_record' => {
+  const getDayStatus = (
+    date: Date
+  ): 'full_day' | 'half_day' | 'absent' | 'weekly_off' | 'future' => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    
-    if (date > today) {
-      return 'future';
-    }
-    
-    // Monday is weekly off
+
+    // Monday is weekly off for all employees (even if it's in the future)
     if (date.getDay() === 1) {
       return 'weekly_off';
     }
-    
+
+    if (date > today) {
+      return 'future';
+    }
+
     const record = getRecordForDate(date);
     if (record) {
       return record.status;
     }
-    
-    return 'no_record';
+
+    // Past working day with no record => Absent
+    return 'absent';
   };
 
   const getDayClasses = (date: Date, isCurrentMonth: boolean): string => {
@@ -265,39 +268,30 @@ export default function MyAttendance() {
   };
 
   const getStatusSummary = () => {
-    // Calculate summary based on the current month's calendar view
+    // Summary counts days up to today (no future days), treating missing records as Absent.
     const monthStart = startOfMonth(currentMonth);
     const monthEnd = endOfMonth(currentMonth);
-    const today = new Date();
-    today.setHours(23, 59, 59, 999);
-    
+
+    const todayEod = new Date();
+    todayEod.setHours(23, 59, 59, 999);
+
     const days = eachDayOfInterval({ start: monthStart, end: monthEnd });
-    
+
     let fullDays = 0;
     let halfDays = 0;
     let absent = 0;
     let weeklyOffs = 0;
-    
-    days.forEach(day => {
-      // Skip future dates
-      if (day > today) return;
-      
-      // Monday is weekly off (getDay() === 1)
-      if (day.getDay() === 1) {
-        weeklyOffs++;
-        return;
-      }
-      
-      const record = getRecordForDate(day);
-      if (record) {
-        if (record.status === 'full_day') fullDays++;
-        else if (record.status === 'half_day') halfDays++;
-        else if (record.status === 'absent') absent++;
-        else if (record.status === 'weekly_off') weeklyOffs++;
-      }
-      // Days without records and not Monday are not counted (no attendance record means no data)
+
+    days.forEach((day) => {
+      if (day > todayEod) return;
+
+      const status = getDayStatus(day);
+      if (status === 'full_day') fullDays++;
+      else if (status === 'half_day') halfDays++;
+      else if (status === 'absent') absent++;
+      else if (status === 'weekly_off') weeklyOffs++;
     });
-    
+
     return { fullDays, halfDays, absent, weeklyOffs };
   };
 
@@ -396,7 +390,6 @@ export default function MyAttendance() {
             {status === 'absent' && <Badge className="bg-red-500/10 text-red-600 border-red-500/20">Absent</Badge>}
             {status === 'weekly_off' && <Badge className="bg-blue-500/10 text-blue-600 border-blue-500/20">Weekly Off</Badge>}
             {status === 'future' && <Badge variant="outline">Future</Badge>}
-            {status === 'no_record' && <Badge variant="outline">No Record</Badge>}
           </div>
           
           {record && (
