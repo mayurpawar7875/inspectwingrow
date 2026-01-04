@@ -3,12 +3,12 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/lib/auth';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, ArrowLeft, CheckCircle, AlertCircle, XCircle, CalendarCheck } from 'lucide-react';
-import { format } from 'date-fns';
+import { Calendar, ArrowLeft, CheckCircle, AlertCircle, XCircle, CalendarCheck, ChevronLeft, ChevronRight } from 'lucide-react';
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths } from 'date-fns';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
+import { cn } from '@/lib/utils';
 
 interface AttendanceRecord {
   id: string;
@@ -28,6 +28,8 @@ export default function MyAttendance() {
   const navigate = useNavigate();
   const [records, setRecords] = useState<AttendanceRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 
   useEffect(() => {
     if (user) {
@@ -60,7 +62,6 @@ export default function MyAttendance() {
     }
     
     // If DB has a valid calculated status (full_day, half_day, absent), use it directly
-    // This is the status calculated at punch-out time
     if (dbStatus === 'full_day' || dbStatus === 'present') {
       return 'full_day';
     }
@@ -74,9 +75,8 @@ export default function MyAttendance() {
     // Use role from record, or fall back to current user role
     const roleToUse = recordRole || currentRole || 'employee';
     
-    // For records without a final status (still active), calculate based on role logic
+    // For records without a final status, calculate based on role logic
     if (roleToUse === 'market_manager' || roleToUse === 'bdo') {
-      // Market Manager & BDO: Based on WORKING HOURS
       if (punchInTime && punchOutTime) {
         const punchIn = new Date(punchInTime);
         const punchOut = new Date(punchOutTime);
@@ -93,7 +93,7 @@ export default function MyAttendance() {
       // Organiser (employee): Based on TASK COMPLETION
       // ≥95% = Full Day, ≥55% = Half Day, <55% = Absent
       const completed = completedTasks || 0;
-      const total = totalTasks || 12; // Default to 12 tasks
+      const total = totalTasks || 12;
       const completionPercentage = total > 0 ? (completed / total) * 100 : 0;
       
       if (completionPercentage >= 95) {
@@ -105,12 +105,10 @@ export default function MyAttendance() {
       }
     }
     
-    // If punched in but not out yet, mark as present (will be updated on punch out)
     if (punchInTime && !punchOutTime) {
-      return 'full_day'; // Assume present until punch out
+      return 'full_day';
     }
     
-    // Default to absent if no punch in
     return 'absent';
   };
 
@@ -119,8 +117,7 @@ export default function MyAttendance() {
     
     setLoading(true);
     
-    // Fetch last 30 days
-    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const thirtyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000); // Extended to 90 days for calendar view
     
     const { data, error } = await supabase
       .from('attendance_records')
@@ -135,7 +132,6 @@ export default function MyAttendance() {
       return;
     }
     
-    // Fetch market names via sessions
     if (data && data.length > 0) {
       const sessionIds = [...new Set(data.map(r => r.session_id).filter(Boolean))];
       
@@ -207,18 +203,64 @@ export default function MyAttendance() {
     };
   };
 
-  const getStatusBadge = (status: string) => {
+  const getRecordForDate = (date: Date): AttendanceRecord | undefined => {
+    const dateStr = format(date, 'yyyy-MM-dd');
+    return records.find(r => r.attendance_date === dateStr);
+  };
+
+  const getDayStatus = (date: Date): 'full_day' | 'half_day' | 'absent' | 'weekly_off' | 'future' | 'no_record' => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    if (date > today) {
+      return 'future';
+    }
+    
+    // Monday is weekly off
+    if (date.getDay() === 1) {
+      return 'weekly_off';
+    }
+    
+    const record = getRecordForDate(date);
+    if (record) {
+      return record.status;
+    }
+    
+    return 'no_record';
+  };
+
+  const getDayClasses = (date: Date, isCurrentMonth: boolean): string => {
+    const status = getDayStatus(date);
+    const isToday = isSameDay(date, new Date());
+    const isSelected = selectedDate && isSameDay(date, selectedDate);
+    
+    let baseClasses = 'h-10 w-10 rounded-full flex items-center justify-center text-sm font-medium transition-all cursor-pointer';
+    
+    if (!isCurrentMonth) {
+      baseClasses += ' opacity-30';
+    }
+    
+    if (isSelected) {
+      baseClasses += ' ring-2 ring-primary ring-offset-2';
+    }
+    
+    if (isToday) {
+      baseClasses += ' border-2 border-primary';
+    }
+    
     switch (status) {
       case 'full_day':
-        return <Badge className="bg-green-500/10 text-green-600 border-green-500/20">Full Day</Badge>;
+        return cn(baseClasses, 'bg-green-500 text-white hover:bg-green-600');
       case 'half_day':
-        return <Badge className="bg-amber-500/10 text-amber-600 border-amber-500/20">Half Day</Badge>;
+        return cn(baseClasses, 'bg-amber-500 text-white hover:bg-amber-600');
       case 'absent':
-        return <Badge className="bg-red-500/10 text-red-600 border-red-500/20">Absent</Badge>;
+        return cn(baseClasses, 'bg-red-500 text-white hover:bg-red-600');
       case 'weekly_off':
-        return <Badge className="bg-blue-500/10 text-blue-600 border-blue-500/20">Weekly Off</Badge>;
+        return cn(baseClasses, 'bg-blue-100 text-blue-700 hover:bg-blue-200');
+      case 'future':
+        return cn(baseClasses, 'bg-muted text-muted-foreground');
       default:
-        return <Badge variant="outline">{status}</Badge>;
+        return cn(baseClasses, 'bg-muted/50 text-muted-foreground hover:bg-muted');
     }
   };
 
@@ -231,68 +273,201 @@ export default function MyAttendance() {
     return { fullDays, halfDays, absent, weeklyOffs };
   };
 
+  const renderCalendar = () => {
+    const monthStart = startOfMonth(currentMonth);
+    const monthEnd = endOfMonth(currentMonth);
+    const days = eachDayOfInterval({ start: monthStart, end: monthEnd });
+    
+    // Get day of week for first day (0 = Sunday)
+    const startDay = monthStart.getDay();
+    
+    // Add empty cells for days before month starts
+    const emptyCells = Array(startDay).fill(null);
+    
+    const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    
+    return (
+      <div className="space-y-4">
+        {/* Month Navigation */}
+        <div className="flex items-center justify-between">
+          <Button variant="ghost" size="icon" onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}>
+            <ChevronLeft className="h-5 w-5" />
+          </Button>
+          <h3 className="text-lg font-semibold">{format(currentMonth, 'MMMM yyyy')}</h3>
+          <Button variant="ghost" size="icon" onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}>
+            <ChevronRight className="h-5 w-5" />
+          </Button>
+        </div>
+        
+        {/* Week day headers */}
+        <div className="grid grid-cols-7 gap-1">
+          {weekDays.map(day => (
+            <div key={day} className="h-10 flex items-center justify-center text-xs font-medium text-muted-foreground">
+              {day}
+            </div>
+          ))}
+        </div>
+        
+        {/* Calendar days */}
+        <div className="grid grid-cols-7 gap-1">
+          {emptyCells.map((_, i) => (
+            <div key={`empty-${i}`} className="h-10" />
+          ))}
+          {days.map(day => (
+            <div
+              key={day.toISOString()}
+              className="flex items-center justify-center"
+              onClick={() => setSelectedDate(day)}
+            >
+              <div className={getDayClasses(day, isSameMonth(day, currentMonth))}>
+                {format(day, 'd')}
+              </div>
+            </div>
+          ))}
+        </div>
+        
+        {/* Legend */}
+        <div className="flex flex-wrap gap-3 pt-4 border-t">
+          <div className="flex items-center gap-2">
+            <div className="h-4 w-4 rounded-full bg-green-500" />
+            <span className="text-xs text-muted-foreground">Full Day</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="h-4 w-4 rounded-full bg-amber-500" />
+            <span className="text-xs text-muted-foreground">Half Day</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="h-4 w-4 rounded-full bg-red-500" />
+            <span className="text-xs text-muted-foreground">Absent</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="h-4 w-4 rounded-full bg-blue-100 border border-blue-300" />
+            <span className="text-xs text-muted-foreground">Weekly Off</span>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderSelectedDateDetails = () => {
+    if (!selectedDate) return null;
+    
+    const record = getRecordForDate(selectedDate);
+    const status = getDayStatus(selectedDate);
+    
+    return (
+      <Card className="mt-4">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">{format(selectedDate, 'EEEE, MMMM d, yyyy')}</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground">Status:</span>
+            {status === 'full_day' && <Badge className="bg-green-500/10 text-green-600 border-green-500/20">Full Day</Badge>}
+            {status === 'half_day' && <Badge className="bg-amber-500/10 text-amber-600 border-amber-500/20">Half Day</Badge>}
+            {status === 'absent' && <Badge className="bg-red-500/10 text-red-600 border-red-500/20">Absent</Badge>}
+            {status === 'weekly_off' && <Badge className="bg-blue-500/10 text-blue-600 border-blue-500/20">Weekly Off</Badge>}
+            {status === 'future' && <Badge variant="outline">Future</Badge>}
+            {status === 'no_record' && <Badge variant="outline">No Record</Badge>}
+          </div>
+          
+          {record && (
+            <>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">Market:</span>
+                <span className="text-sm font-medium">{record.market_name || 'N/A'}</span>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <span className="text-sm text-muted-foreground">Punch In:</span>
+                  <p className="text-sm font-medium">
+                    {record.punch_in_time ? format(new Date(record.punch_in_time), 'hh:mm a') : '-'}
+                  </p>
+                </div>
+                <div>
+                  <span className="text-sm text-muted-foreground">Punch Out:</span>
+                  <p className="text-sm font-medium">
+                    {record.punch_out_time ? format(new Date(record.punch_out_time), 'hh:mm a') : '-'}
+                  </p>
+                </div>
+              </div>
+              {record.total_tasks !== null && (
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground">Tasks:</span>
+                  <span className="text-sm font-medium">
+                    {record.completed_tasks || 0}/{record.total_tasks} ({Math.round(((record.completed_tasks || 0) / record.total_tasks) * 100)}%)
+                  </span>
+                </div>
+              )}
+            </>
+          )}
+        </CardContent>
+      </Card>
+    );
+  };
+
   const summary = getStatusSummary();
 
   return (
-    <div className="min-h-screen bg-background p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <div className="min-h-screen bg-background p-4 md:p-6">
+      <div className="max-w-4xl mx-auto space-y-6">
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
-            <h1 className="text-3xl font-bold">My Attendance</h1>
-            <p className="text-muted-foreground">View your attendance records for the last 30 days</p>
+            <h1 className="text-2xl md:text-3xl font-bold">My Attendance</h1>
+            <p className="text-sm text-muted-foreground">View your attendance calendar</p>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
           <Card className="bg-green-50/50 border-green-100">
-            <CardContent className="pt-6">
-              <div className="text-center space-y-2">
-                <CheckCircle className="w-10 h-10 mx-auto text-green-600" />
-                <div className="text-3xl font-bold text-green-600">{summary.fullDays}</div>
-                <div className="text-sm text-green-700/70">Full Days</div>
+            <CardContent className="pt-4 pb-4">
+              <div className="text-center space-y-1">
+                <CheckCircle className="w-6 h-6 mx-auto text-green-600" />
+                <div className="text-2xl font-bold text-green-600">{summary.fullDays}</div>
+                <div className="text-xs text-green-700/70">Full Days</div>
               </div>
             </CardContent>
           </Card>
 
           <Card className="bg-amber-50/50 border-amber-100">
-            <CardContent className="pt-6">
-              <div className="text-center space-y-2">
-                <AlertCircle className="w-10 h-10 mx-auto text-amber-600" />
-                <div className="text-3xl font-bold text-amber-600">{summary.halfDays}</div>
-                <div className="text-sm text-amber-700/70">Half Days</div>
+            <CardContent className="pt-4 pb-4">
+              <div className="text-center space-y-1">
+                <AlertCircle className="w-6 h-6 mx-auto text-amber-600" />
+                <div className="text-2xl font-bold text-amber-600">{summary.halfDays}</div>
+                <div className="text-xs text-amber-700/70">Half Days</div>
               </div>
             </CardContent>
           </Card>
 
           <Card className="bg-red-50/50 border-red-100">
-            <CardContent className="pt-6">
-              <div className="text-center space-y-2">
-                <XCircle className="w-10 h-10 mx-auto text-red-600" />
-                <div className="text-3xl font-bold text-red-600">{summary.absent}</div>
-                <div className="text-sm text-red-700/70">Absences</div>
+            <CardContent className="pt-4 pb-4">
+              <div className="text-center space-y-1">
+                <XCircle className="w-6 h-6 mx-auto text-red-600" />
+                <div className="text-2xl font-bold text-red-600">{summary.absent}</div>
+                <div className="text-xs text-red-700/70">Absences</div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-slate-50/50 border-slate-100">
-            <CardContent className="pt-6">
-              <div className="text-center space-y-2">
-                <Calendar className="w-10 h-10 mx-auto text-slate-600" />
-                <div className="text-3xl font-bold text-slate-600">{summary.weeklyOffs}</div>
-                <div className="text-sm text-slate-700/70">Weekly Offs</div>
+          <Card className="bg-blue-50/50 border-blue-100">
+            <CardContent className="pt-4 pb-4">
+              <div className="text-center space-y-1">
+                <Calendar className="w-6 h-6 mx-auto text-blue-600" />
+                <div className="text-2xl font-bold text-blue-600">{summary.weeklyOffs}</div>
+                <div className="text-xs text-blue-700/70">Weekly Offs</div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-slate-50/50 border-slate-100">
-            <CardContent className="pt-6">
-              <div className="text-center space-y-2">
-                <CalendarCheck className="w-10 h-10 mx-auto text-slate-600" />
-                <div className="text-3xl font-bold text-slate-600">{summary.fullDays + summary.halfDays + summary.weeklyOffs}</div>
-                <div className="text-sm text-slate-700/70">Total Days</div>
+          <Card className="bg-slate-50/50 border-slate-100 col-span-2 md:col-span-1">
+            <CardContent className="pt-4 pb-4">
+              <div className="text-center space-y-1">
+                <CalendarCheck className="w-6 h-6 mx-auto text-slate-600" />
+                <div className="text-2xl font-bold text-slate-600">{summary.fullDays + summary.halfDays + summary.weeklyOffs}</div>
+                <div className="text-xs text-slate-700/70">Total Days</div>
               </div>
             </CardContent>
           </Card>
@@ -302,43 +477,17 @@ export default function MyAttendance() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Calendar className="h-5 w-5" />
-              Attendance Records
+              Attendance Calendar
             </CardTitle>
           </CardHeader>
           <CardContent>
             {loading ? (
               <div className="text-center py-8 text-muted-foreground">Loading...</div>
-            ) : records.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                No attendance records found
-              </div>
             ) : (
-              <div className="rounded-md border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Market</TableHead>
-                      <TableHead>Punch In</TableHead>
-                      <TableHead>Punch Out</TableHead>
-                      <TableHead>Status</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {records.map((record) => (
-                      <TableRow key={record.id}>
-                        <TableCell className="font-medium">
-                          {format(new Date(record.attendance_date), 'MMM dd, yyyy (EEE)')}
-                        </TableCell>
-                        <TableCell>{record.market_name || 'N/A'}</TableCell>
-                        <TableCell>{record.punch_in_time ? format(new Date(record.punch_in_time), 'hh:mm a') : '-'}</TableCell>
-                        <TableCell>{record.punch_out_time ? format(new Date(record.punch_out_time), 'hh:mm a') : '-'}</TableCell>
-                        <TableCell>{getStatusBadge(record.status)}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
+              <>
+                {renderCalendar()}
+                {renderSelectedDateDetails()}
+              </>
             )}
           </CardContent>
         </Card>
