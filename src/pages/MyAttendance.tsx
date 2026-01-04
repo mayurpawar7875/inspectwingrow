@@ -37,7 +37,7 @@ export default function MyAttendance() {
   }, [user]);
 
   // Different attendance logic per role:
-  // - Organiser (employee): Based on TASK COMPLETION (≥50% = Full Day, <50% but some = Half Day)
+  // - Organiser (employee): Based on TASK COMPLETION (≥95% = Full Day, ≥55% = Half Day, <55% = Absent)
   // - Market Manager & BDO: Based on WORKING HOURS (≥8 hrs = Full Day, ≥4 hrs = Half Day)
   const calculateStatus = (
     completedTasks: number | null, 
@@ -91,16 +91,18 @@ export default function MyAttendance() {
       }
     } else {
       // Organiser (employee): Based on TASK COMPLETION
+      // ≥95% = Full Day, ≥55% = Half Day, <55% = Absent
       const completed = completedTasks || 0;
       const total = totalTasks || 12; // Default to 12 tasks
       const completionPercentage = total > 0 ? (completed / total) * 100 : 0;
       
-      if (completionPercentage >= 50) {
+      if (completionPercentage >= 95) {
         return 'full_day';
-      } else if (completed > 0) {
+      } else if (completionPercentage >= 55) {
         return 'half_day';
+      } else {
+        return 'absent';
       }
-      // If no tasks completed but punched in, still active
     }
     
     // If punched in but not out yet, mark as present (will be updated on punch out)

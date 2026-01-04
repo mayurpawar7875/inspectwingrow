@@ -326,15 +326,15 @@ export default function Punch() {
       const totalTasks = 12; // Excluding punch-in selfie
       
       // ORGANISER attendance is based on TASK COMPLETION, not working hours
-      // Full day: ≥50% tasks completed (6 or more out of 12)
-      // Half day: Some tasks completed but less than 50%
-      // Absent: No tasks completed
+      // Full day: ≥95% tasks completed
+      // Half day: ≥55% but <95%
+      // Absent: <55%
       let attendanceStatus: string;
       const completionPercentage = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
       
-      if (completionPercentage >= 50) {
+      if (completionPercentage >= 95) {
         attendanceStatus = 'full_day';
-      } else if (completedTasks > 0) {
+      } else if (completionPercentage >= 55) {
         attendanceStatus = 'half_day';
       } else {
         attendanceStatus = 'absent';
