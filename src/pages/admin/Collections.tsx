@@ -389,6 +389,41 @@ export default function Collections() {
       const { error } = await supabase.from('collections').insert(allPayload);
       if (error) throw error;
 
+      // Append to Google Sheet
+      try {
+        // Get market name
+        const { data: marketData } = await supabase
+          .from('markets')
+          .select('name')
+          .eq('id', sessionMarketId)
+          .single();
+
+        const collectionsForSheet = allPayload.map(p => ({
+          stall_name: p.stall_name,
+          farmer_name: p.farmer_name,
+          amount: p.amount,
+          payment_mode: p.mode,
+        }));
+
+        const { error: sheetError } = await supabase.functions.invoke('append-to-sheet', {
+          body: {
+            collections: collectionsForSheet,
+            market_name: marketData?.name || 'Unknown Market',
+            collection_date: sessionDate,
+          },
+        });
+
+        if (sheetError) {
+          console.error('Failed to append to Google Sheet:', sheetError);
+          toast.warning('Collections saved but failed to sync to Google Sheet');
+        } else {
+          console.log('Successfully appended to Google Sheet');
+        }
+      } catch (sheetErr) {
+        console.error('Error appending to sheet:', sheetErr);
+        // Don't fail the whole operation if sheet append fails
+      }
+
       toast.success('Rent collections saved successfully!');
       // Clear manual entries after successful save
       setManualEntries([]);
