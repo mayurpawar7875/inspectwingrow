@@ -265,10 +265,38 @@ export default function MyAttendance() {
   };
 
   const getStatusSummary = () => {
-    const fullDays = records.filter(r => r.status === 'full_day').length;
-    const halfDays = records.filter(r => r.status === 'half_day').length;
-    const absent = records.filter(r => r.status === 'absent').length;
-    const weeklyOffs = records.filter(r => r.status === 'weekly_off').length;
+    // Calculate summary based on the current month's calendar view
+    const monthStart = startOfMonth(currentMonth);
+    const monthEnd = endOfMonth(currentMonth);
+    const today = new Date();
+    today.setHours(23, 59, 59, 999);
+    
+    const days = eachDayOfInterval({ start: monthStart, end: monthEnd });
+    
+    let fullDays = 0;
+    let halfDays = 0;
+    let absent = 0;
+    let weeklyOffs = 0;
+    
+    days.forEach(day => {
+      // Skip future dates
+      if (day > today) return;
+      
+      // Monday is weekly off (getDay() === 1)
+      if (day.getDay() === 1) {
+        weeklyOffs++;
+        return;
+      }
+      
+      const record = getRecordForDate(day);
+      if (record) {
+        if (record.status === 'full_day') fullDays++;
+        else if (record.status === 'half_day') halfDays++;
+        else if (record.status === 'absent') absent++;
+        else if (record.status === 'weekly_off') weeklyOffs++;
+      }
+      // Days without records and not Monday are not counted (no attendance record means no data)
+    });
     
     return { fullDays, halfDays, absent, weeklyOffs };
   };
