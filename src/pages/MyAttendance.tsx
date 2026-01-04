@@ -20,10 +20,11 @@ interface AttendanceRecord {
   completed_tasks: number | null;
   total_tasks: number | null;
   market_name?: string;
+  role?: string | null;
 }
 
 export default function MyAttendance() {
-  const { user } = useAuth();
+  const { user, currentRole } = useAuth();
   const navigate = useNavigate();
   const [records, setRecords] = useState<AttendanceRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -35,13 +36,17 @@ export default function MyAttendance() {
     }
   }, [user]);
 
+  // Different attendance thresholds per role:
+  // - Organiser (employee): Full Day ≥6 hrs, Half Day ≥3 hrs
+  // - Market Manager & BDO: Full Day ≥8 hrs, Half Day ≥4 hrs
   const calculateStatus = (
     completedTasks: number | null, 
     totalTasks: number | null, 
     dbStatus: string | null,
     attendanceDate: string,
     punchInTime: string | null,
-    punchOutTime: string | null
+    punchOutTime: string | null,
+    recordRole?: string | null
   ): 'full_day' | 'half_day' | 'absent' | 'weekly_off' => {
     // Check if it's Monday (weekly off) - Monday = 1 in getDay()
     const date = new Date(attendanceDate);
@@ -68,10 +73,24 @@ export default function MyAttendance() {
       const punchOut = new Date(punchOutTime);
       const workingHours = (punchOut.getTime() - punchIn.getTime()) / (1000 * 60 * 60);
       
-      if (workingHours >= 6) {
-        return 'full_day';
-      } else if (workingHours >= 3) {
-        return 'half_day';
+      // Use role from record, or fall back to current user role
+      const roleToUse = recordRole || currentRole || 'employee';
+      
+      // Different thresholds based on role
+      if (roleToUse === 'market_manager' || roleToUse === 'bdo') {
+        // Market Manager & BDO: 8 hrs for full day, 4 hrs for half day
+        if (workingHours >= 8) {
+          return 'full_day';
+        } else if (workingHours >= 4) {
+          return 'half_day';
+        }
+      } else {
+        // Organiser (employee): 6 hrs for full day, 3 hrs for half day
+        if (workingHours >= 6) {
+          return 'full_day';
+        } else if (workingHours >= 3) {
+          return 'half_day';
+        }
       }
     }
     
@@ -126,7 +145,8 @@ export default function MyAttendance() {
             record.status,
             record.attendance_date,
             record.punch_in_time,
-            record.punch_out_time
+            record.punch_out_time,
+            record.role
           ),
         }));
         
@@ -140,7 +160,8 @@ export default function MyAttendance() {
             r.status,
             r.attendance_date,
             r.punch_in_time,
-            r.punch_out_time
+            r.punch_out_time,
+            r.role
           )
         })));
       }
