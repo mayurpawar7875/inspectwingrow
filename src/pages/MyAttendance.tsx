@@ -99,7 +99,7 @@ export default function MyAttendance() {
 
         completed += requiredMediaTypes.filter((t) => uploadedTypes.has(t)).length;
 
-        const [stallsRes, offersRes, commoditiesRes, inspectionsRes, feedbackRes, planningRes] = await Promise.all([
+        const [stallsRes, offersRes, commoditiesRes, inspectionsRes, feedbackRes, planningRes, collectionsRes] = await Promise.all([
           stallsPromise,
           resolvedMarketId && dateStr
             ? supabase
@@ -146,6 +146,14 @@ export default function MyAttendance() {
                 .from('next_day_planning')
                 .select('*', { count: 'exact', head: true })
                 .eq('session_id', sessionId),
+          // Collections query
+          resolvedMarketId && dateStr
+            ? supabase
+                .from('collections')
+                .select('*', { count: 'exact', head: true })
+                .eq('market_id', resolvedMarketId)
+                .eq('collection_date', dateStr)
+            : Promise.resolve({ count: 0 } as any),
         ]);
 
         // Task 2: stalls
@@ -160,13 +168,16 @@ export default function MyAttendance() {
         // Task 11: Stall Inspections
         if ((inspectionsRes as any)?.count > 0) completed++;
 
-        // Task 12: Punch Out
-        if (sessionMeta?.punch_out_time) completed++;
+        // Task 12: Organiser Feedback
+        if ((feedbackRes as any)?.count > 0) completed++;
 
-        // Task 13: Feedback OR Next Day Planning (either one counts)
-        const feedbackOrPlanningCompleted =
-          (((feedbackRes as any)?.count ?? 0) > 0) || (((planningRes as any)?.count ?? 0) > 0);
-        if (feedbackOrPlanningCompleted) completed++;
+        // Task 13: Next Day Planning
+        if ((planningRes as any)?.count > 0) completed++;
+
+        // Note: Collections is NOT counted as a separate task per current 13-task definition
+        // The 13 tasks are: Punch In, 6 Media types, Stall Confirmations, Offers, Commodities, 
+        // Inspections, Feedback, Next Day Planning
+        // Collections and Punch Out are NOT part of the 13 tasks for organisers
 
         setTaskProgressBySession((prev) => ({
           ...prev,
