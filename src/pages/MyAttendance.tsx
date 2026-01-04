@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/lib/auth';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -20,6 +20,8 @@ interface AttendanceRecord {
   completed_tasks: number | null;
   total_tasks: number | null;
   market_name?: string;
+  market_id?: string | null;
+  session_date?: string | null;
   role?: string | null;
 }
 
@@ -30,6 +32,129 @@ export default function MyAttendance() {
   const [loading, setLoading] = useState(true);
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+
+  const EMPLOYEE_TOTAL_TASKS = 12 as const;
+
+  type TaskProgress = {
+    completed: number;
+    total: number;
+    loading: boolean;
+  };
+
+  const [taskProgressBySession, setTaskProgressBySession] = useState<Record<string, TaskProgress>>({});
+
+  const loadTaskProgressForSession = useCallback(
+    async (sessionId: string, marketId?: string | null, sessionDate?: string | null) => {
+      if (!sessionId) return;
+
+      // Prevent duplicate in-flight fetches.
+      if (taskProgressBySession[sessionId]?.loading) return;
+
+      setTaskProgressBySession((prev) => ({
+        ...prev,
+        [sessionId]: {
+          completed: prev[sessionId]?.completed ?? 0,
+          total: EMPLOYEE_TOTAL_TASKS,
+          loading: true,
+        },
+      }));
+
+      try {
+        let resolvedMarketId = marketId ?? null;
+        let resolvedSessionDate = sessionDate ?? null;
+
+        // Some older attendance rows don't store market_id/session_date; resolve from session.
+        if (!resolvedMarketId || !resolvedSessionDate) {
+          const { data: sessionMeta } = await supabase
+            .from('sessions')
+            .select('market_id, session_date')
+            .eq('id', sessionId)
+            .maybeSingle();
+
+          resolvedMarketId = resolvedMarketId ?? sessionMeta?.market_id ?? null;
+          resolvedSessionDate = resolvedSessionDate ?? sessionMeta?.session_date ?? null;
+        }
+
+        const dateStr = (resolvedSessionDate || '').slice(0, 10) || undefined;
+
+        // 1) Media uploads (5 required types, excluding selfie_gps)
+        const { data: mediaData } = await supabase
+          .from('media')
+          .select('media_type')
+          .eq('session_id', sessionId);
+
+        const uploadedTypes = new Set(mediaData?.map((m: any) => m.media_type) || []);
+        const requiredMediaTypes: Array<
+          'outside_rates' | 'rate_board' | 'market_video' | 'cleaning_video' | 'customer_feedback'
+        > = ['outside_rates', 'rate_board', 'market_video', 'cleaning_video', 'customer_feedback'];
+
+        let completed = requiredMediaTypes.filter((t) => uploadedTypes.has(t)).length;
+
+        const [
+          stallsRes,
+          offersRes,
+          commoditiesRes,
+          feedbackRes,
+          inspectionsRes,
+          planningRes,
+          collectionsRes,
+        ] = await Promise.all([
+          resolvedMarketId && dateStr
+            ? supabase
+                .from('stall_confirmations')
+                .select('*', { count: 'exact', head: true })
+                .eq('market_id', resolvedMarketId)
+                .eq('market_date', dateStr)
+            : Promise.resolve({ count: 0 } as any),
+          supabase.from('offers').select('*', { count: 'exact', head: true }).eq('session_id', sessionId),
+          supabase
+            .from('non_available_commodities')
+            .select('*', { count: 'exact', head: true })
+            .eq('session_id', sessionId),
+          supabase
+            .from('organiser_feedback')
+            .select('*', { count: 'exact', head: true })
+            .eq('session_id', sessionId),
+          supabase
+            .from('stall_inspections')
+            .select('*', { count: 'exact', head: true })
+            .eq('session_id', sessionId),
+          supabase
+            .from('next_day_planning')
+            .select('*', { count: 'exact', head: true })
+            .eq('session_id', sessionId),
+          resolvedMarketId && dateStr
+            ? supabase
+                .from('collections')
+                .select('*', { count: 'exact', head: true })
+                .eq('market_id', resolvedMarketId)
+                .eq('collection_date', dateStr)
+            : Promise.resolve({ count: 0 } as any),
+        ]);
+
+        if ((stallsRes as any)?.count > 0) completed++;
+        if ((offersRes as any)?.count > 0) completed++;
+        if ((commoditiesRes as any)?.count > 0) completed++;
+        if ((feedbackRes as any)?.count > 0) completed++;
+        if ((inspectionsRes as any)?.count > 0) completed++;
+        if ((planningRes as any)?.count > 0) completed++;
+        if ((collectionsRes as any)?.count > 0) completed++;
+
+        setTaskProgressBySession((prev) => ({
+          ...prev,
+          [sessionId]: { completed, total: EMPLOYEE_TOTAL_TASKS, loading: false },
+        }));
+      } catch {
+        // If anything fails, keep UI stable with a safe default.
+        setTaskProgressBySession((prev) => ({
+          ...prev,
+          [sessionId]: { completed: prev[sessionId]?.completed ?? 0, total: EMPLOYEE_TOTAL_TASKS, loading: false },
+        }));
+      }
+    },
+    [EMPLOYEE_TOTAL_TASKS, taskProgressBySession]
+  );
+
 
   useEffect(() => {
     if (user) {
@@ -142,30 +267,45 @@ export default function MyAttendance() {
     if (data && data.length > 0) {
       const sessionIds = [...new Set(data.map(r => r.session_id).filter(Boolean))];
       
-      if (sessionIds.length > 0) {
-        const { data: sessionsData } = await supabase
-          .from('sessions')
-          .select('id, market_id, markets(name)')
-          .in('id', sessionIds);
-        
-        const sessionMarketMap = new Map(sessionsData?.map((s: any) => [s.id, s.markets?.name || 'N/A']) || []);
-        
-        const enrichedData = data.map(record => ({
-          ...record,
-          market_name: record.session_id ? sessionMarketMap.get(record.session_id) || 'N/A' : 'N/A',
-          status: calculateStatus(
-            record.completed_tasks, 
-            record.total_tasks, 
-            record.status,
-            record.attendance_date,
-            record.punch_in_time,
-            record.punch_out_time,
-            record.role
-          ),
-        }));
-        
-        setRecords(enrichedData);
-      } else {
+        if (sessionIds.length > 0) {
+          const { data: sessionsData } = await supabase
+            .from('sessions')
+            .select('id, market_id, session_date, markets(name)')
+            .in('id', sessionIds);
+
+          const sessionMetaMap = new Map(
+            sessionsData?.map((s: any) => [
+              s.id,
+              {
+                marketName: s.markets?.name || 'N/A',
+                marketId: s.market_id ?? null,
+                sessionDate: s.session_date ?? null,
+              },
+            ]) || []
+          );
+
+          const enrichedData = data.map((record: any) => {
+            const meta = record.session_id ? sessionMetaMap.get(record.session_id) : null;
+
+            return {
+              ...record,
+              market_name: meta?.marketName ?? 'N/A',
+              market_id: meta?.marketId ?? record.market_id ?? null,
+              session_date: meta?.sessionDate ?? null,
+              status: calculateStatus(
+                record.completed_tasks,
+                record.total_tasks,
+                record.status,
+                record.attendance_date,
+                record.punch_in_time,
+                record.punch_out_time,
+                record.role
+              ),
+            };
+          });
+
+          setRecords(enrichedData);
+        } else {
         setRecords(data.map(r => ({ 
           ...r, 
           status: calculateStatus(
@@ -214,6 +354,26 @@ export default function MyAttendance() {
     const dateStr = format(date, 'yyyy-MM-dd');
     return records.find(r => r.attendance_date === dateStr);
   };
+
+  useEffect(() => {
+    if (!selectedDate) return;
+
+    const record = getRecordForDate(selectedDate);
+    if (!record) return;
+
+    const roleToUse = record.role || currentRole || 'employee';
+    if (roleToUse !== 'employee' || !record.session_id) return;
+
+    const sessionId = record.session_id;
+    if (taskProgressBySession[sessionId]) return;
+
+    void loadTaskProgressForSession(
+      sessionId,
+      record.market_id ?? null,
+      record.session_date ?? record.attendance_date
+    );
+  }, [selectedDate, records, currentRole, taskProgressBySession, loadTaskProgressForSession]);
+
 
   const getDayStatus = (
     date: Date
@@ -386,13 +546,20 @@ export default function MyAttendance() {
 
     const roleToUse = record?.role || currentRole || 'employee';
 
-    const completedTasks = record?.completed_tasks ?? 0;
-    const totalTasks = record?.total_tasks ?? 0;
+    const showTasks = Boolean(record) && roleToUse === 'employee' && Boolean(record?.session_id);
+    const progress = record?.session_id ? taskProgressBySession[record.session_id] : undefined;
 
-    // Only show task progress if backend provided a real total.
-    const showTasks = Boolean(record) && roleToUse === 'employee' && totalTasks > 0;
-    const taskPercent = showTasks ? Math.round((completedTasks / totalTasks) * 100) : 0;
-    
+    const completedTasks = progress?.completed ?? record?.completed_tasks ?? 0;
+    const totalTasks = showTasks ? EMPLOYEE_TOTAL_TASKS : (record?.total_tasks ?? 0);
+
+    const taskPercent = showTasks && totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+
+    const tasksLabel = !showTasks
+      ? null
+      : progress?.loading
+        ? `${completedTasks}/${totalTasks} (calculating...)`
+        : `${completedTasks}/${totalTasks} (${taskPercent}%)`;
+
     return (
       <Card className="mt-4">
         <CardHeader className="pb-3">
@@ -431,9 +598,7 @@ export default function MyAttendance() {
               {showTasks && (
                 <div className="flex items-center gap-2">
                   <span className="text-sm text-muted-foreground">Tasks:</span>
-                  <span className="text-sm font-medium">
-                    {completedTasks}/{totalTasks} ({taskPercent}%)
-                  </span>
+                  <span className="text-sm font-medium">{tasksLabel}</span>
                 </div>
               )}
             </>
