@@ -33,7 +33,7 @@ export default function MyAttendance() {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 
-  const EMPLOYEE_TOTAL_TASKS = 12 as const;
+  const EMPLOYEE_TOTAL_TASKS = 13 as const;
 
   type TaskProgress = {
     completed: number;
@@ -60,24 +60,33 @@ export default function MyAttendance() {
       }));
 
       try {
-        let resolvedMarketId = marketId ?? null;
-        let resolvedSessionDate = sessionDate ?? null;
+        // Resolve from session to ensure we have punch times + market/date.
+        const { data: sessionMeta } = await supabase
+          .from('sessions')
+          .select('market_id, session_date, punch_in_time, punch_out_time')
+          .eq('id', sessionId)
+          .maybeSingle();
 
-        // Some older attendance rows don't store market_id/session_date; resolve from session.
-        if (!resolvedMarketId || !resolvedSessionDate) {
-          const { data: sessionMeta } = await supabase
-            .from('sessions')
-            .select('market_id, session_date')
-            .eq('id', sessionId)
-            .maybeSingle();
-
-          resolvedMarketId = resolvedMarketId ?? sessionMeta?.market_id ?? null;
-          resolvedSessionDate = resolvedSessionDate ?? sessionMeta?.session_date ?? null;
-        }
-
+        const resolvedMarketId = marketId ?? sessionMeta?.market_id ?? null;
+        const resolvedSessionDate = sessionDate ?? sessionMeta?.session_date ?? null;
         const dateStr = (resolvedSessionDate || '').slice(0, 10) || undefined;
 
-        // 1) Media uploads (5 required types, excluding selfie_gps)
+        let completed = 0;
+
+        // Task 1: Punch In
+        if (sessionMeta?.punch_in_time) completed++;
+
+        // Task 2: Stall Confirmations (>= 1)
+        const stallsPromise =
+          resolvedMarketId && dateStr
+            ? supabase
+                .from('stall_confirmations')
+                .select('*', { count: 'exact', head: true })
+                .eq('market_id', resolvedMarketId)
+                .eq('market_date', dateStr)
+            : Promise.resolve({ count: 0 } as any);
+
+        // Task 3-8: Media uploads (6 types)
         const { data: mediaData } = await supabase
           .from('media')
           .select('media_type')
@@ -85,60 +94,79 @@ export default function MyAttendance() {
 
         const uploadedTypes = new Set(mediaData?.map((m: any) => m.media_type) || []);
         const requiredMediaTypes: Array<
-          'outside_rates' | 'rate_board' | 'market_video' | 'cleaning_video' | 'customer_feedback'
-        > = ['outside_rates', 'rate_board', 'market_video', 'cleaning_video', 'customer_feedback'];
+          'outside_rates' | 'rate_board' | 'market_video' | 'cleaning_video' | 'customer_feedback' | 'selfie_gps'
+        > = ['outside_rates', 'rate_board', 'market_video', 'cleaning_video', 'customer_feedback', 'selfie_gps'];
 
-        let completed = requiredMediaTypes.filter((t) => uploadedTypes.has(t)).length;
+        completed += requiredMediaTypes.filter((t) => uploadedTypes.has(t)).length;
 
-        const [
-          stallsRes,
-          offersRes,
-          commoditiesRes,
-          feedbackRes,
-          inspectionsRes,
-          planningRes,
-          collectionsRes,
-        ] = await Promise.all([
+        const [stallsRes, offersRes, commoditiesRes, inspectionsRes, feedbackRes, planningRes] = await Promise.all([
+          stallsPromise,
           resolvedMarketId && dateStr
             ? supabase
-                .from('stall_confirmations')
+                .from('offers')
                 .select('*', { count: 'exact', head: true })
                 .eq('market_id', resolvedMarketId)
                 .eq('market_date', dateStr)
-            : Promise.resolve({ count: 0 } as any),
-          supabase.from('offers').select('*', { count: 'exact', head: true }).eq('session_id', sessionId),
-          supabase
-            .from('non_available_commodities')
-            .select('*', { count: 'exact', head: true })
-            .eq('session_id', sessionId),
-          supabase
-            .from('organiser_feedback')
-            .select('*', { count: 'exact', head: true })
-            .eq('session_id', sessionId),
+                .eq('session_id', sessionId)
+            : supabase.from('offers').select('*', { count: 'exact', head: true }).eq('session_id', sessionId),
+          resolvedMarketId && dateStr
+            ? supabase
+                .from('non_available_commodities')
+                .select('*', { count: 'exact', head: true })
+                .eq('market_id', resolvedMarketId)
+                .eq('market_date', dateStr)
+                .eq('session_id', sessionId)
+            : supabase
+                .from('non_available_commodities')
+                .select('*', { count: 'exact', head: true })
+                .eq('session_id', sessionId),
           supabase
             .from('stall_inspections')
             .select('*', { count: 'exact', head: true })
             .eq('session_id', sessionId),
-          supabase
-            .from('next_day_planning')
-            .select('*', { count: 'exact', head: true })
-            .eq('session_id', sessionId),
           resolvedMarketId && dateStr
             ? supabase
-                .from('collections')
+                .from('organiser_feedback')
                 .select('*', { count: 'exact', head: true })
                 .eq('market_id', resolvedMarketId)
-                .eq('collection_date', dateStr)
-            : Promise.resolve({ count: 0 } as any),
+                .eq('market_date', dateStr)
+                .eq('session_id', sessionId)
+            : supabase
+                .from('organiser_feedback')
+                .select('*', { count: 'exact', head: true })
+                .eq('session_id', sessionId),
+          resolvedMarketId && dateStr
+            ? supabase
+                .from('next_day_planning')
+                .select('*', { count: 'exact', head: true })
+                .eq('market_id', resolvedMarketId)
+                .eq('market_date', dateStr)
+                .eq('session_id', sessionId)
+            : supabase
+                .from('next_day_planning')
+                .select('*', { count: 'exact', head: true })
+                .eq('session_id', sessionId),
         ]);
 
+        // Task 2: stalls
         if ((stallsRes as any)?.count > 0) completed++;
+
+        // Task 9: Today's Offers
         if ((offersRes as any)?.count > 0) completed++;
+
+        // Task 10: Non-Available Commodities
         if ((commoditiesRes as any)?.count > 0) completed++;
-        if ((feedbackRes as any)?.count > 0) completed++;
+
+        // Task 11: Stall Inspections
         if ((inspectionsRes as any)?.count > 0) completed++;
-        if ((planningRes as any)?.count > 0) completed++;
-        if ((collectionsRes as any)?.count > 0) completed++;
+
+        // Task 12: Punch Out
+        if (sessionMeta?.punch_out_time) completed++;
+
+        // Task 13: Feedback OR Next Day Planning (either one counts)
+        const feedbackOrPlanningCompleted =
+          (((feedbackRes as any)?.count ?? 0) > 0) || (((planningRes as any)?.count ?? 0) > 0);
+        if (feedbackOrPlanningCompleted) completed++;
 
         setTaskProgressBySession((prev) => ({
           ...prev,
@@ -550,7 +578,7 @@ export default function MyAttendance() {
     const progress = record?.session_id ? taskProgressBySession[record.session_id] : undefined;
 
     const completedTasks = progress?.completed ?? record?.completed_tasks ?? 0;
-    const totalTasks = showTasks ? EMPLOYEE_TOTAL_TASKS : (record?.total_tasks ?? 0);
+    const totalTasks = showTasks ? (progress?.total ?? EMPLOYEE_TOTAL_TASKS) : (record?.total_tasks ?? 0);
 
     const taskPercent = showTasks && totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
