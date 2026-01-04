@@ -36,9 +36,9 @@ export default function MyAttendance() {
     }
   }, [user]);
 
-  // Different attendance thresholds per role:
-  // - Organiser (employee): Full Day ≥6 hrs, Half Day ≥3 hrs
-  // - Market Manager & BDO: Full Day ≥8 hrs, Half Day ≥4 hrs
+  // Different attendance logic per role:
+  // - Organiser (employee): Based on TASK COMPLETION (≥50% = Full Day, <50% but some = Half Day)
+  // - Market Manager & BDO: Based on WORKING HOURS (≥8 hrs = Full Day, ≥4 hrs = Half Day)
   const calculateStatus = (
     completedTasks: number | null, 
     totalTasks: number | null, 
@@ -59,39 +59,48 @@ export default function MyAttendance() {
       return 'weekly_off';
     }
     
-    // If DB has a valid status (full_day, half_day), use it directly
+    // If DB has a valid calculated status (full_day, half_day, absent), use it directly
+    // This is the status calculated at punch-out time
     if (dbStatus === 'full_day' || dbStatus === 'present') {
       return 'full_day';
     }
     if (dbStatus === 'half_day') {
       return 'half_day';
     }
+    if (dbStatus === 'absent') {
+      return 'absent';
+    }
     
-    // Calculate working hours if punch times are available
-    if (punchInTime && punchOutTime) {
-      const punchIn = new Date(punchInTime);
-      const punchOut = new Date(punchOutTime);
-      const workingHours = (punchOut.getTime() - punchIn.getTime()) / (1000 * 60 * 60);
-      
-      // Use role from record, or fall back to current user role
-      const roleToUse = recordRole || currentRole || 'employee';
-      
-      // Different thresholds based on role
-      if (roleToUse === 'market_manager' || roleToUse === 'bdo') {
-        // Market Manager & BDO: 8 hrs for full day, 4 hrs for half day
+    // Use role from record, or fall back to current user role
+    const roleToUse = recordRole || currentRole || 'employee';
+    
+    // For records without a final status (still active), calculate based on role logic
+    if (roleToUse === 'market_manager' || roleToUse === 'bdo') {
+      // Market Manager & BDO: Based on WORKING HOURS
+      if (punchInTime && punchOutTime) {
+        const punchIn = new Date(punchInTime);
+        const punchOut = new Date(punchOutTime);
+        const workingHours = (punchOut.getTime() - punchIn.getTime()) / (1000 * 60 * 60);
+        
         if (workingHours >= 8) {
           return 'full_day';
         } else if (workingHours >= 4) {
           return 'half_day';
         }
-      } else {
-        // Organiser (employee): 6 hrs for full day, 3 hrs for half day
-        if (workingHours >= 6) {
-          return 'full_day';
-        } else if (workingHours >= 3) {
-          return 'half_day';
-        }
+        return 'absent';
       }
+    } else {
+      // Organiser (employee): Based on TASK COMPLETION
+      const completed = completedTasks || 0;
+      const total = totalTasks || 12; // Default to 12 tasks
+      const completionPercentage = total > 0 ? (completed / total) * 100 : 0;
+      
+      if (completionPercentage >= 50) {
+        return 'full_day';
+      } else if (completed > 0) {
+        return 'half_day';
+      }
+      // If no tasks completed but punched in, still active
     }
     
     // If punched in but not out yet, mark as present (will be updated on punch out)

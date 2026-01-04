@@ -325,24 +325,25 @@ export default function Punch() {
       // Plus selfie_gps (punch in) = 13, but we count it separately
       const totalTasks = 12; // Excluding punch-in selfie
       
-      // Determine attendance status based on WORKING HOURS (primary) and task completion (secondary)
-      // Full day: 6+ hours worked
-      // Half day: 3+ hours worked
-      // Absent: Less than 3 hours OR no punch in
+      // ORGANISER attendance is based on TASK COMPLETION, not working hours
+      // Full day: ≥50% tasks completed (6 or more out of 12)
+      // Half day: Some tasks completed but less than 50%
+      // Absent: No tasks completed
       let attendanceStatus: string;
+      const completionPercentage = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
       
-      if (workingHours >= 6) {
+      if (completionPercentage >= 50) {
         attendanceStatus = 'full_day';
-      } else if (workingHours >= 3) {
+      } else if (completedTasks > 0) {
         attendanceStatus = 'half_day';
       } else {
         attendanceStatus = 'absent';
       }
       
-      console.log('Attendance calculation:', { 
-        workingHours: workingHours.toFixed(2), 
+      console.log('Organiser attendance calculation:', { 
         completedTasks, 
         totalTasks, 
+        completionPercentage: completionPercentage.toFixed(1) + '%',
         status: attendanceStatus 
       });
       
@@ -371,7 +372,7 @@ export default function Punch() {
 
       const statusText = attendanceStatus === 'full_day' ? 'Full Day' : 
                         attendanceStatus === 'half_day' ? 'Half Day' : 'Absent';
-      const statusMessage = `Working hours: ${workingHours.toFixed(1)} hrs - ${statusText}. Tasks: ${completedTasks}/${totalTasks}`;
+      const statusMessage = `Tasks: ${completedTasks}/${totalTasks} (${completionPercentage.toFixed(0)}%) - ${statusText}`;
       
       toast.success(`Session completed! ${statusMessage}`);
       
