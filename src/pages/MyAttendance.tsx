@@ -35,26 +35,53 @@ export default function MyAttendance() {
     }
   }, [user]);
 
-  const calculateStatus = (completedTasks: number | null, totalTasks: number | null, dbStatus: string | null): 'full_day' | 'half_day' | 'absent' | 'weekly_off' => {
+  const calculateStatus = (
+    completedTasks: number | null, 
+    totalTasks: number | null, 
+    dbStatus: string | null,
+    attendanceDate: string,
+    punchInTime: string | null,
+    punchOutTime: string | null
+  ): 'full_day' | 'half_day' | 'absent' | 'weekly_off' => {
+    // Check if it's Monday (weekly off) - Monday = 1 in getDay()
+    const date = new Date(attendanceDate);
+    if (date.getDay() === 1) {
+      return 'weekly_off';
+    }
+    
     // If marked as weekly off in DB, respect that
     if (dbStatus === 'weekly_off') {
       return 'weekly_off';
     }
     
-    // Calculate based on task completion (13 tasks total)
-    const completed = completedTasks || 0;
-    const total = totalTasks || 13;
-    
-    if (completed === 0) {
-      // No tasks completed = Absent
-      return 'absent';
-    } else if (completed === total) {
-      // All 13 tasks completed = Full Day Present
+    // If DB has a valid status (full_day, half_day), use it directly
+    if (dbStatus === 'full_day' || dbStatus === 'present') {
       return 'full_day';
-    } else {
-      // Partial tasks completed (1-12) = Half Day
+    }
+    if (dbStatus === 'half_day') {
       return 'half_day';
     }
+    
+    // Calculate working hours if punch times are available
+    if (punchInTime && punchOutTime) {
+      const punchIn = new Date(punchInTime);
+      const punchOut = new Date(punchOutTime);
+      const workingHours = (punchOut.getTime() - punchIn.getTime()) / (1000 * 60 * 60);
+      
+      if (workingHours >= 6) {
+        return 'full_day';
+      } else if (workingHours >= 3) {
+        return 'half_day';
+      }
+    }
+    
+    // If punched in but not out yet, mark as present (will be updated on punch out)
+    if (punchInTime && !punchOutTime) {
+      return 'full_day'; // Assume present until punch out
+    }
+    
+    // Default to absent if no punch in
+    return 'absent';
   };
 
   const fetchMyAttendance = async () => {
@@ -93,14 +120,28 @@ export default function MyAttendance() {
         const enrichedData = data.map(record => ({
           ...record,
           market_name: record.session_id ? sessionMarketMap.get(record.session_id) || 'N/A' : 'N/A',
-          status: calculateStatus(record.completed_tasks, record.total_tasks, record.status),
+          status: calculateStatus(
+            record.completed_tasks, 
+            record.total_tasks, 
+            record.status,
+            record.attendance_date,
+            record.punch_in_time,
+            record.punch_out_time
+          ),
         }));
         
         setRecords(enrichedData);
       } else {
         setRecords(data.map(r => ({ 
           ...r, 
-          status: calculateStatus(r.completed_tasks, r.total_tasks, r.status)
+          status: calculateStatus(
+            r.completed_tasks, 
+            r.total_tasks, 
+            r.status,
+            r.attendance_date,
+            r.punch_in_time,
+            r.punch_out_time
+          )
         })));
       }
     } else {

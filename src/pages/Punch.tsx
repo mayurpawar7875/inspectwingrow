@@ -244,8 +244,16 @@ export default function Punch() {
   const handlePunchOut = async () => {
     setActionLoading(true);
     try {
-      const now = new Date().toISOString();
-      const totalTasks = 13;
+      const now = new Date();
+      const nowIso = now.toISOString();
+      
+      // Calculate working hours based on punch in time
+      let workingHours = 0;
+      if (session.punch_in_time) {
+        const punchInTime = new Date(session.punch_in_time);
+        const diffMs = now.getTime() - punchInTime.getTime();
+        workingHours = Math.round((diffMs / (1000 * 60 * 60)) * 100) / 100; // Hours with 2 decimal places
+      }
       
       // Count completed tasks across all categories
       let completedTasks = 0;
@@ -313,29 +321,36 @@ export default function Punch() {
         .eq('collection_date', session.session_date);
       if (collectionsCount && collectionsCount > 0) completedTasks++;
       
-      // Note: Punch in (selfie_gps) is already done, counts as 1 task automatically
+      // Total possible tasks = 5 media + 1 stalls + 1 offers + 1 commodities + 1 feedback + 1 inspections + 1 planning + 1 collections = 12
+      // Plus selfie_gps (punch in) = 13, but we count it separately
+      const totalTasks = 12; // Excluding punch-in selfie
       
-      // Determine status based on task completion percentage
-      // Full day (present): All tasks completed (100%)
-      // Half day: 50% or more tasks completed but not all
-      // Absent: Less than 50% tasks completed
-      const completionPercentage = (completedTasks / totalTasks) * 100;
+      // Determine attendance status based on WORKING HOURS (primary) and task completion (secondary)
+      // Full day: 6+ hours worked
+      // Half day: 3+ hours worked
+      // Absent: Less than 3 hours OR no punch in
       let attendanceStatus: string;
-      if (completedTasks === totalTasks) {
-        attendanceStatus = 'present';
-      } else if (completionPercentage >= 50) {
+      
+      if (workingHours >= 6) {
+        attendanceStatus = 'full_day';
+      } else if (workingHours >= 3) {
         attendanceStatus = 'half_day';
       } else {
         attendanceStatus = 'absent';
       }
       
-      console.log('Task completion:', { completedTasks, totalTasks, completionPercentage: completionPercentage.toFixed(1), status: attendanceStatus });
+      console.log('Attendance calculation:', { 
+        workingHours: workingHours.toFixed(2), 
+        completedTasks, 
+        totalTasks, 
+        status: attendanceStatus 
+      });
       
       // Update session with punch_out_time and status='completed'
       const { error: sessionError } = await supabase
         .from('sessions')
         .update({ 
-          punch_out_time: now,
+          punch_out_time: nowIso,
           status: 'completed'
         })
         .eq('id', session.id);
@@ -346,7 +361,7 @@ export default function Punch() {
       await supabase
         .from('attendance_records')
         .update({
-          punch_out_time: now,
+          punch_out_time: nowIso,
           total_tasks: totalTasks,
           completed_tasks: completedTasks,
           status: attendanceStatus,
@@ -354,11 +369,9 @@ export default function Punch() {
         .eq('session_id', session.id)
         .eq('user_id', user!.id);
 
-      const statusMessage = attendanceStatus === 'present' 
-        ? 'All tasks completed! Marked as full day present.'
-        : attendanceStatus === 'half_day'
-        ? `${completedTasks}/${totalTasks} tasks completed. Marked as half day.`
-        : 'No tasks completed. Marked as absent.';
+      const statusText = attendanceStatus === 'full_day' ? 'Full Day' : 
+                        attendanceStatus === 'half_day' ? 'Half Day' : 'Absent';
+      const statusMessage = `Working hours: ${workingHours.toFixed(1)} hrs - ${statusText}. Tasks: ${completedTasks}/${totalTasks}`;
       
       toast.success(`Session completed! ${statusMessage}`);
       
