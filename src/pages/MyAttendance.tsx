@@ -92,10 +92,17 @@ export default function MyAttendance() {
     } else {
       // Organiser (employee): Based on TASK COMPLETION
       // ≥95% = Full Day, ≥55% = Half Day, <55% = Absent
-      const completed = completedTasks || 0;
-      const total = totalTasks || 12;
-      const completionPercentage = total > 0 ? (completed / total) * 100 : 0;
-      
+      const completed = completedTasks ?? 0;
+      const total = totalTasks ?? 0;
+
+      // If tasks weren't recorded for the day, don't guess totals.
+      // Fall back to punch-in presence (same behavior as the UI).
+      if (total <= 0) {
+        return punchInTime ? 'full_day' : 'absent';
+      }
+
+      const completionPercentage = (completed / total) * 100;
+
       if (completionPercentage >= 95) {
         return 'full_day';
       } else if (completionPercentage >= 55) {
@@ -378,12 +385,13 @@ export default function MyAttendance() {
     const status = getDayStatus(selectedDate);
 
     const roleToUse = record?.role || currentRole || 'employee';
-    const showTasks = Boolean(record) && roleToUse === 'employee';
 
     const completedTasks = record?.completed_tasks ?? 0;
-    const totalFromDb = record?.total_tasks ?? 0;
-    const totalTasks = totalFromDb > 0 ? totalFromDb : 12;
-    const taskPercent = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+    const totalTasks = record?.total_tasks ?? 0;
+
+    // Only show task progress if backend provided a real total.
+    const showTasks = Boolean(record) && roleToUse === 'employee' && totalTasks > 0;
+    const taskPercent = showTasks ? Math.round((completedTasks / totalTasks) * 100) : 0;
     
     return (
       <Card className="mt-4">
