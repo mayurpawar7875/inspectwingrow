@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Calendar, ArrowLeft, CheckCircle, AlertCircle, XCircle, CalendarCheck, ChevronLeft, ChevronRight } from 'lucide-react';
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths } from 'date-fns';
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths, parseISO } from 'date-fns';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
@@ -51,7 +51,7 @@ export default function MyAttendance() {
     recordRole?: string | null
   ): 'full_day' | 'half_day' | 'absent' | 'weekly_off' => {
     // Check if it's Monday (weekly off) - Monday = 1 in getDay()
-    const date = new Date(attendanceDate);
+    const date = parseISO(attendanceDate);
     if (date.getDay() === 1) {
       return 'weekly_off';
     }
@@ -376,6 +376,14 @@ export default function MyAttendance() {
     
     const record = getRecordForDate(selectedDate);
     const status = getDayStatus(selectedDate);
+
+    const roleToUse = record?.role || currentRole || 'employee';
+    const showTasks = Boolean(record) && roleToUse === 'employee';
+
+    const completedTasks = record?.completed_tasks ?? 0;
+    const totalFromDb = record?.total_tasks ?? 0;
+    const totalTasks = totalFromDb > 0 ? totalFromDb : 12;
+    const taskPercent = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
     
     return (
       <Card className="mt-4">
@@ -412,11 +420,11 @@ export default function MyAttendance() {
                   </p>
                 </div>
               </div>
-              {record.total_tasks !== null && (
+              {showTasks && (
                 <div className="flex items-center gap-2">
                   <span className="text-sm text-muted-foreground">Tasks:</span>
                   <span className="text-sm font-medium">
-                    {record.completed_tasks || 0}/{record.total_tasks} ({Math.round(((record.completed_tasks || 0) / record.total_tasks) * 100)}%)
+                    {completedTasks}/{totalTasks} ({taskPercent}%)
                   </span>
                 </div>
               )}
