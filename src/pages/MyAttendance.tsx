@@ -286,21 +286,23 @@ export default function MyAttendance() {
       const completed = completedTasks ?? 0;
       const total = totalTasks ?? 0;
 
-      // If tasks weren't recorded for the day, don't guess totals.
-      // Fall back to punch-in presence (same behavior as the UI).
-      if (total <= 0) {
-        return punchInTime ? 'full_day' : 'absent';
-      }
+      // If tasks are persisted in DB, use them
+      if (total > 0) {
+        const completionPercentage = (completed / total) * 100;
 
-      const completionPercentage = (completed / total) * 100;
-
-      if (completionPercentage >= 95) {
-        return 'full_day';
-      } else if (completionPercentage >= 55) {
-        return 'half_day';
-      } else {
-        return 'absent';
+        if (completionPercentage >= 95) {
+          return 'full_day';
+        } else if (completionPercentage >= 55) {
+          return 'half_day';
+        } else {
+          return 'absent';
+        }
       }
+      
+      // Tasks not yet calculated - don't assume full_day, return absent 
+      // (will be updated when task progress is loaded)
+      // Exception: if DB explicitly has a calculated status, it would have been caught earlier
+      return 'absent';
     }
     
     if (punchInTime && !punchOutTime) {
@@ -371,6 +373,14 @@ export default function MyAttendance() {
           });
 
           setRecords(enrichedData);
+          
+          // Preload task progress for organiser records to avoid status flicker
+          enrichedData.forEach((record: any) => {
+            const roleToUse = record.role || currentRole || 'employee';
+            if (roleToUse === 'employee' && record.session_id && (record.completed_tasks === null || record.total_tasks === null)) {
+              loadTaskProgressForSession(record.session_id, record.market_id, record.session_date);
+            }
+          });
         } else {
         setRecords(data.map(r => ({ 
           ...r, 
