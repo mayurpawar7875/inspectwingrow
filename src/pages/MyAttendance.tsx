@@ -13,7 +13,7 @@ import { cn } from '@/lib/utils';
 interface AttendanceRecord {
   id: string;
   attendance_date: string;
-  status: 'full_day' | 'half_day' | 'absent' | 'weekly_off';
+  status: 'full_day' | 'half_day' | 'absent' | 'weekly_off' | 'active';
   punch_in_time: string | null;
   punch_out_time: string | null;
   session_id: string | null;
@@ -232,11 +232,18 @@ export default function MyAttendance() {
     punchInTime: string | null,
     punchOutTime: string | null,
     recordRole?: string | null
-  ): 'full_day' | 'half_day' | 'absent' | 'weekly_off' => {
+  ): 'full_day' | 'half_day' | 'absent' | 'weekly_off' | 'active' => {
     // Check if it's Monday (weekly off) - Monday = 1 in getDay()
     const date = parseISO(attendanceDate);
     if (date.getDay() === 1) {
       return 'weekly_off';
+    }
+    
+    // Check if session is ongoing (punched in but not punched out today)
+    const today = new Date();
+    const isToday = date.toDateString() === today.toDateString();
+    if (isToday && punchInTime && !punchOutTime) {
+      return 'active';
     }
     
     // If marked as weekly off in DB, respect that
@@ -436,7 +443,7 @@ export default function MyAttendance() {
 
   const getDayStatus = (
     date: Date
-  ): 'full_day' | 'half_day' | 'absent' | 'weekly_off' | 'future' => {
+  ): 'full_day' | 'half_day' | 'absent' | 'weekly_off' | 'future' | 'active' => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
@@ -451,6 +458,13 @@ export default function MyAttendance() {
 
     const record = getRecordForDate(date);
     if (record) {
+      // Check if session is ongoing (punched in but not punched out today)
+      const today = new Date();
+      const isToday = date.toDateString() === today.toDateString();
+      if (isToday && record.punch_in_time && !record.punch_out_time) {
+        return 'active';
+      }
+      
       const roleToUse = record.role || currentRole || 'employee';
 
       // For organisers, prefer task-based status once task progress is computed.
@@ -499,6 +513,8 @@ export default function MyAttendance() {
         return cn(baseClasses, 'bg-red-500 text-white hover:bg-red-600');
       case 'weekly_off':
         return cn(baseClasses, 'bg-blue-100 text-blue-700 hover:bg-blue-200');
+      case 'active':
+        return cn(baseClasses, 'bg-purple-500 text-white hover:bg-purple-600 animate-pulse');
       case 'future':
         return cn(baseClasses, 'bg-muted text-muted-foreground');
       default:
@@ -600,6 +616,10 @@ export default function MyAttendance() {
           <div className="flex items-center gap-2">
             <div className="h-4 w-4 rounded-full bg-red-500" />
             <span className="text-xs text-muted-foreground">Absent</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="h-4 w-4 rounded-full bg-purple-500" />
+            <span className="text-xs text-muted-foreground">Active</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="h-4 w-4 rounded-full bg-blue-100 border border-blue-300" />
