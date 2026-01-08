@@ -103,6 +103,7 @@ export default function Dashboard() {
   const [submittingLeave, setSubmittingLeave] = useState(false);
   const [stallsCount, setStallsCount] = useState<number>(0);
   const [collectionSheetUrl, setCollectionSheetUrl] = useState<string | null>(null);
+  const [elapsedTime, setElapsedTime] = useState<string>('');
   const [attendanceStats, setAttendanceStats] = useState<{
     fullDays: number;
     halfDays: number;
@@ -187,6 +188,35 @@ export default function Dashboard() {
     }
   }, [user, authLoading, currentRole, navigate]);
 
+  // Real-time elapsed timer for active sessions
+  useEffect(() => {
+    const session = todaySessions[selectedSessionIndex];
+    const isActive = session?.punch_in_time && !session?.punch_out_time;
+    
+    if (!isActive) {
+      setElapsedTime('');
+      return;
+    }
+
+    const calculateElapsed = () => {
+      const punchInDate = new Date(session.punch_in_time!);
+      const now = new Date();
+      const diffMs = now.getTime() - punchInDate.getTime();
+      
+      const hours = Math.floor(diffMs / (1000 * 60 * 60));
+      const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((diffMs % (1000 * 60)) / 1000);
+      
+      setElapsedTime(
+        `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
+      );
+    };
+
+    calculateElapsed(); // Initial calculation
+    const interval = setInterval(calculateElapsed, 1000);
+
+    return () => clearInterval(interval);
+  }, [todaySessions, selectedSessionIndex]);
   const fetchCollectionSheetUrl = async () => {
     try {
       const { data, error } = await supabase
@@ -752,6 +782,12 @@ export default function Dashboard() {
                           ? new Date(todaySession.punch_in_time).toLocaleTimeString()
                           : 'Not recorded'}
                       </p>
+                      {/* Elapsed time for active session */}
+                      {elapsedTime && (
+                        <p className="text-[10px] sm:text-xs text-primary font-mono mt-0.5 animate-pulse">
+                          ⏱️ {elapsedTime}
+                        </p>
+                      )}
                     </div>
                   </div>
                   <div className="flex items-start gap-2 sm:gap-3">
