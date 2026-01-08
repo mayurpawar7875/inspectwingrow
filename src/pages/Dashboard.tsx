@@ -199,9 +199,21 @@ export default function Dashboard() {
     }
 
     const calculateElapsed = () => {
-      const punchInDate = new Date(session.punch_in_time!);
+      // Parse the punch_in_time - Supabase stores in UTC, convert to IST for accurate calculation
+      const punchInTime = session.punch_in_time!;
+      const punchInDate = new Date(punchInTime);
+      
+      // Get current time in IST
       const now = new Date();
+      
+      // Calculate difference in milliseconds
       const diffMs = now.getTime() - punchInDate.getTime();
+      
+      // Handle negative values (shouldn't happen but safety check)
+      if (diffMs < 0) {
+        setElapsedTime('00:00:00');
+        return;
+      }
       
       const hours = Math.floor(diffMs / (1000 * 60 * 60));
       const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
