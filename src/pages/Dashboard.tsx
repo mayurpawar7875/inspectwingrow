@@ -188,7 +188,7 @@ export default function Dashboard() {
     }
   }, [user, authLoading, currentRole, navigate]);
 
-  // Real-time elapsed timer for active sessions
+  // Countdown timer to midnight for active sessions
   useEffect(() => {
     const session = todaySessions[selectedSessionIndex];
     const isActive = session?.punch_in_time && !session?.punch_out_time;
@@ -198,19 +198,17 @@ export default function Dashboard() {
       return;
     }
 
-    const calculateElapsed = () => {
-      // Parse the punch_in_time - Supabase stores in UTC, convert to IST for accurate calculation
-      const punchInTime = session.punch_in_time!;
-      const punchInDate = new Date(punchInTime);
-      
-      // Get current time in IST
+    const calculateCountdown = () => {
       const now = new Date();
       
-      // Calculate difference in milliseconds
-      const diffMs = now.getTime() - punchInDate.getTime();
+      // Calculate midnight (12 AM) of the next day
+      const midnight = new Date(now);
+      midnight.setHours(24, 0, 0, 0); // Sets to 00:00:00 of next day
       
-      // Handle negative values (shouldn't happen but safety check)
-      if (diffMs < 0) {
+      const diffMs = midnight.getTime() - now.getTime();
+      
+      // If past midnight, show 00:00:00
+      if (diffMs <= 0) {
         setElapsedTime('00:00:00');
         return;
       }
@@ -224,8 +222,8 @@ export default function Dashboard() {
       );
     };
 
-    calculateElapsed(); // Initial calculation
-    const interval = setInterval(calculateElapsed, 1000);
+    calculateCountdown(); // Initial calculation
+    const interval = setInterval(calculateCountdown, 1000);
 
     return () => clearInterval(interval);
   }, [todaySessions, selectedSessionIndex]);
@@ -796,8 +794,8 @@ export default function Dashboard() {
                       </p>
                       {/* Elapsed time for active session */}
                       {elapsedTime && (
-                        <p className="text-[10px] sm:text-xs text-primary font-mono mt-0.5 animate-pulse">
-                          ⏱️ {elapsedTime}
+                        <p className="text-[10px] sm:text-xs text-destructive font-mono mt-0.5 animate-pulse">
+                          ⏳ {elapsedTime} left
                         </p>
                       )}
                     </div>
