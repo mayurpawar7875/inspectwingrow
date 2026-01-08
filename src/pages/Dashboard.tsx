@@ -360,6 +360,9 @@ export default function Dashboard() {
             computedStatus = 'completed';
           } else if (currentDateTime > sessionDateTime) {
             computedStatus = 'incomplete_expired';
+          } else if (data.punch_in_time && !data.punch_out_time) {
+            // Session is ongoing - punched in but not punched out
+            computedStatus = 'active';
           } else {
             computedStatus = 'incomplete';
           }
