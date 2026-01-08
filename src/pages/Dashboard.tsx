@@ -791,7 +791,7 @@ export default function Dashboard() {
                       <p className="text-[10px] sm:text-sm text-muted-foreground">Punch In</p>
                       <p className="font-medium text-xs sm:text-base break-words">
                         {todaySession.punch_in_time
-                          ? new Date(todaySession.punch_in_time).toLocaleTimeString()
+                          ? new Date(todaySession.punch_in_time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })
                           : 'Not recorded'}
                       </p>
                       {/* Elapsed time for active session */}
@@ -810,7 +810,7 @@ export default function Dashboard() {
                       <p className="text-[10px] sm:text-sm text-muted-foreground">Punch Out</p>
                       <p className="font-medium text-xs sm:text-base break-words">
                         {todaySession.punch_out_time
-                          ? new Date(todaySession.punch_out_time).toLocaleTimeString()
+                          ? new Date(todaySession.punch_out_time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })
                           : 'Not recorded'}
                       </p>
                     </div>
