@@ -7,7 +7,8 @@ import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Users, Building2, ClipboardList, MapPin, TrendingUp, Activity, ChevronRight, Clock, Upload, Calendar, Navigation } from 'lucide-react';
+import { Users, Building2, ClipboardList, MapPin, TrendingUp, Activity, ChevronRight, Clock, Upload, Calendar, Navigation, IndianRupee } from 'lucide-react';
+import { MarketCollectionsWidget } from '@/components/admin/MarketCollectionsWidget';
 import { MobileBottomNav } from '@/components/MobileBottomNav';
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
 import { format } from 'date-fns';
@@ -1370,6 +1371,9 @@ export default function AdminDashboard() {
               )}
             </CardContent>
           </Card>
+
+          {/* Market Collections Widget */}
+          <MarketCollectionsWidget />
         </div>
 
         {/* Quick Access Cards */}
