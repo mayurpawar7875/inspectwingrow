@@ -1094,6 +1094,12 @@ export default function AdminDashboard() {
           <p className="text-sm text-muted-foreground">Real-time reporting and analytics</p>
         </div>
 
+        {/* Collections Summary Tiles */}
+        <div className="space-y-2">
+          <h2 className="text-lg font-semibold">Today's Collections</h2>
+          <MarketCollectionsWidget />
+        </div>
+
         {/* Live Markets Section */}
         <div className="space-y-3">
           <div className="flex items-center justify-between">
@@ -1371,9 +1377,6 @@ export default function AdminDashboard() {
               )}
             </CardContent>
           </Card>
-
-          {/* Market Collections Widget */}
-          <MarketCollectionsWidget />
         </div>
 
         {/* Quick Access Cards */}
