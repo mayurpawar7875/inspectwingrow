@@ -7,8 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Users, Building2, ClipboardList, MapPin, TrendingUp, Activity, ChevronRight, Clock, Upload, Calendar, Navigation, IndianRupee } from 'lucide-react';
-import { MarketCollectionsWidget } from '@/components/admin/MarketCollectionsWidget';
+import { Users, Building2, ClipboardList, MapPin, TrendingUp, Activity, ChevronRight, Clock, Upload, Calendar, Navigation } from 'lucide-react';
 import { MobileBottomNav } from '@/components/MobileBottomNav';
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
 import { format } from 'date-fns';
@@ -1094,11 +1093,6 @@ export default function AdminDashboard() {
           <p className="text-sm text-muted-foreground">Real-time reporting and analytics</p>
         </div>
 
-        {/* Collections Summary Tiles */}
-        <div className="space-y-2">
-          <h2 className="text-lg font-semibold">Today's Collections</h2>
-          <MarketCollectionsWidget />
-        </div>
 
         {/* Live Markets Section */}
         <div className="space-y-3">

@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
-import { Users, Store, Image, AlertCircle, ArrowRight, Clock } from 'lucide-react';
+import { Users, Store, Image, AlertCircle, ArrowRight, Clock, IndianRupee } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 
@@ -20,6 +20,12 @@ interface EmployeeStatus {
   total_tasks: number;
 }
 
+interface MarketCollection {
+  expected: number;
+  received: number;
+  pending: number;
+}
+
 interface LiveMarketSummary {
   market_id: string;
   market_name: string;
@@ -28,6 +34,7 @@ interface LiveMarketSummary {
   media_uploaded: number;
   late_uploads: number;
   employees: EmployeeStatus[];
+  collection: MarketCollection;
 }
 
 export default function LiveMarketWidget() {
@@ -83,6 +90,22 @@ export default function LiveMarketWidget() {
             .select('user_id, status')
             .eq('attendance_date', today);
 
+          // Fetch collection data for this market
+          const { data: stallConfirmations } = await supabase
+            .from('stall_confirmations')
+            .select('rent_amount')
+            .eq('market_id', row.market_id)
+            .eq('market_date', today);
+
+          const { data: collectionsData } = await supabase
+            .from('collections')
+            .select('amount')
+            .eq('market_id', row.market_id)
+            .eq('collection_date', today);
+
+          const expectedAmount = (stallConfirmations || []).reduce((sum, s) => sum + (s.rent_amount || 0), 0);
+          const receivedAmount = (collectionsData || []).reduce((sum, c) => sum + (c.amount || 0), 0);
+
           const employees: EmployeeStatus[] = (sessionsData || []).map((session: any) => {
             const attendance = attendanceData?.find((a: any) => a.user_id === session.user_id);
             const fullName = session.profiles?.full_name || 'Unknown';
@@ -121,6 +144,11 @@ export default function LiveMarketWidget() {
             media_uploaded: row.media_uploads_count || 0,
             late_uploads: 0,
             employees,
+            collection: {
+              expected: expectedAmount,
+              received: receivedAmount,
+              pending: expectedAmount - receivedAmount,
+            },
           };
         })
       );
@@ -191,6 +219,31 @@ export default function LiveMarketWidget() {
                       </Badge>
                     </div>
                   )}
+                </div>
+
+                {/* Collection Stats */}
+                <div className="grid grid-cols-3 gap-2 pt-2 border-t">
+                  <div className="text-center p-2 bg-muted rounded-md">
+                    <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground mb-1">
+                      <IndianRupee className="h-3 w-3" />
+                      <span>Expected</span>
+                    </div>
+                    <p className="font-semibold text-sm">₹{market.collection.expected.toLocaleString()}</p>
+                  </div>
+                  <div className="text-center p-2 bg-success/10 rounded-md">
+                    <div className="flex items-center justify-center gap-1 text-xs text-success mb-1">
+                      <IndianRupee className="h-3 w-3" />
+                      <span>Received</span>
+                    </div>
+                    <p className="font-semibold text-sm text-success">₹{market.collection.received.toLocaleString()}</p>
+                  </div>
+                  <div className="text-center p-2 bg-warning/10 rounded-md">
+                    <div className="flex items-center justify-center gap-1 text-xs text-warning mb-1">
+                      <IndianRupee className="h-3 w-3" />
+                      <span>Pending</span>
+                    </div>
+                    <p className="font-semibold text-sm text-warning">₹{market.collection.pending.toLocaleString()}</p>
+                  </div>
                 </div>
 
                 {/* Employee List */}
