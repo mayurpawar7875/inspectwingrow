@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Users, Building2, ClipboardList, MapPin, TrendingUp, Activity, ChevronRight, Clock, Upload, Calendar, Navigation } from 'lucide-react';
+import { Users, Building2, ClipboardList, MapPin, TrendingUp, Activity, ChevronRight, Clock, Upload, Calendar, Navigation, IndianRupee } from 'lucide-react';
 import { MobileBottomNav } from '@/components/MobileBottomNav';
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
 import { format } from 'date-fns';
@@ -1238,6 +1238,35 @@ export default function AdminDashboard() {
                             <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
                               <Clock className="h-3 w-3" />
                               <span>Last upload: {formatTime(market.last_upload_time)}</span>
+                            </div>
+                          </div>
+
+                          {/* Collection Amounts */}
+                          <div className="pt-2 border-t space-y-2">
+                            <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                              <IndianRupee className="h-3 w-3" />
+                              <span>Collections</span>
+                            </div>
+
+                            <div className="grid grid-cols-3 gap-1.5">
+                              <div className="rounded-md bg-muted px-2 py-1">
+                                <div className="text-[9px] text-muted-foreground leading-tight">Expected</div>
+                                <div className="text-[11px] font-semibold leading-tight">
+                                  ₹{(market.collection_amounts?.expected ?? 0).toLocaleString('en-IN')}
+                                </div>
+                              </div>
+                              <div className="rounded-md bg-success/10 px-2 py-1">
+                                <div className="text-[9px] text-success leading-tight">Received</div>
+                                <div className="text-[11px] font-semibold text-success leading-tight">
+                                  ₹{(market.collection_amounts?.received ?? 0).toLocaleString('en-IN')}
+                                </div>
+                              </div>
+                              <div className="rounded-md bg-warning/10 px-2 py-1">
+                                <div className="text-[9px] text-warning leading-tight">Pending</div>
+                                <div className="text-[11px] font-semibold text-warning leading-tight">
+                                  ₹{(market.collection_amounts?.pending ?? 0).toLocaleString('en-IN')}
+                                </div>
+                              </div>
                             </div>
                           </div>
                         </div>

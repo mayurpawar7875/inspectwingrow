@@ -1,3 +1,4 @@
+import { useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -27,6 +28,11 @@ interface LiveMarket {
   media_uploads_count: number;
   last_upload_time: string | null;
   last_punch_in: string | null;
+  collection_amounts?: {
+    expected: number;
+    received: number;
+    pending: number;
+  };
   task_stats?: {
     attendance: number;
     stall_confirmations: number;
@@ -59,8 +65,9 @@ interface MarketManagerSession {
 const getISTDate = () => {
   const istNow = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
   return {
-    date: istNow.toISOString().split('T')[0],
-    dayOfWeek: istNow.getDay()
+    // Use a timezone-safe date string for all DB date comparisons
+    date: istNow.toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' }),
+    dayOfWeek: istNow.getDay(),
   };
 };
 
@@ -107,7 +114,7 @@ const fetchBatchedTaskStats = async (marketIds: string[], todayDate: string) => 
       : Promise.resolve({ data: [] }),
     // Stall confirmations - fetch all at once
     supabase.from('stall_confirmations')
-      .select('market_id, created_by')
+      .select('market_id, created_by, rent_amount')
       .in('market_id', marketIds)
       .eq('market_date', todayDate),
     // Media - fetch all types at once
@@ -141,7 +148,7 @@ const fetchBatchedTaskStats = async (marketIds: string[], todayDate: string) => 
       .eq('market_date', todayDate),
     // Collections
     supabase.from('collections')
-      .select('market_id, collected_by')
+      .select('market_id, collected_by, amount')
       .in('market_id', marketIds)
       .eq('collection_date', todayDate),
     // Attendance records for GPS coordinates
@@ -283,6 +290,11 @@ const fetchLiveMarketsData = async () => {
     const planningData = batchedData.planningByMarket.get(market.id) || [];
     const collectionsData = batchedData.collectionsByMarket.get(market.id) || [];
 
+    // Collection amounts (expected = sum rent_amount, received = sum collection.amount)
+    const expectedAmount = stallsData.reduce((sum: number, s: any) => sum + (s.rent_amount || 0), 0);
+    const receivedAmount = collectionsData.reduce((sum: number, c: any) => sum + (c.amount || 0), 0);
+    const pendingAmount = expectedAmount - receivedAmount;
+
     // Get media for this market's sessions
     const marketMedia: any[] = [];
     sessionIds.forEach(sid => {
@@ -401,6 +413,11 @@ const fetchLiveMarketsData = async () => {
       media_uploads_count: marketMedia.length,
       last_upload_time: lastTaskByMarket[market.id] || null,
       last_punch_in: null,
+      collection_amounts: {
+        expected: expectedAmount,
+        received: receivedAmount,
+        pending: pendingAmount,
+      },
       task_stats: taskStats,
       employee_names: employees.map(e => e.name),
       employees: employees
@@ -464,6 +481,10 @@ const fetchMMSessions = async (): Promise<MarketManagerSession[]> => {
   }));
 };
 
+const EMPTY_LIVE_MARKETS: LiveMarket[] = [];
+const EMPTY_MM_SESSIONS: MarketManagerSession[] = [];
+const DEFAULT_BDO_STATS = { pending: 0, lastUpdate: '' };
+
 export function useAdminDashboardData() {
   const liveMarketsQuery = useQuery({
     queryKey: ['admin-dashboard-live-markets'],
@@ -487,16 +508,16 @@ export function useAdminDashboardData() {
     refetchOnWindowFocus: false,
   });
 
-  const refetchAll = () => {
+  const refetchAll = useCallback(() => {
     liveMarketsQuery.refetch();
     bdoStatsQuery.refetch();
     mmSessionsQuery.refetch();
-  };
+  }, [liveMarketsQuery, bdoStatsQuery, mmSessionsQuery]);
 
   return {
-    liveMarkets: liveMarketsQuery.data || [],
-    bdoStats: bdoStatsQuery.data || { pending: 0, lastUpdate: '' },
-    mmSessions: mmSessionsQuery.data || [],
+    liveMarkets: liveMarketsQuery.data ?? EMPTY_LIVE_MARKETS,
+    bdoStats: bdoStatsQuery.data ?? DEFAULT_BDO_STATS,
+    mmSessions: mmSessionsQuery.data ?? EMPTY_MM_SESSIONS,
     isLoading: liveMarketsQuery.isLoading || bdoStatsQuery.isLoading || mmSessionsQuery.isLoading,
     refetchAll,
   };
