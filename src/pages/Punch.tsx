@@ -7,8 +7,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { ArrowLeft, Clock, CheckCircle, Camera, MapPin } from 'lucide-react';
+import { ArrowLeft, Clock, CheckCircle, Camera, MapPin, AlertTriangle } from 'lucide-react';
 import { validateImage, generateUploadPath } from '@/lib/fileValidation';
+import { getGPSPosition, checkLocationPermission, isSecureContext, GPSError } from '@/lib/gpsHelper';
 
 export default function Punch() {
   const { user } = useAuth();
@@ -69,19 +70,17 @@ export default function Punch() {
     }
   };
 
-  const getCurrentPosition = () => {
-    return new Promise<GeolocationPosition>((resolve, reject) => {
-      if (!('geolocation' in navigator)) {
-        reject(new Error('Geolocation not supported'));
-        return;
+  // Check GPS permission on mount for Android PWA
+  useEffect(() => {
+    const checkGPS = async () => {
+      if (!isSecureContext()) {
+        console.warn('Not in secure context - GPS may not work');
       }
-      navigator.geolocation.getCurrentPosition(
-        (pos) => resolve(pos),
-        (err) => reject(err),
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-      );
-    });
-  };
+      const permission = await checkLocationPermission();
+      console.log('Initial GPS permission check:', permission);
+    };
+    checkGPS();
+  }, []);
 
   const startCamera = async () => {
     try {
@@ -144,15 +143,18 @@ export default function Punch() {
       console.log('Starting punch in process...');
       
       try {
-        const pos = await getCurrentPosition();
-        gpsLat = pos.coords.latitude;
-        gpsLng = pos.coords.longitude;
-        gpsAccuracy = pos.coords.accuracy;
+        const gpsResult = await getGPSPosition({ timeout: 15000 });
+        gpsLat = gpsResult.latitude;
+        gpsLng = gpsResult.longitude;
+        gpsAccuracy = gpsResult.accuracy;
         setLastLocation({ lat: gpsLat, lng: gpsLng });
         console.log('GPS captured:', { gpsLat, gpsLng, gpsAccuracy });
-      } catch (geoErr: any) {
-        console.error('GPS error:', geoErr);
-        toast.error('Location is required for punch in. Please enable GPS.');
+      } catch (geoErr) {
+        const error = geoErr as GPSError;
+        console.error('GPS error:', error);
+        toast.error(error.userFriendlyMessage || 'Location is required for punch in. Please enable GPS.', {
+          duration: 8000,
+        });
         setActionLoading(false);
         return;
       }

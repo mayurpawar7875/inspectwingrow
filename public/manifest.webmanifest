@@ -3,10 +3,14 @@
   "short_name": "Wingrow",
   "description": "Market management system for Wingrow Agritech",
   "start_url": "/",
+  "scope": "/",
+  "id": "/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#3B82F6",
   "orientation": "portrait",
+  "categories": ["business", "productivity"],
+  "prefer_related_applications": false,
   "icons": [
     {
       "src": "/icon-192.png",
@@ -20,5 +24,8 @@
       "type": "image/png",
       "purpose": "any maskable"
     }
+  ],
+  "permissions": [
+    "geolocation"
   ]
 }
