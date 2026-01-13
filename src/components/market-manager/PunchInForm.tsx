@@ -3,9 +3,10 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import { Camera, MapPin, X } from 'lucide-react';
+import { Camera, MapPin, X, AlertTriangle } from 'lucide-react';
 import { validateImage, generateUploadPath } from '@/lib/fileValidation';
 import { TaskHistoryView } from './TaskHistoryView';
+import { getGPSPosition, checkLocationPermission, GPSError } from '@/lib/gpsHelper';
 
 interface PunchInFormProps {
   sessionId: string;
@@ -53,54 +54,53 @@ export function PunchInForm({ sessionId, onComplete }: PunchInFormProps) {
 
     setLoading(true);
 
-    // Get GPS location
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        const { latitude, longitude } = position.coords;
+    try {
+      // Get GPS location using enhanced helper
+      const gpsResult = await getGPSPosition({ timeout: 15000 });
+      const { latitude, longitude } = gpsResult;
 
-        // Validate selfie file
-        try {
-          validateImage(selfieFile);
-        } catch (validationError) {
-          setLoading(false);
-          return;
-        }
-
-        // Generate safe upload path
-        const fileName = generateUploadPath(sessionId, 'selfie.jpg', 'punchin');
-        const { data: uploadData, error: uploadError } = await supabase.storage
-          .from('employee-media')
-          .upload(fileName, selfieFile);
-
-        if (uploadError) {
-          toast.error('Failed to upload selfie');
-          setLoading(false);
-          return;
-        }
-
-        // Save punch-in record with file path (not full URL)
-        const { error } = await supabase.from('market_manager_punchin').insert({
-          session_id: sessionId,
-          selfie_url: fileName,
-          gps_lat: latitude,
-          gps_lng: longitude,
-        });
-
+      // Validate selfie file
+      try {
+        validateImage(selfieFile);
+      } catch (validationError) {
         setLoading(false);
-        if (error) {
-          toast.error('Failed to save punch-in');
-          return;
-        }
-
-        toast.success('Punched in successfully');
-        setHasPunchedIn(true);
-        onComplete();
-      },
-      (error) => {
-        setLoading(false);
-        toast.error('Failed to get GPS location');
+        return;
       }
-    );
+
+      // Generate safe upload path
+      const fileName = generateUploadPath(sessionId, 'selfie.jpg', 'punchin');
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('employee-media')
+        .upload(fileName, selfieFile);
+
+      if (uploadError) {
+        toast.error('Failed to upload selfie');
+        setLoading(false);
+        return;
+      }
+
+      // Save punch-in record with file path (not full URL)
+      const { error } = await supabase.from('market_manager_punchin').insert({
+        session_id: sessionId,
+        selfie_url: fileName,
+        gps_lat: latitude,
+        gps_lng: longitude,
+      });
+
+      setLoading(false);
+      if (error) {
+        toast.error('Failed to save punch-in');
+        return;
+      }
+
+      toast.success('Punched in successfully');
+      setHasPunchedIn(true);
+      onComplete();
+    } catch (geoErr) {
+      setLoading(false);
+      const error = geoErr as GPSError;
+      toast.error(error.userFriendlyMessage || 'Failed to get GPS location', { duration: 8000 });
+    }
   };
 
   return (

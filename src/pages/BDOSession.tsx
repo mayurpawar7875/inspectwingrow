@@ -5,7 +5,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { ArrowLeft, Clock, MapPin, Camera, LogIn, LogOut, CheckCircle, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Clock, MapPin, Camera, LogIn, LogOut, CheckCircle, AlertCircle, AlertTriangle } from 'lucide-react';
+import { getGPSPosition, checkLocationPermission, GPSError } from '@/lib/gpsHelper';
 
 interface BDOSessionData {
   id: string;
@@ -82,24 +83,21 @@ export default function BDOSession() {
 
   const getLocation = async () => {
     try {
-      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-        if (!('geolocation' in navigator)) {
-          reject(new Error('Geolocation not supported'));
-          return;
-        }
-        navigator.geolocation.getCurrentPosition(
-          (pos) => resolve(pos),
-          (err) => reject(err),
-          { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-        );
-      });
+      // Check permission first
+      const permissionState = await checkLocationPermission();
+      console.log('GPS permission state:', permissionState);
+      
+      const gpsResult = await getGPSPosition({ timeout: 15000 });
       setLocation({
-        lat: position.coords.latitude,
-        lng: position.coords.longitude,
+        lat: gpsResult.latitude,
+        lng: gpsResult.longitude,
       });
     } catch (error) {
-      console.error('Location error:', error);
-      toast.error('Unable to get location. Please enable GPS.');
+      const gpsError = error as GPSError;
+      console.error('Location error:', gpsError);
+      toast.error(gpsError.userFriendlyMessage || 'Unable to get location. Please enable GPS.', {
+        duration: 8000,
+      });
     }
   };
 
