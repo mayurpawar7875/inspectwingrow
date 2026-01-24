@@ -952,6 +952,233 @@ export default function BDODashboard() {
       </main>
       <MobileBottomNav />
       <div className="h-16 md:hidden" /> {/* Spacer for bottom nav */}
+
+      {/* Add Market Dialog */}
+      <Dialog open={showAddMarketDialog} onOpenChange={setShowAddMarketDialog}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Add New Market Location</DialogTitle>
+            <DialogDescription>Submit a new market location for review</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="grid gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="marketName">Market Name *</Label>
+                <Input
+                  id="marketName"
+                  value={marketForm.name}
+                  onChange={(e) => setMarketForm({ ...marketForm, name: e.target.value })}
+                  placeholder="Enter market name"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="location">Google Maps Location Link *</Label>
+                <Input
+                  id="location"
+                  value={marketForm.location}
+                  onChange={(e) => setMarketForm({ ...marketForm, location: e.target.value })}
+                  placeholder="Paste Google Maps link"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="address">Address *</Label>
+                <Textarea
+                  id="address"
+                  value={marketForm.address}
+                  onChange={(e) => setMarketForm({ ...marketForm, address: e.target.value })}
+                  placeholder="Enter full address"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="city">City</Label>
+                <Input
+                  id="city"
+                  value={marketForm.city}
+                  onChange={(e) => setMarketForm({ ...marketForm, city: e.target.value })}
+                  placeholder="Enter city"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="contactPersonName">Contact Person Name *</Label>
+                <Input
+                  id="contactPersonName"
+                  value={marketForm.contactPersonName}
+                  onChange={(e) => setMarketForm({ ...marketForm, contactPersonName: e.target.value })}
+                  placeholder="Enter contact person name"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="contactPhone">Contact Phone *</Label>
+                <Input
+                  id="contactPhone"
+                  value={marketForm.contactPhone}
+                  onChange={(e) => setMarketForm({ ...marketForm, contactPhone: e.target.value })}
+                  placeholder="Enter contact phone"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="contactEmail">Contact Email</Label>
+                <Input
+                  id="contactEmail"
+                  type="email"
+                  value={marketForm.contactEmail}
+                  onChange={(e) => setMarketForm({ ...marketForm, contactEmail: e.target.value })}
+                  placeholder="Enter contact email"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="openingDate">Expected Opening Date *</Label>
+                <Input
+                  id="openingDate"
+                  type="date"
+                  value={marketForm.openingDate}
+                  onChange={(e) => setMarketForm({ ...marketForm, openingDate: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="photo">Market Photo (Optional)</Label>
+                <Input
+                  id="photo"
+                  type="file"
+                  accept="image/*"
+                  onChange={handlePhotoChange}
+                />
+              </div>
+            </div>
+            
+            {/* Queue display */}
+            {marketsToSubmit.length > 0 && (
+              <div className="border rounded-lg p-3 mt-4">
+                <p className="font-medium mb-2">Markets in Queue ({marketsToSubmit.length})</p>
+                <div className="space-y-2">
+                  {marketsToSubmit.map((market, index) => (
+                    <div key={index} className="flex items-center justify-between bg-muted p-2 rounded">
+                      <span className="text-sm">{market.name}</span>
+                      <Button variant="ghost" size="sm" onClick={() => handleRemoveFromQueue(index)}>
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button variant="outline" onClick={handleAddToQueue}>
+              <Plus className="h-4 w-4 mr-2" />
+              Add to Queue
+            </Button>
+            <Button 
+              onClick={handleSubmitAllMarkets} 
+              disabled={uploadingMarket || marketsToSubmit.length === 0}
+            >
+              {uploadingMarket ? (
+                <>
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  Submitting...
+                </>
+              ) : (
+                `Submit All (${marketsToSubmit.length})`
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Stall Dialog */}
+      <Dialog open={showAddStallDialog} onOpenChange={setShowAddStallDialog}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Onboard New Stall</DialogTitle>
+            <DialogDescription>Submit a new stall for review</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="grid gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="farmerName">Farmer Name *</Label>
+                <Input
+                  id="farmerName"
+                  value={stallForm.farmerName}
+                  onChange={(e) => setStallForm({ ...stallForm, farmerName: e.target.value })}
+                  placeholder="Enter farmer name"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="stallName">Stall Name *</Label>
+                <Input
+                  id="stallName"
+                  value={stallForm.stallName}
+                  onChange={(e) => setStallForm({ ...stallForm, stallName: e.target.value })}
+                  placeholder="Enter stall name"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="stallContactNumber">Contact Number *</Label>
+                <Input
+                  id="stallContactNumber"
+                  value={stallForm.contactNumber}
+                  onChange={(e) => setStallForm({ ...stallForm, contactNumber: e.target.value })}
+                  placeholder="Enter contact number"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="stallAddress">Address *</Label>
+                <Textarea
+                  id="stallAddress"
+                  value={stallForm.address}
+                  onChange={(e) => setStallForm({ ...stallForm, address: e.target.value })}
+                  placeholder="Enter address"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="dateOfStartingMarkets">Date of Starting Markets *</Label>
+                <Input
+                  id="dateOfStartingMarkets"
+                  type="date"
+                  value={stallForm.dateOfStartingMarkets}
+                  onChange={(e) => setStallForm({ ...stallForm, dateOfStartingMarkets: e.target.value })}
+                />
+              </div>
+            </div>
+            
+            {/* Queue display */}
+            {stallsToSubmit.length > 0 && (
+              <div className="border rounded-lg p-3 mt-4">
+                <p className="font-medium mb-2">Stalls in Queue ({stallsToSubmit.length})</p>
+                <div className="space-y-2">
+                  {stallsToSubmit.map((stall, index) => (
+                    <div key={index} className="flex items-center justify-between bg-muted p-2 rounded">
+                      <span className="text-sm">{stall.stallName} - {stall.farmerName}</span>
+                      <Button variant="ghost" size="sm" onClick={() => handleRemoveStallFromQueue(index)}>
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button variant="outline" onClick={handleAddStallToQueue}>
+              <Plus className="h-4 w-4 mr-2" />
+              Add to Queue
+            </Button>
+            <Button 
+              onClick={handleSubmitAllStalls} 
+              disabled={uploadingStall || stallsToSubmit.length === 0}
+            >
+              {uploadingStall ? (
+                <>
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  Submitting...
+                </>
+              ) : (
+                `Submit All (${stallsToSubmit.length})`
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
