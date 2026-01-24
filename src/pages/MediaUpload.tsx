@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
-import { ArrowLeft, Upload, Trash2, Play, Eye } from 'lucide-react';
+import { ArrowLeft, Upload, Trash2, Play, Eye, Video, Square, X } from 'lucide-react';
 import { validateImage, validateVideo, generateUploadPath, MAX_VIDEO_SIZE } from '@/lib/fileValidation';
 import { getSignedUrl } from '@/lib/storageHelpers';
 import { compressVideo, needsCompression, getFileSizeMB } from '@/lib/videoCompression';
@@ -67,6 +67,15 @@ export default function MediaUpload() {
   const [deleteConfirmDialog, setDeleteConfirmDialog] = useState(false);
   const [mediaToDelete, setMediaToDelete] = useState<MediaFile | null>(null);
   const [deleting, setDeleting] = useState(false);
+  
+  // Video recording states for customer feedback
+  const [isRecording, setIsRecording] = useState(false);
+  const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
+  const [recordedChunks, setRecordedChunks] = useState<Blob[]>([]);
+  const [recordedVideoUrl, setRecordedVideoUrl] = useState<string | null>(null);
+  const [recordedVideoBlob, setRecordedVideoBlob] = useState<Blob | null>(null);
+  const videoPreviewRef = useState<HTMLVideoElement | null>(null);
+  const streamRef = useState<MediaStream | null>(null);
   useEffect(() => {
     fetchData();
   }, [user, currentRole]);
@@ -634,6 +643,141 @@ export default function MediaUpload() {
       toast.error('Failed to delete media');
     } finally {
       setDeleting(false);
+    }
+  };
+
+  // Video recording functions for customer feedback
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { facingMode: 'environment' }, 
+        audio: true 
+      });
+      
+      streamRef[1](stream);
+      
+      const recorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
+      const chunks: Blob[] = [];
+      
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) {
+          chunks.push(e.data);
+        }
+      };
+      
+      recorder.onstop = () => {
+        const blob = new Blob(chunks, { type: 'video/webm' });
+        const url = URL.createObjectURL(blob);
+        setRecordedVideoUrl(url);
+        setRecordedVideoBlob(blob);
+        setRecordedChunks(chunks);
+        
+        // Stop all tracks
+        stream.getTracks().forEach(track => track.stop());
+        streamRef[1](null);
+      };
+      
+      setMediaRecorder(recorder);
+      recorder.start();
+      setIsRecording(true);
+      toast.info('Recording started');
+    } catch (error: any) {
+      console.error('Error starting recording:', error);
+      toast.error('Failed to start recording. Please ensure camera and microphone permissions are granted.');
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+      mediaRecorder.stop();
+      setIsRecording(false);
+      toast.success('Recording stopped');
+    }
+  };
+
+  const clearRecording = () => {
+    if (recordedVideoUrl) {
+      URL.revokeObjectURL(recordedVideoUrl);
+    }
+    setRecordedVideoUrl(null);
+    setRecordedVideoBlob(null);
+    setRecordedChunks([]);
+  };
+
+  const uploadRecordedVideo = async () => {
+    if (!recordedVideoBlob || !user) return;
+    
+    setUploading(true);
+    try {
+      // Get active session
+      const todayIST = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }))
+        .toISOString().split('T')[0];
+      
+      const { data: sessions, error: sessionError } = await supabase
+        .from('sessions')
+        .select('id, market_id')
+        .eq('user_id', user.id)
+        .eq('session_date', todayIST)
+        .eq('status', 'active')
+        .order('created_at', { ascending: false })
+        .limit(1);
+      
+      if (sessionError) throw sessionError;
+      
+      if (!sessions || sessions.length === 0) {
+        toast.error('No active session found. Please start a session first.');
+        navigate('/dashboard');
+        return;
+      }
+      
+      const session = sessions[0];
+      const timestamp = Date.now();
+      const fileName = `customer_feedback_${timestamp}.webm`;
+      const filePath = `${user.id}/${todayIST}/${fileName}`;
+      
+      // Compress if needed
+      let fileToUpload: Blob = recordedVideoBlob;
+      const fileSizeMB = recordedVideoBlob.size / (1024 * 1024);
+      
+      if (fileSizeMB > 50) {
+        toast.info('Compressing video...');
+        const file = new File([recordedVideoBlob], fileName, { type: 'video/webm' });
+        fileToUpload = await compressVideo(file);
+      }
+      
+      // Upload to storage
+      const { error: uploadError } = await supabase.storage
+        .from('employee-media')
+        .upload(filePath, fileToUpload, {
+          cacheControl: '3600',
+          upsert: false
+        });
+      
+      if (uploadError) throw uploadError;
+      
+      // Insert media record
+      const { error: insertError } = await supabase
+        .from('media')
+        .insert({
+          session_id: session.id,
+          market_id: session.market_id,
+          media_type: 'customer_feedback',
+          file_url: filePath,
+          file_name: fileName,
+          content_type: 'video/webm',
+          is_late: false
+        });
+      
+      if (insertError) throw insertError;
+      
+      toast.success('Customer feedback video uploaded successfully');
+      clearRecording();
+      fetchData();
+    } catch (error: any) {
+      console.error('Error uploading recorded video:', error);
+      toast.error('Failed to upload video');
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -1397,8 +1541,90 @@ export default function MediaUpload() {
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                  {/* Record Video Section */}
+                  <div className="space-y-3">
+                    <Label>Record Video</Label>
+                    {!isRecording && !recordedVideoUrl && (
+                      <Button
+                        onClick={startRecording}
+                        disabled={uploading}
+                        className="w-full"
+                        variant="outline"
+                      >
+                        <Video className="mr-2 h-4 w-4" />
+                        Start Recording
+                      </Button>
+                    )}
+                    
+                    {isRecording && (
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-center p-6 bg-destructive/10 rounded-lg border-2 border-destructive animate-pulse">
+                          <div className="flex items-center gap-2 text-destructive">
+                            <div className="h-3 w-3 bg-destructive rounded-full animate-pulse" />
+                            <span className="font-medium">Recording...</span>
+                          </div>
+                        </div>
+                        <Button
+                          onClick={stopRecording}
+                          variant="destructive"
+                          className="w-full"
+                        >
+                          <Square className="mr-2 h-4 w-4" />
+                          Stop Recording
+                        </Button>
+                      </div>
+                    )}
+                    
+                    {recordedVideoUrl && !isRecording && (
+                      <div className="space-y-3">
+                        <div className="relative">
+                          <video
+                            src={recordedVideoUrl}
+                            controls
+                            className="w-full rounded-lg max-h-48"
+                          />
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="absolute top-2 right-2 bg-background/80 hover:bg-background"
+                            onClick={clearRecording}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button
+                            onClick={clearRecording}
+                            variant="outline"
+                            className="flex-1"
+                            disabled={uploading}
+                          >
+                            Re-record
+                          </Button>
+                          <Button
+                            onClick={uploadRecordedVideo}
+                            className="flex-1"
+                            disabled={uploading}
+                          >
+                            {uploading ? 'Uploading...' : 'Upload Video'}
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="relative">
+                    <div className="absolute inset-0 flex items-center">
+                      <span className="w-full border-t" />
+                    </div>
+                    <div className="relative flex justify-center text-xs uppercase">
+                      <span className="bg-card px-2 text-muted-foreground">Or</span>
+                    </div>
+                  </div>
+                  
+                  {/* File Upload Section */}
                   <div className="space-y-2">
-                    <Label htmlFor="customer-feedback">Upload Video or Audio</Label>
+                    <Label htmlFor="customer-feedback">Choose File</Label>
                     <Input
                       id="customer-feedback"
                       type="file"
@@ -1408,7 +1634,7 @@ export default function MediaUpload() {
                         if (!file) return;
                         await handleFileUpload(file, 'customer_feedback');
                       }}
-                      disabled={uploading}
+                      disabled={uploading || isRecording}
                     />
                     <p className="text-xs text-muted-foreground">
                       Accepts video and audio files (MP4, MOV, MP3, M4A, etc.)
