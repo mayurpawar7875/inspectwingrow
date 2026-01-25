@@ -1,7 +1,8 @@
-import { useEffect, useState, lazy, Suspense } from 'react';
+import { useEffect, useState, lazy, Suspense, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/lib/auth';
 import { supabase } from '@/integrations/supabase/client';
+import { useDashboardData } from '@/hooks/useDashboardData';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -34,11 +35,6 @@ import {
   CalendarCheck,
   DollarSign,
 } from 'lucide-react';
-// import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-// import { Textarea } from '@/components/ui/textarea';
-// import { Input } from '@/components/ui/input';
-// import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-// import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 const TodaysOffersForm = lazy(() => import('@/components/TodaysOffersForm'));
 const NonAvailableCommoditiesForm = lazy(() => import('@/components/NonAvailableCommoditiesForm'));
@@ -48,27 +44,6 @@ const NextDayPlanningForm = lazy(() => import('@/components/NextDayPlanningForm'
 const MarketLocationVisitForm = lazy(() => import('@/components/MarketLocationVisitForm'));
 const ReimbursementForm = lazy(() => import('@/components/ReimbursementForm'));
 import { MobileBottomNav } from '@/components/MobileBottomNav';
-
-interface TaskStatus {
-  name: string;
-  completed: boolean;
-  icon: any;
-}
-
-interface Session {
-  id: string;
-  session_date: string;
-  punch_in_time: string | null;
-  punch_out_time: string | null;
-  status: 'active' | 'completed' | 'finalized' | 'locked';
-  market_id: string;
-  market: { name: string; location: string };
-  media: any[];
-  total_tasks?: number;
-  completed_tasks?: number;
-  computed_status?: string;
-  task_details?: TaskStatus[];
-}
 
 interface SessionSummary {
   stalls_count: number;
@@ -83,11 +58,22 @@ export default function Dashboard() {
   const { user, signOut, currentRole, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
-  const [todaySessions, setTodaySessions] = useState<Session[]>([]);
+  
+  // Use centralized data hook with caching
+  const { data: dashboardData, isLoading: dataLoading, refetch } = useDashboardData();
+  
+  // Derive sessions from hook data
+  const todaySessions = useMemo(() => dashboardData?.sessions || [], [dashboardData?.sessions]);
   const [selectedSessionIndex, setSelectedSessionIndex] = useState(0);
   const todaySession = todaySessions[selectedSessionIndex] || null;
+  
+  // Derived values from hook
+  const stallsCount = dashboardData?.stallsCount || 0;
+  const collectionSheetUrl = dashboardData?.collectionSheetUrl || null;
+  const attendanceStats = dashboardData?.attendanceStats || null;
+  
+  // Local UI state only
   const [sessionSummary, setSessionSummary] = useState<SessionSummary | null>(null);
-  const [loading, setLoading] = useState(true);
   const [viewDialog, setViewDialog] = useState<'stalls' | 'media' | 'late' | null>(null);
   const [dialogData, setDialogData] = useState<any[]>([]);
   const [offersDialog, setOffersDialog] = useState(false);
@@ -101,92 +87,72 @@ export default function Dashboard() {
   const [leaveDate, setLeaveDate] = useState<string>('');
   const [leaveReason, setLeaveReason] = useState('');
   const [submittingLeave, setSubmittingLeave] = useState(false);
-  const [stallsCount, setStallsCount] = useState<number>(0);
-  const [collectionSheetUrl, setCollectionSheetUrl] = useState<string | null>(null);
   const [elapsedTime, setElapsedTime] = useState<string>('');
-  const [attendanceStats, setAttendanceStats] = useState<{
-    fullDays: number;
-    halfDays: number;
-    absences: number;
-    weeklyOffs: number;
-    totalDays: number;
-  } | null>(null);
 
+  // Combined loading state
+  const loading = authLoading || dataLoading;
+
+  // Handle redirects and real-time subscriptions
   useEffect(() => {
-    console.log('Dashboard useEffect:', { authLoading, currentRole, user: !!user });
-    
-    // Wait for auth to finish loading before checking roles
-    if (authLoading) {
-      console.log('Auth still loading, waiting...');
-      return;
-    }
+    if (authLoading) return;
 
-    // If no user after auth loads, redirect to login
     if (!user) {
-      console.log('No user found, redirecting to auth');
       navigate('/auth');
-      setLoading(false);
       return;
     }
 
-    console.log('User found, checking role:', currentRole);
-
-    // Redirect based on role only if role is determined
+    // Redirect based on role
     if (currentRole === 'admin') {
-      console.log('Redirecting to admin dashboard');
       navigate('/admin');
       return;
     }
     if (currentRole === 'market_manager') {
-      console.log('Redirecting to market manager dashboard');
       navigate('/manager-dashboard');
       return;
     }
     if (currentRole === 'bdo') {
-      console.log('Redirecting to BDO dashboard');
       navigate('/bdo-dashboard');
       return;
     }
-    
-    // Only fetch if we're staying on employee dashboard and user is available
-    if (currentRole === 'employee' || currentRole === 'bms_executive' || !currentRole) {
-      console.log('Fetching employee dashboard data');
-      fetchTodaySession();
-      fetchCollectionSheetUrl();
-    } else {
-      console.log('Unknown role or no role, setting loading to false');
-      setLoading(false);
-    }
 
-    // Subscribe to notifications for this user and broadcasts
-    if (user) {
-      const channel = supabase
-        .channel(`notifications-${user.id}`)
-        .on('postgres_changes', {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'notifications',
-          filter: `target_user_id=eq.${user.id}`,
-        }, (payload: any) => {
-          const n = payload.new as { title: string; body: string };
-          toast(n.title, { description: n.body });
-        })
-        .on('postgres_changes', {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'notifications',
-          filter: 'target_user_id=is.null',
-        }, (payload: any) => {
-          const n = payload.new as { title: string; body: string };
-          toast(n.title, { description: n.body });
-        })
-        .subscribe();
+    // Subscribe to notifications
+    const channel = supabase
+      .channel(`notifications-${user.id}`)
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'notifications',
+        filter: `target_user_id=eq.${user.id}`,
+      }, (payload: any) => {
+        const n = payload.new as { title: string; body: string };
+        toast(n.title, { description: n.body });
+      })
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'notifications',
+        filter: 'target_user_id=is.null',
+      }, (payload: any) => {
+        const n = payload.new as { title: string; body: string };
+        toast(n.title, { description: n.body });
+      })
+      .subscribe();
 
-      return () => {
-        supabase.removeChannel(channel);
-      };
-    }
-  }, [user, authLoading, currentRole, navigate]);
+    // Subscribe to session-related changes to trigger refetch
+    const sessionChannel = supabase
+      .channel('dashboard-updates')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'sessions' }, () => refetch())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'media' }, () => refetch())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'stall_confirmations' }, () => refetch())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'offers' }, () => refetch())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'stall_inspections' }, () => refetch())
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+      supabase.removeChannel(sessionChannel);
+    };
+  }, [user, authLoading, currentRole, navigate, refetch]);
 
   // Countdown timer to midnight for active sessions
   useEffect(() => {
@@ -200,14 +166,11 @@ export default function Dashboard() {
 
     const calculateCountdown = () => {
       const now = new Date();
-      
-      // Calculate midnight (12 AM) of the next day
       const midnight = new Date(now);
-      midnight.setHours(24, 0, 0, 0); // Sets to 00:00:00 of next day
+      midnight.setHours(24, 0, 0, 0);
       
       const diffMs = midnight.getTime() - now.getTime();
       
-      // If past midnight, show 00:00:00
       if (diffMs <= 0) {
         setElapsedTime('00:00:00');
         return;
@@ -222,213 +185,14 @@ export default function Dashboard() {
       );
     };
 
-    calculateCountdown(); // Initial calculation
+    calculateCountdown();
     const interval = setInterval(calculateCountdown, 1000);
 
     return () => clearInterval(interval);
   }, [todaySessions, selectedSessionIndex]);
-  const fetchCollectionSheetUrl = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('app_settings')
-        .select('collection_sheet_url')
-        .single();
-      
-      if (error) throw error;
-      setCollectionSheetUrl(data?.collection_sheet_url || null);
-    } catch (error) {
-      console.error('Error fetching collection sheet URL:', error);
-    }
-  };
 
   const handleOpenCollectionSheet = () => {
     navigate('/collections');
-  };
-
-  const fetchTodaySession = async () => {
-    if (!user) {
-      setLoading(false);
-      return;
-    }
-
-    try {
-      setLoading(true);
-      // Use IST date for session validation
-      const today = getISTDateString(new Date());
-      
-      // Fetch attendance stats for current month
-      const startOfMonth = new Date();
-      startOfMonth.setDate(1);
-      const startDate = getISTDateString(startOfMonth);
-      
-      const { data: attendanceData, error: attendanceError } = await supabase
-        .from('attendance_records')
-        .select('status')
-        .eq('user_id', user.id)
-        .gte('attendance_date', startDate)
-        .lte('attendance_date', today);
-      
-      if (!attendanceError && attendanceData) {
-        const stats = attendanceData.reduce((acc, record) => {
-          if (record.status === 'full_day') acc.fullDays++;
-          else if (record.status === 'half_day') acc.halfDays++;
-          else if (record.status === 'absent') acc.absences++;
-          else if (record.status === 'weekly_off') acc.weeklyOffs++;
-          return acc;
-        }, { fullDays: 0, halfDays: 0, absences: 0, weeklyOffs: 0, totalDays: attendanceData.length });
-        
-        setAttendanceStats(stats);
-      }
-      
-      const { data: sessionsData, error } = await supabase
-        .from('sessions')
-        .select(`
-          *,
-          market:markets(*),
-          media(*)
-        `)
-        .eq('user_id', user.id)
-        .eq('session_date', today)
-        .order('created_at', { ascending: true });
-
-      if (error) {
-        console.error('Error fetching session:', error);
-        throw error;
-      }
-      
-      // Process all sessions with task completion data
-      if (sessionsData && sessionsData.length > 0) {
-        const processedSessions: Session[] = [];
-        
-        for (const data of sessionsData) {
-          const todayIST = getISTDateString(new Date());
-          const dateStr = todayIST;
-          
-          // Task 1: Punch In
-          let totalTasks = 13;
-          let completedTasks = 0;
-          const taskDetails: TaskStatus[] = [];
-          
-          const punchInCompleted = !!data.punch_in_time;
-          if (punchInCompleted) completedTasks++;
-          taskDetails.push({ name: 'Punch In', completed: punchInCompleted, icon: Clock });
-          
-          // Task 2: Stall Confirmations (at least 1)
-          const { count: stallCount, error: stallCountError } = await supabase
-            .from('stall_confirmations')
-            .select('*', { count: 'exact', head: true })
-            .eq('market_id', data.market_id)
-            .eq('market_date', dateStr);
-          
-          const stallsCompleted = !stallCountError && (stallCount || 0) > 0;
-          if (!stallCountError && processedSessions.length === 0) {
-            // Only set stalls count for first session (selected by default)
-            setStallsCount(stallCount || 0);
-          }
-          if (stallsCompleted) completedTasks++;
-          taskDetails.push({ name: 'Stall Confirmations', completed: stallsCompleted, icon: FileText });
-          
-          // Task 3-8: Media uploads (6 types) - run in parallel
-          const mediaTypes: Array<{type: 'outside_rates' | 'rate_board' | 'market_video' | 'cleaning_video' | 'customer_feedback' | 'selfie_gps', label: string, icon: any}> = [
-            { type: 'outside_rates', label: 'Outside Rates', icon: Upload },
-            { type: 'rate_board', label: 'Rate Board Photo', icon: ImageIcon },
-            { type: 'market_video', label: 'Market Video', icon: Video },
-            { type: 'cleaning_video', label: 'Cleaning Video', icon: Sparkles },
-            { type: 'customer_feedback', label: 'Customer Feedback', icon: MessageSquare },
-            { type: 'selfie_gps', label: 'Selfie with GPS', icon: Camera },
-          ];
-          
-          // Run all media queries in parallel
-          const mediaResults = await Promise.all(
-            mediaTypes.map(mediaType => 
-              supabase
-                .from('media')
-                .select('*', { count: 'exact', head: true })
-                .eq('session_id', data.id)
-                .eq('media_type', mediaType.type)
-            )
-          );
-          
-          mediaResults.forEach((result, index) => {
-            const mediaCompleted = (result.count || 0) > 0;
-            if (mediaCompleted) completedTasks++;
-            taskDetails.push({ name: mediaTypes[index].label, completed: mediaCompleted, icon: mediaTypes[index].icon });
-          });
-          
-          // Task 9-13: Run remaining queries in parallel
-          const [offersResult, commoditiesResult, inspectionsResult, feedbackResult, planningResult] = await Promise.all([
-            supabase.from('offers').select('*', { count: 'exact', head: true }).eq('market_id', data.market_id).eq('market_date', dateStr).eq('session_id', data.id),
-            supabase.from('non_available_commodities').select('*', { count: 'exact', head: true }).eq('market_id', data.market_id).eq('market_date', dateStr).eq('session_id', data.id),
-            supabase.from('stall_inspections').select('*', { count: 'exact', head: true }).eq('session_id', data.id),
-            supabase.from('organiser_feedback').select('*', { count: 'exact', head: true }).eq('market_id', data.market_id).eq('market_date', dateStr).eq('session_id', data.id),
-            supabase.from('next_day_planning').select('*', { count: 'exact', head: true }).eq('market_id', data.market_id).eq('market_date', dateStr).eq('session_id', data.id),
-          ]);
-
-          // Task 9: Today's Offers
-          const offersCompleted = (offersResult.count || 0) > 0;
-          if (offersCompleted) completedTasks++;
-          taskDetails.push({ name: "Today's Offers", completed: offersCompleted, icon: FileText });
-          
-          // Task 10: Non-Available Commodities
-          const commoditiesCompleted = (commoditiesResult.count || 0) > 0;
-          if (commoditiesCompleted) completedTasks++;
-          taskDetails.push({ name: 'Non-Available Commodities', completed: commoditiesCompleted, icon: AlertCircle });
-          
-          // Task 11: Stall Inspections (at least 1)
-          const inspectionsCompleted = (inspectionsResult.count || 0) > 0;
-          if (inspectionsCompleted) completedTasks++;
-          taskDetails.push({ name: 'Stall Inspections', completed: inspectionsCompleted, icon: ClipboardCheck });
-          
-          // Task 12: Punch Out
-          const punchOutCompleted = !!data.punch_out_time;
-          if (punchOutCompleted) completedTasks++;
-          taskDetails.push({ name: 'Punch Out', completed: punchOutCompleted, icon: LogOut });
-          
-          // Task 13: Organiser Feedback or Next Day Planning (either one counts)
-          const feedbackCompleted = (feedbackResult.count || 0) > 0 || (planningResult.count || 0) > 0;
-          if (feedbackCompleted) completedTasks++;
-          taskDetails.push({ name: 'Feedback / Next Day Plan', completed: feedbackCompleted, icon: Calendar });
-          
-          // Determine status based on task completion and expiration
-          const sessionDate = data.session_date;
-          const currentDateTime = new Date();
-          const sessionDateTime = new Date(sessionDate + 'T23:59:59');
-          
-          let computedStatus = 'incomplete';
-          
-          if (completedTasks === totalTasks) {
-            computedStatus = 'completed';
-          } else if (currentDateTime > sessionDateTime) {
-            computedStatus = 'incomplete_expired';
-          } else if (data.punch_in_time && !data.punch_out_time) {
-            // Session is ongoing - punched in but not punched out
-            computedStatus = 'active';
-          } else {
-            computedStatus = 'incomplete';
-          }
-          
-          processedSessions.push({
-            ...data,
-            total_tasks: totalTasks,
-            completed_tasks: completedTasks,
-            computed_status: computedStatus,
-            task_details: taskDetails
-          });
-        }
-        
-        setTodaySessions(processedSessions);
-      } else {
-        setTodaySessions([]);
-        setStallsCount(0);
-      }
-      
-      // Session summary is optional - we'll compute it from data we have
-    } catch (error: any) {
-      console.error('Error fetching session:', error);
-      toast.error('Failed to load session data');
-    } finally {
-      setLoading(false);
-    }
   };
 
   const getISTDateString = (date: Date) => {
@@ -1093,7 +857,7 @@ export default function Dashboard() {
                             toast.success('Punched out successfully! You can continue uploading tasks until midnight.');
                             
                             // Refresh the session data
-                            fetchTodaySession();
+                            refetch();
                           } catch (error: any) {
                             console.error('Punch out error:', error);
                             toast.error('Failed to punch out: ' + error.message);
@@ -1230,7 +994,7 @@ export default function Dashboard() {
                 marketDate={todaySession.session_date}
                 userId={user!.id}
                 onSuccess={() => {
-                  fetchTodaySession();
+                  refetch();
                   setOffersDialog(false);
                 }}
               />
@@ -1253,7 +1017,7 @@ export default function Dashboard() {
                 marketDate={todaySession.session_date}
                 userId={user!.id}
                 onSuccess={() => {
-                  fetchTodaySession();
+                  refetch();
                   setCommoditiesDialog(false);
                 }}
               />
@@ -1276,7 +1040,7 @@ export default function Dashboard() {
                 marketDate={todaySession.session_date}
                 userId={user!.id}
                 onSuccess={() => {
-                  fetchTodaySession();
+                  refetch();
                   setFeedbackDialog(false);
                 }}
               />
@@ -1299,7 +1063,7 @@ export default function Dashboard() {
                 marketDate={todaySession.session_date}
                 userId={user!.id}
                 onSuccess={() => {
-                  fetchTodaySession();
+                  refetch();
                   setInspectionDialog(false);
                 }}
               />
@@ -1325,7 +1089,7 @@ export default function Dashboard() {
                 marketDate={todaySession?.session_date || getISTDateString(new Date())}
                 userId={user!.id}
                 onSuccess={() => {
-                  if (todaySession) fetchTodaySession();
+                  if (todaySession) refetch();
                   setPlanningDialog(false);
                 }}
               />
@@ -1410,7 +1174,7 @@ export default function Dashboard() {
                 marketDate={todaySession.session_date}
                 userId={user!.id}
                 onSuccess={() => {
-                  fetchTodaySession();
+                  refetch();
                   setInspectionDialog(false);
                 }}
               />
