@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -14,9 +15,20 @@ import { toast } from 'sonner';
 import { Upload } from 'lucide-react';
 import { validateImage, validateDocument, generateUploadPath } from '@/lib/fileValidation';
 
+async function fetchAssetRequests(userId: string) {
+  const { data, error } = await supabase
+    .from('asset_requests')
+    .select('*, asset_inventory(asset_name), markets(name), asset_payments(verification_status)')
+    .eq('requester_id', userId)
+    .order('created_at', { ascending: false });
+  
+  if (error) throw error;
+  return data || [];
+}
+
 export function AssetRequestsList() {
   const { user } = useAuth();
-  const [requests, setRequests] = useState<any[]>([]);
+  const queryClient = useQueryClient();
   const [selectedRequest, setSelectedRequest] = useState<any>(null);
   const [uploading, setUploading] = useState(false);
   const [paymentData, setPaymentData] = useState({
@@ -26,27 +38,28 @@ export function AssetRequestsList() {
     proofFile: null as File | null,
   });
 
-  useEffect(() => {
-    fetchRequests();
+  const { data: requests = [], isLoading, refetch } = useQuery({
+    queryKey: ['asset-requests', user?.id],
+    queryFn: () => fetchAssetRequests(user!.id),
+    enabled: !!user?.id,
+    staleTime: 30 * 1000, // 30 seconds
+    refetchOnWindowFocus: false,
+  });
 
+  useEffect(() => {
+    if (!user) return;
+    
     const channel = supabase
       .channel('asset-requests-changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'asset_requests' }, fetchRequests)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'asset_requests' }, () => {
+        refetch();
+      })
       .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user]);
-
-  const fetchRequests = async () => {
-    const { data } = await supabase
-      .from('asset_requests')
-      .select('*, asset_inventory(asset_name), markets(name), asset_payments(verification_status)')
-      .eq('requester_id', user?.id)
-      .order('created_at', { ascending: false });
-    setRequests(data || []);
-  };
+  }, [user, refetch]);
 
   const getStatusBadge = (status: string) => {
     const variants: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
@@ -121,7 +134,7 @@ export function AssetRequestsList() {
         paymentDate: new Date().toISOString().split('T')[0],
         proofFile: null,
       });
-      fetchRequests();
+      refetch();
     } catch (error) {
       toast.error('Failed to upload payment details');
     } finally {
@@ -129,12 +142,30 @@ export function AssetRequestsList() {
     }
   };
 
+  if (isLoading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>My Asset Requests</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card>
       <CardHeader>
         <CardTitle>My Asset Requests</CardTitle>
       </CardHeader>
       <CardContent>
+        {requests.length === 0 ? (
+          <p className="text-muted-foreground text-center py-8">No asset requests found</p>
+        ) : (
         <Table>
           <TableHeader>
             <TableRow>
@@ -226,15 +257,9 @@ export function AssetRequestsList() {
                 </TableCell>
               </TableRow>
             ))}
-            {requests.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={7} className="text-center text-muted-foreground">
-                  No asset requests yet
-                </TableCell>
-              </TableRow>
-            )}
           </TableBody>
         </Table>
+        )}
       </CardContent>
     </Card>
   );
