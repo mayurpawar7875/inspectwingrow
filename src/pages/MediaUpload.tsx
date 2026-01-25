@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
-import { ArrowLeft, Upload, Trash2, Play, Eye, Video, Square, X } from 'lucide-react';
+import { ArrowLeft, Upload, Trash2, Play, Eye, Video, Square, X, Camera } from 'lucide-react';
 import { validateImage, validateVideo, generateUploadPath, MAX_VIDEO_SIZE } from '@/lib/fileValidation';
 import { getSignedUrl } from '@/lib/storageHelpers';
 import { compressVideo, needsCompression, getFileSizeMB } from '@/lib/videoCompression';
@@ -76,6 +76,13 @@ export default function MediaUpload() {
   const [recordedVideoBlob, setRecordedVideoBlob] = useState<Blob | null>(null);
   const videoPreviewRef = useState<HTMLVideoElement | null>(null);
   const streamRef = useState<MediaStream | null>(null);
+  
+  // Camera capture state for outside rates
+  const [isCameraActive, setIsCameraActive] = useState(false);
+  const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
+  const [capturedPhoto, setCapturedPhoto] = useState<string | null>(null);
+  const [capturedPhotoBlob, setCapturedPhotoBlob] = useState<Blob | null>(null);
+  const cameraVideoRef = useState<HTMLVideoElement | null>(null);
   useEffect(() => {
     fetchData();
   }, [user, currentRole]);
@@ -704,6 +711,131 @@ export default function MediaUpload() {
     setRecordedChunks([]);
   };
 
+  // Camera capture functions for outside rates
+  const startCamera = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment' },
+        audio: false
+      });
+      setCameraStream(stream);
+      setIsCameraActive(true);
+      
+      // Attach stream to video element after a short delay
+      setTimeout(() => {
+        const videoElement = document.getElementById('camera-preview') as HTMLVideoElement;
+        if (videoElement) {
+          videoElement.srcObject = stream;
+        }
+      }, 100);
+    } catch (error: any) {
+      console.error('Error starting camera:', error);
+      toast.error('Failed to access camera. Please ensure camera permissions are granted.');
+    }
+  };
+
+  const capturePhoto = () => {
+    const videoElement = document.getElementById('camera-preview') as HTMLVideoElement;
+    if (!videoElement) return;
+
+    const canvas = document.createElement('canvas');
+    canvas.width = videoElement.videoWidth;
+    canvas.height = videoElement.videoHeight;
+    
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    
+    ctx.drawImage(videoElement, 0, 0);
+    
+    canvas.toBlob((blob) => {
+      if (blob) {
+        const url = URL.createObjectURL(blob);
+        setCapturedPhoto(url);
+        setCapturedPhotoBlob(blob);
+        stopCamera();
+      }
+    }, 'image/jpeg', 0.9);
+  };
+
+  const stopCamera = () => {
+    if (cameraStream) {
+      cameraStream.getTracks().forEach(track => track.stop());
+      setCameraStream(null);
+    }
+    setIsCameraActive(false);
+  };
+
+  const clearCapturedPhoto = () => {
+    if (capturedPhoto) {
+      URL.revokeObjectURL(capturedPhoto);
+    }
+    setCapturedPhoto(null);
+    setCapturedPhotoBlob(null);
+  };
+
+  const uploadCapturedPhoto = async () => {
+    if (!capturedPhotoBlob || !user) return;
+    
+    setUploading(true);
+    try {
+      const todayIST = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }))
+        .toISOString().split('T')[0];
+      
+      const { data: sessions, error: sessionError } = await supabase
+        .from('sessions')
+        .select('id, market_id')
+        .eq('user_id', user.id)
+        .eq('session_date', todayIST)
+        .order('created_at', { ascending: false })
+        .limit(1);
+      
+      if (sessionError) throw sessionError;
+      
+      if (!sessions || sessions.length === 0) {
+        toast.error('No session found. Please punch in first.');
+        navigate('/dashboard');
+        return;
+      }
+      
+      const session = sessions[0];
+      const timestamp = Date.now();
+      const fileName = `outside_rates_${timestamp}.jpg`;
+      const filePath = `${user.id}/${todayIST}/${fileName}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from('employee-media')
+        .upload(filePath, capturedPhotoBlob, {
+          cacheControl: '3600',
+          upsert: false
+        });
+      
+      if (uploadError) throw uploadError;
+      
+      const { error: insertError } = await supabase
+        .from('media')
+        .insert({
+          session_id: session.id,
+          market_id: session.market_id,
+          media_type: 'outside_rates',
+          file_url: filePath,
+          file_name: fileName,
+          content_type: 'image/jpeg',
+          is_late: false
+        });
+      
+      if (insertError) throw insertError;
+      
+      toast.success('Photo uploaded successfully');
+      clearCapturedPhoto();
+      fetchData();
+    } catch (error: any) {
+      console.error('Error uploading captured photo:', error);
+      toast.error('Failed to upload photo');
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const uploadRecordedVideo = async () => {
     if (!recordedVideoBlob || !user) return;
     
@@ -1241,12 +1373,109 @@ export default function MediaUpload() {
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                  {/* Camera Capture Section */}
+                  <div className="space-y-3">
+                    <Label>Take Photo</Label>
+                    
+                    {!isCameraActive && !capturedPhoto && (
+                      <Button
+                        variant="outline"
+                        className="w-full"
+                        onClick={startCamera}
+                        disabled={uploading}
+                      >
+                        <Camera className="mr-2 h-4 w-4" />
+                        Open Camera
+                      </Button>
+                    )}
+
+                    {isCameraActive && (
+                      <div className="space-y-3">
+                        <div className="relative aspect-video bg-black rounded-lg overflow-hidden">
+                          <video
+                            id="camera-preview"
+                            autoPlay
+                            playsInline
+                            muted
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="default"
+                            className="flex-1"
+                            onClick={capturePhoto}
+                          >
+                            <Camera className="mr-2 h-4 w-4" />
+                            Capture
+                          </Button>
+                          <Button
+                            variant="outline"
+                            onClick={stopCamera}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+
+                    {capturedPhoto && (
+                      <div className="space-y-3">
+                        <div className="relative aspect-video bg-black rounded-lg overflow-hidden">
+                          <img
+                            src={capturedPhoto}
+                            alt="Captured"
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="default"
+                            className="flex-1"
+                            onClick={uploadCapturedPhoto}
+                            disabled={uploading}
+                          >
+                            <Upload className="mr-2 h-4 w-4" />
+                            {uploading ? 'Uploading...' : 'Upload Photo'}
+                          </Button>
+                          <Button
+                            variant="outline"
+                            onClick={() => {
+                              clearCapturedPhoto();
+                              startCamera();
+                            }}
+                            disabled={uploading}
+                          >
+                            Retake
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            onClick={clearCapturedPhoto}
+                            disabled={uploading}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="relative">
+                    <div className="absolute inset-0 flex items-center">
+                      <span className="w-full border-t" />
+                    </div>
+                    <div className="relative flex justify-center text-xs uppercase">
+                      <span className="bg-card px-2 text-muted-foreground">or</span>
+                    </div>
+                  </div>
+
                   <div className="space-y-2">
-                    <Label htmlFor="outside-rates">Upload Media (Image/Video/Audio)</Label>
+                    <Label htmlFor="outside-rates">Choose File (Image/Video/Audio)</Label>
                     <Input
                       id="outside-rates"
                       type="file"
                       accept="image/*,video/*,audio/*"
+                      capture="environment"
                       onChange={async (e) => {
                         const file = e.target.files?.[0];
                         if (!file) return;
