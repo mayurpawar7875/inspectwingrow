@@ -1491,6 +1491,7 @@ export type Database = {
           sent_by: string | null
           target_user_id: string | null
           title: string
+          type: string | null
         }
         Insert: {
           body: string
@@ -1501,6 +1502,7 @@ export type Database = {
           sent_by?: string | null
           target_user_id?: string | null
           title: string
+          type?: string | null
         }
         Update: {
           body?: string
@@ -1511,6 +1513,7 @@ export type Database = {
           sent_by?: string | null
           target_user_id?: string | null
           title?: string
+          type?: string | null
         }
         Relationships: []
       }
@@ -2015,6 +2018,10 @@ export type Database = {
       }
     }
     Functions: {
+      broadcast_app_update: {
+        Args: { p_message: string; p_title: string; p_version: string }
+        Returns: undefined
+      }
       get_employee_id_by_username: {
         Args: { lookup_username: string }
         Returns: {
