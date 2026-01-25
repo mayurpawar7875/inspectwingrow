@@ -1587,24 +1587,38 @@ export default function MediaUpload() {
 
                     {outsideRecordedUrl && (
                       <div className="space-y-3">
-                        {outsideRecordingType === 'video' ? (
-                          <div className="relative aspect-video bg-black rounded-lg overflow-hidden">
-                            <video
-                              src={outsideRecordedUrl}
-                              controls
-                              className="w-full h-full object-cover"
-                            />
-                          </div>
-                        ) : (
-                          <div className="p-4 bg-muted rounded-lg">
-                            <audio
-                              src={outsideRecordedUrl}
-                              controls
-                              className="w-full"
-                            />
-                          </div>
-                        )}
+                        <div className="p-4 bg-muted rounded-lg text-center">
+                          <p className="text-sm font-medium mb-2">
+                            {outsideRecordingType === 'video' ? 'Video' : 'Audio'} recorded successfully
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            Size: {outsideRecordedBlob ? (outsideRecordedBlob.size / (1024 * 1024)).toFixed(2) : 0} MB
+                          </p>
+                        </div>
                         <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            className="flex-1"
+                            onClick={() => {
+                              setSelectedMediaUrl(outsideRecordedUrl);
+                              setSelectedMedia({
+                                id: 'preview',
+                                media_type: 'outside_rates',
+                                file_url: outsideRecordedUrl,
+                                file_name: `recorded_${outsideRecordingType}.webm`,
+                                gps_lat: null,
+                                gps_lng: null,
+                                captured_at: new Date().toISOString(),
+                                created_at: new Date().toISOString(),
+                                is_late: false,
+                                market_id: null,
+                              });
+                              setViewMediaDialog(true);
+                            }}
+                          >
+                            <Eye className="mr-2 h-4 w-4" />
+                            Preview
+                          </Button>
                           <Button
                             variant="default"
                             className="flex-1"
@@ -1612,17 +1626,14 @@ export default function MediaUpload() {
                             disabled={uploading}
                           >
                             <Upload className="mr-2 h-4 w-4" />
-                            {uploading ? 'Uploading...' : `Upload ${outsideRecordingType === 'video' ? 'Video' : 'Audio'}`}
+                            {uploading ? 'Uploading...' : 'Upload'}
                           </Button>
                           <Button
-                            variant="outline"
-                            onClick={() => {
-                              clearOutsideRecording();
-                            }}
+                            variant="ghost"
+                            onClick={clearOutsideRecording}
                             disabled={uploading}
                           >
-                            <X className="mr-2 h-4 w-4" />
-                            Discard
+                            <X className="h-4 w-4" />
                           </Button>
                         </div>
                       </div>
@@ -2097,7 +2108,9 @@ export default function MediaUpload() {
             <div className="py-4">
               {selectedMediaUrl && selectedMedia && (
                 <>
-                  {selectedMedia.media_type === 'market_video' || selectedMedia.media_type === 'cleaning_video' ? (
+                  {selectedMedia.media_type === 'market_video' || 
+                   selectedMedia.media_type === 'cleaning_video' || 
+                   selectedMedia.media_type === 'customer_feedback' ? (
                     <video
                       src={selectedMediaUrl}
                       controls
@@ -2106,7 +2119,8 @@ export default function MediaUpload() {
                     />
                   ) : selectedMedia.file_name.toLowerCase().endsWith('.mp3') || 
                      selectedMedia.file_name.toLowerCase().endsWith('.m4a') ||
-                     selectedMedia.file_name.toLowerCase().endsWith('.wav') ? (
+                     selectedMedia.file_name.toLowerCase().endsWith('.wav') ||
+                     selectedMedia.file_name.toLowerCase().includes('audio') ? (
                     <audio
                       src={selectedMediaUrl}
                       controls
@@ -2114,7 +2128,8 @@ export default function MediaUpload() {
                     />
                   ) : selectedMedia.file_name.toLowerCase().endsWith('.mp4') ||
                      selectedMedia.file_name.toLowerCase().endsWith('.mov') ||
-                     selectedMedia.file_name.toLowerCase().endsWith('.webm') ? (
+                     selectedMedia.file_name.toLowerCase().endsWith('.webm') ||
+                     selectedMedia.file_name.toLowerCase().includes('video') ? (
                     <video
                       src={selectedMediaUrl}
                       controls
