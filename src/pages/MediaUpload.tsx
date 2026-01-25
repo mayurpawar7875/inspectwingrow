@@ -91,6 +91,13 @@ export default function MediaUpload() {
   const [outsideRecordedBlob, setOutsideRecordedBlob] = useState<Blob | null>(null);
   const [outsideRecordingType, setOutsideRecordingType] = useState<'video' | 'audio' | null>(null);
   const outsideStreamRef = useState<MediaStream | null>(null);
+  
+  // Video recording state for market video
+  const [isRecordingMarketVideo, setIsRecordingMarketVideo] = useState(false);
+  const [marketVideoRecorder, setMarketVideoRecorder] = useState<MediaRecorder | null>(null);
+  const [marketVideoRecordedUrl, setMarketVideoRecordedUrl] = useState<string | null>(null);
+  const [marketVideoRecordedBlob, setMarketVideoRecordedBlob] = useState<Blob | null>(null);
+  const marketVideoStreamRef = useState<MediaStream | null>(null);
   useEffect(() => {
     fetchData();
   }, [user, currentRole]);
@@ -985,9 +992,142 @@ export default function MediaUpload() {
     }
   };
 
+  // Market Video recording functions
+  const startMarketVideoRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { facingMode: 'environment' }, 
+        audio: true 
+      });
+      marketVideoStreamRef[1](stream);
+      
+      setTimeout(() => {
+        const videoElement = document.getElementById('market-video-preview') as HTMLVideoElement;
+        if (videoElement) {
+          videoElement.srcObject = stream;
+        }
+      }, 100);
+      
+      const mimeType = 'video/webm';
+      const recorder = new MediaRecorder(stream, { mimeType });
+      const chunks: Blob[] = [];
+      
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) {
+          chunks.push(e.data);
+        }
+      };
+      
+      recorder.onstop = () => {
+        const blob = new Blob(chunks, { type: mimeType });
+        const url = URL.createObjectURL(blob);
+        setMarketVideoRecordedUrl(url);
+        setMarketVideoRecordedBlob(blob);
+        stream.getTracks().forEach(track => track.stop());
+        marketVideoStreamRef[1](null);
+      };
+      
+      setMarketVideoRecorder(recorder);
+      recorder.start();
+      setIsRecordingMarketVideo(true);
+      toast.info('Video recording started');
+    } catch (error: any) {
+      console.error('Error starting market video recording:', error);
+      toast.error('Failed to start video recording. Please ensure camera permissions are granted.');
+    }
+  };
+
+  const stopMarketVideoRecording = () => {
+    if (marketVideoRecorder && marketVideoRecorder.state !== 'inactive') {
+      marketVideoRecorder.stop();
+      setIsRecordingMarketVideo(false);
+      toast.success('Recording stopped');
+    }
+  };
+
+  const clearMarketVideoRecording = () => {
+    if (marketVideoRecordedUrl) {
+      URL.revokeObjectURL(marketVideoRecordedUrl);
+    }
+    setMarketVideoRecordedUrl(null);
+    setMarketVideoRecordedBlob(null);
+  };
+
+  const uploadMarketVideoRecording = async () => {
+    if (!marketVideoRecordedBlob || !user) return;
+    
+    setUploading(true);
+    try {
+      const todayIST = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }))
+        .toISOString().split('T')[0];
+      
+      const { data: sessions, error: sessionError } = await supabase
+        .from('sessions')
+        .select('id, market_id')
+        .eq('user_id', user.id)
+        .eq('session_date', todayIST)
+        .order('created_at', { ascending: false })
+        .limit(1);
+      
+      if (sessionError) throw sessionError;
+      
+      if (!sessions || sessions.length === 0) {
+        toast.error('No session found. Please punch in first.');
+        navigate('/dashboard');
+        return;
+      }
+      
+      const session = sessions[0];
+      const timestamp = Date.now();
+      const fileName = `market_video_${timestamp}.webm`;
+      const filePath = `${user.id}/${todayIST}/${fileName}`;
+      
+      // Compress video if needed
+      let fileToUpload: Blob = marketVideoRecordedBlob;
+      const fileSizeMB = marketVideoRecordedBlob.size / (1024 * 1024);
+      
+      if (fileSizeMB > 50) {
+        toast.info('Compressing video...');
+        const file = new File([marketVideoRecordedBlob], fileName, { type: 'video/webm' });
+        fileToUpload = await compressVideo(file);
+      }
+      
+      const { error: uploadError } = await supabase.storage
+        .from('employee-media')
+        .upload(filePath, fileToUpload, {
+          cacheControl: '3600',
+          upsert: false
+        });
+      
+      if (uploadError) throw uploadError;
+      
+      const { error: insertError } = await supabase
+        .from('media')
+        .insert({
+          session_id: session.id,
+          market_id: session.market_id,
+          media_type: 'market_video',
+          file_url: filePath,
+          file_name: fileName,
+          content_type: 'video/webm',
+          is_late: false
+        });
+      
+      if (insertError) throw insertError;
+      
+      toast.success('Market video uploaded successfully');
+      clearMarketVideoRecording();
+      fetchData();
+    } catch (error: any) {
+      console.error('Error uploading market video:', error);
+      toast.error('Failed to upload video');
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const uploadRecordedVideo = async () => {
     if (!recordedVideoBlob || !user) return;
-    
     setUploading(true);
     try {
       // Get active session
@@ -1799,8 +1939,105 @@ export default function MediaUpload() {
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                  {/* Video Recording Section */}
+                  <div className="space-y-3">
+                    <Label>Record Video</Label>
+                    
+                    {isRecordingMarketVideo ? (
+                      <div className="space-y-3">
+                        <video
+                          id="market-video-preview"
+                          autoPlay
+                          muted
+                          playsInline
+                          className="w-full rounded-lg bg-muted aspect-video"
+                        />
+                        <Button
+                          variant="destructive"
+                          className="w-full"
+                          onClick={stopMarketVideoRecording}
+                        >
+                          <Square className="mr-2 h-4 w-4" />
+                          Stop Recording
+                        </Button>
+                      </div>
+                    ) : !marketVideoRecordedUrl ? (
+                      <Button
+                        variant="outline"
+                        className="w-full"
+                        onClick={startMarketVideoRecording}
+                        disabled={uploading}
+                      >
+                        <Video className="mr-2 h-4 w-4" />
+                        Record Video
+                      </Button>
+                    ) : null}
+                    
+                    {/* Preview recorded video */}
+                    {marketVideoRecordedUrl && (
+                      <div className="space-y-2 p-3 bg-muted rounded-lg">
+                        <div className="flex items-center justify-between">
+                          <p className="text-sm font-medium">Recorded Video</p>
+                          <p className="text-xs text-muted-foreground">
+                            Size: {marketVideoRecordedBlob ? (marketVideoRecordedBlob.size / (1024 * 1024)).toFixed(2) : 0} MB
+                          </p>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            className="flex-1"
+                            onClick={() => {
+                              setSelectedMediaUrl(marketVideoRecordedUrl);
+                              setSelectedMedia({
+                                id: 'preview',
+                                media_type: 'market_video',
+                                file_url: marketVideoRecordedUrl,
+                                file_name: 'recorded_video.webm',
+                                gps_lat: null,
+                                gps_lng: null,
+                                captured_at: new Date().toISOString(),
+                                created_at: new Date().toISOString(),
+                                is_late: false,
+                                market_id: null,
+                              });
+                              setViewMediaDialog(true);
+                            }}
+                          >
+                            <Eye className="mr-2 h-4 w-4" />
+                            Preview
+                          </Button>
+                          <Button
+                            variant="default"
+                            className="flex-1"
+                            onClick={uploadMarketVideoRecording}
+                            disabled={uploading}
+                          >
+                            <Upload className="mr-2 h-4 w-4" />
+                            {uploading ? 'Uploading...' : 'Upload'}
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            onClick={clearMarketVideoRecording}
+                            disabled={uploading}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="relative">
+                    <div className="absolute inset-0 flex items-center">
+                      <span className="w-full border-t" />
+                    </div>
+                    <div className="relative flex justify-center text-xs uppercase">
+                      <span className="bg-card px-2 text-muted-foreground">or choose file</span>
+                    </div>
+                  </div>
+
                   <div className="space-y-2">
-                    <Label htmlFor="market-video">Upload Video</Label>
+                    <Label htmlFor="market-video">Upload from Device</Label>
                     <Input
                       id="market-video"
                       type="file"
