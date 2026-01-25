@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
-import { ArrowLeft, Upload, Trash2, Play, Eye, Video, Square, X, Camera } from 'lucide-react';
+import { ArrowLeft, Upload, Trash2, Play, Eye, Video, Square, X, Camera, Mic } from 'lucide-react';
 import { validateImage, validateVideo, generateUploadPath, MAX_VIDEO_SIZE } from '@/lib/fileValidation';
 import { getSignedUrl } from '@/lib/storageHelpers';
 import { compressVideo, needsCompression, getFileSizeMB } from '@/lib/videoCompression';
@@ -83,6 +83,14 @@ export default function MediaUpload() {
   const [capturedPhoto, setCapturedPhoto] = useState<string | null>(null);
   const [capturedPhotoBlob, setCapturedPhotoBlob] = useState<Blob | null>(null);
   const cameraVideoRef = useState<HTMLVideoElement | null>(null);
+  
+  // Video/Audio recording state for outside rates
+  const [isRecordingOutside, setIsRecordingOutside] = useState(false);
+  const [outsideMediaRecorder, setOutsideMediaRecorder] = useState<MediaRecorder | null>(null);
+  const [outsideRecordedUrl, setOutsideRecordedUrl] = useState<string | null>(null);
+  const [outsideRecordedBlob, setOutsideRecordedBlob] = useState<Blob | null>(null);
+  const [outsideRecordingType, setOutsideRecordingType] = useState<'video' | 'audio' | null>(null);
+  const outsideStreamRef = useState<MediaStream | null>(null);
   useEffect(() => {
     fetchData();
   }, [user, currentRole]);
@@ -836,6 +844,147 @@ export default function MediaUpload() {
     }
   };
 
+  // Video/Audio recording functions for outside rates
+  const startOutsideRecording = async (type: 'video' | 'audio') => {
+    try {
+      const constraints = type === 'video' 
+        ? { video: { facingMode: 'environment' }, audio: true }
+        : { audio: true };
+      
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      outsideStreamRef[1](stream);
+      setOutsideRecordingType(type);
+      
+      if (type === 'video') {
+        setTimeout(() => {
+          const videoElement = document.getElementById('outside-video-preview') as HTMLVideoElement;
+          if (videoElement) {
+            videoElement.srcObject = stream;
+          }
+        }, 100);
+      }
+      
+      const mimeType = type === 'video' ? 'video/webm' : 'audio/webm';
+      const recorder = new MediaRecorder(stream, { mimeType });
+      const chunks: Blob[] = [];
+      
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) {
+          chunks.push(e.data);
+        }
+      };
+      
+      recorder.onstop = () => {
+        const blob = new Blob(chunks, { type: mimeType });
+        const url = URL.createObjectURL(blob);
+        setOutsideRecordedUrl(url);
+        setOutsideRecordedBlob(blob);
+        stream.getTracks().forEach(track => track.stop());
+        outsideStreamRef[1](null);
+      };
+      
+      setOutsideMediaRecorder(recorder);
+      recorder.start();
+      setIsRecordingOutside(true);
+      toast.info(`${type === 'video' ? 'Video' : 'Audio'} recording started`);
+    } catch (error: any) {
+      console.error('Error starting recording:', error);
+      toast.error(`Failed to start ${type} recording. Please ensure permissions are granted.`);
+    }
+  };
+
+  const stopOutsideRecording = () => {
+    if (outsideMediaRecorder && outsideMediaRecorder.state !== 'inactive') {
+      outsideMediaRecorder.stop();
+      setIsRecordingOutside(false);
+      toast.success('Recording stopped');
+    }
+  };
+
+  const clearOutsideRecording = () => {
+    if (outsideRecordedUrl) {
+      URL.revokeObjectURL(outsideRecordedUrl);
+    }
+    setOutsideRecordedUrl(null);
+    setOutsideRecordedBlob(null);
+    setOutsideRecordingType(null);
+  };
+
+  const uploadOutsideRecording = async () => {
+    if (!outsideRecordedBlob || !user) return;
+    
+    setUploading(true);
+    try {
+      const todayIST = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }))
+        .toISOString().split('T')[0];
+      
+      const { data: sessions, error: sessionError } = await supabase
+        .from('sessions')
+        .select('id, market_id')
+        .eq('user_id', user.id)
+        .eq('session_date', todayIST)
+        .order('created_at', { ascending: false })
+        .limit(1);
+      
+      if (sessionError) throw sessionError;
+      
+      if (!sessions || sessions.length === 0) {
+        toast.error('No session found. Please punch in first.');
+        navigate('/dashboard');
+        return;
+      }
+      
+      const session = sessions[0];
+      const timestamp = Date.now();
+      const isVideo = outsideRecordingType === 'video';
+      const fileName = `outside_rates_${timestamp}.webm`;
+      const filePath = `${user.id}/${todayIST}/${fileName}`;
+      
+      // Compress video if needed
+      let fileToUpload: Blob = outsideRecordedBlob;
+      if (isVideo) {
+        const fileSizeMB = outsideRecordedBlob.size / (1024 * 1024);
+        if (fileSizeMB > 50) {
+          toast.info('Compressing video...');
+          const file = new File([outsideRecordedBlob], fileName, { type: 'video/webm' });
+          fileToUpload = await compressVideo(file);
+        }
+      }
+      
+      const { error: uploadError } = await supabase.storage
+        .from('employee-media')
+        .upload(filePath, fileToUpload, {
+          cacheControl: '3600',
+          upsert: false
+        });
+      
+      if (uploadError) throw uploadError;
+      
+      const { error: insertError } = await supabase
+        .from('media')
+        .insert({
+          session_id: session.id,
+          market_id: session.market_id,
+          media_type: 'outside_rates',
+          file_url: filePath,
+          file_name: fileName,
+          content_type: isVideo ? 'video/webm' : 'audio/webm',
+          is_late: false
+        });
+      
+      if (insertError) throw insertError;
+      
+      toast.success(`${isVideo ? 'Video' : 'Audio'} uploaded successfully`);
+      clearOutsideRecording();
+      fetchData();
+    } catch (error: any) {
+      console.error('Error uploading recording:', error);
+      toast.error('Failed to upload recording');
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const uploadRecordedVideo = async () => {
     if (!recordedVideoBlob || !user) return;
     
@@ -1373,87 +1522,107 @@ export default function MediaUpload() {
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {/* Camera Capture Section */}
+                  {/* Video/Audio Recording Section */}
                   <div className="space-y-3">
-                    <Label>Take Photo</Label>
+                    <Label>Record Video or Audio</Label>
                     
-                    {!isCameraActive && !capturedPhoto && (
-                      <Button
-                        variant="outline"
-                        className="w-full"
-                        onClick={startCamera}
-                        disabled={uploading}
-                      >
-                        <Camera className="mr-2 h-4 w-4" />
-                        Open Camera
-                      </Button>
-                    )}
-
-                    {isCameraActive && (
-                      <div className="space-y-3">
-                        <div className="relative aspect-video bg-black rounded-lg overflow-hidden">
-                          <video
-                            id="camera-preview"
-                            autoPlay
-                            playsInline
-                            muted
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-                        <div className="flex gap-2">
-                          <Button
-                            variant="default"
-                            className="flex-1"
-                            onClick={capturePhoto}
-                          >
-                            <Camera className="mr-2 h-4 w-4" />
-                            Capture
-                          </Button>
-                          <Button
-                            variant="outline"
-                            onClick={stopCamera}
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
-                        </div>
+                    {!isRecordingOutside && !outsideRecordedUrl && (
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          className="flex-1"
+                          onClick={() => startOutsideRecording('video')}
+                          disabled={uploading}
+                        >
+                          <Video className="mr-2 h-4 w-4" />
+                          Record Video
+                        </Button>
+                        <Button
+                          variant="outline"
+                          className="flex-1"
+                          onClick={() => startOutsideRecording('audio')}
+                          disabled={uploading}
+                        >
+                          <Mic className="mr-2 h-4 w-4" />
+                          Record Audio
+                        </Button>
                       </div>
                     )}
 
-                    {capturedPhoto && (
+                    {isRecordingOutside && (
                       <div className="space-y-3">
-                        <div className="relative aspect-video bg-black rounded-lg overflow-hidden">
-                          <img
-                            src={capturedPhoto}
-                            alt="Captured"
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
+                        {outsideRecordingType === 'video' && (
+                          <div className="relative aspect-video bg-black rounded-lg overflow-hidden">
+                            <video
+                              id="outside-video-preview"
+                              autoPlay
+                              playsInline
+                              muted
+                              className="w-full h-full object-cover"
+                            />
+                            <div className="absolute top-2 right-2 flex items-center gap-2 bg-destructive text-destructive-foreground px-2 py-1 rounded text-xs">
+                              <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
+                              Recording...
+                            </div>
+                          </div>
+                        )}
+                        {outsideRecordingType === 'audio' && (
+                          <div className="p-6 bg-muted rounded-lg text-center">
+                            <div className="flex items-center justify-center gap-2 text-destructive">
+                              <div className="w-3 h-3 bg-destructive rounded-full animate-pulse" />
+                              <span className="font-medium">Recording Audio...</span>
+                            </div>
+                          </div>
+                        )}
+                        <Button
+                          variant="destructive"
+                          className="w-full"
+                          onClick={stopOutsideRecording}
+                        >
+                          <Square className="mr-2 h-4 w-4" />
+                          Stop Recording
+                        </Button>
+                      </div>
+                    )}
+
+                    {outsideRecordedUrl && (
+                      <div className="space-y-3">
+                        {outsideRecordingType === 'video' ? (
+                          <div className="relative aspect-video bg-black rounded-lg overflow-hidden">
+                            <video
+                              src={outsideRecordedUrl}
+                              controls
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                        ) : (
+                          <div className="p-4 bg-muted rounded-lg">
+                            <audio
+                              src={outsideRecordedUrl}
+                              controls
+                              className="w-full"
+                            />
+                          </div>
+                        )}
                         <div className="flex gap-2">
                           <Button
                             variant="default"
                             className="flex-1"
-                            onClick={uploadCapturedPhoto}
+                            onClick={uploadOutsideRecording}
                             disabled={uploading}
                           >
                             <Upload className="mr-2 h-4 w-4" />
-                            {uploading ? 'Uploading...' : 'Upload Photo'}
+                            {uploading ? 'Uploading...' : `Upload ${outsideRecordingType === 'video' ? 'Video' : 'Audio'}`}
                           </Button>
                           <Button
                             variant="outline"
                             onClick={() => {
-                              clearCapturedPhoto();
-                              startCamera();
+                              clearOutsideRecording();
                             }}
                             disabled={uploading}
                           >
-                            Retake
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            onClick={clearCapturedPhoto}
-                            disabled={uploading}
-                          >
-                            <X className="h-4 w-4" />
+                            <X className="mr-2 h-4 w-4" />
+                            Discard
                           </Button>
                         </div>
                       </div>
@@ -1465,17 +1634,16 @@ export default function MediaUpload() {
                       <span className="w-full border-t" />
                     </div>
                     <div className="relative flex justify-center text-xs uppercase">
-                      <span className="bg-card px-2 text-muted-foreground">or</span>
+                      <span className="bg-card px-2 text-muted-foreground">or choose file</span>
                     </div>
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="outside-rates">Choose File (Image/Video/Audio)</Label>
+                    <Label htmlFor="outside-rates">Upload from Device</Label>
                     <Input
                       id="outside-rates"
                       type="file"
                       accept="image/*,video/*,audio/*"
-                      capture="environment"
                       onChange={async (e) => {
                         const file = e.target.files?.[0];
                         if (!file) return;
