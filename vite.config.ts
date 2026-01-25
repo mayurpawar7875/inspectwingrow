@@ -31,8 +31,8 @@ export default defineConfig(({ mode }) => ({
     react(),
     mode === "development" && componentTagger(),
     VitePWA({
-      registerType: 'autoUpdate',
-      injectRegister: 'auto', // Auto inject service worker registration
+      registerType: 'prompt', // Changed to prompt for manual update control
+      injectRegister: 'auto',
       includeAssets: ['icon-192.png', 'icon-512.png'],
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
@@ -83,8 +83,7 @@ export default defineConfig(({ mode }) => ({
           }
         ],
         navigateFallback: null,
-        skipWaiting: true,
-        clientsClaim: true
+        // Removed skipWaiting and clientsClaim for manual update control
       },
       manifest: {
         name: 'Wingrow Market Management',

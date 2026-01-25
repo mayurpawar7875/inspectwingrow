@@ -6,6 +6,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, ProtectedRoute } from "./lib/auth";
 import { AdminLayout } from "./components/AdminLayout";
+import { UpdateBanner } from "./components/UpdateBanner";
+import { WhatsNewDialog } from "./components/WhatsNewDialog";
 
 // Eager load entry point pages
 import Auth from "./pages/Auth";
@@ -30,6 +32,7 @@ const LeaveRequests = lazy(() => import("./pages/admin/LeaveRequests"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const Collections = lazy(() => import("./pages/admin/Collections"));
 const MySessions = lazy(() => import("./pages/MySessions"));
+const Notifications = lazy(() => import("./pages/Notifications"));
 const MarketManagerDashboard = lazy(() => import("./pages/MarketManagerDashboard"));
 const MyManagerSessions = lazy(() => import("./pages/MyManagerSessions"));
 const BDODashboard = lazy(() => import("./pages/BDODashboard"));
@@ -65,6 +68,8 @@ const App = () => (
   <React.Fragment>
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
+        <UpdateBanner />
+        <WhatsNewDialog />
         <Toaster />
         <Sonner />
         <BrowserRouter>
@@ -88,6 +93,7 @@ const App = () => (
                 <Route path="/collections" element={<ProtectedRoute><Collections /></ProtectedRoute>} />
                 <Route path="/my-sessions" element={<ProtectedRoute><MySessions /></ProtectedRoute>} />
                 <Route path="/asset-requests" element={<ProtectedRoute><AssetRequests /></ProtectedRoute>} />
+                <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
                 <Route path="/admin" element={<ProtectedRoute><AdminLayout><AdminDashboard /></AdminLayout></ProtectedRoute>} />
                 <Route path="/admin/requests" element={<ProtectedRoute><AdminLayout><RequestsManagement /></AdminLayout></ProtectedRoute>} />
                 <Route path="/admin/asset-management" element={<ProtectedRoute><AdminLayout><AssetManagement /></AdminLayout></ProtectedRoute>} />
