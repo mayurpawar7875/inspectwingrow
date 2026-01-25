@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Bell } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -22,6 +23,7 @@ interface Notification {
 }
 
 export function NotificationBell() {
+  const navigate = useNavigate();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [userId, setUserId] = useState<string | null>(null);
@@ -116,16 +118,26 @@ export function NotificationBell() {
       <DropdownMenuContent align="end" className="w-80">
         <div className="flex items-center justify-between px-2 py-2">
           <h3 className="font-semibold text-sm">Notifications</h3>
-          {unreadCount > 0 && (
+          <div className="flex items-center gap-2">
+            {unreadCount > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-auto p-1 text-xs"
+                onClick={markAllAsRead}
+              >
+                Mark all read
+              </Button>
+            )}
             <Button
               variant="ghost"
               size="sm"
               className="h-auto p-1 text-xs"
-              onClick={markAllAsRead}
+              onClick={() => navigate('/notifications')}
             >
-              Mark all read
+              View all
             </Button>
-          )}
+          </div>
         </div>
         <DropdownMenuSeparator />
         <ScrollArea className="h-[400px]">
