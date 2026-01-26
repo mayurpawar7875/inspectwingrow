@@ -3,9 +3,32 @@ import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { MapPin, Clock, Users, Upload, ArrowLeft } from 'lucide-react';
+import { MapPin, Clock, Users, Upload, ArrowLeft, IndianRupee, Navigation } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Checkbox } from '@/components/ui/checkbox';
+import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
+import { format } from 'date-fns';
+import EmployeeLocationMiniMap from '@/components/admin/EmployeeLocationMiniMap';
+
+interface EmployeeInfo {
+  id: string;
+  name: string;
+  initials: string;
+  status: 'active' | 'completed' | 'half_day';
+  punch_in_time: string | null;
+  punch_out_time: string | null;
+  punch_in_lat: number | null;
+  punch_in_lng: number | null;
+  duration: number | null;
+  completed_tasks: number;
+  total_tasks: number;
+}
+
+interface CollectionAmounts {
+  expected: number;
+  received: number;
+  pending: number;
+}
 
 interface LiveMarket {
   market_id: string;
@@ -14,10 +37,12 @@ interface LiveMarket {
   active_sessions: number;
   active_employees: number;
   employee_names: string[];
+  employees: EmployeeInfo[];
   stall_confirmations_count: number;
   media_uploads_count: number;
   last_upload_time: string | null;
   last_punch_in: string | null;
+  collection_amounts: CollectionAmounts;
   task_stats?: {
     attendance: number;
     stall_confirmations: number;
@@ -84,6 +109,11 @@ export default function LiveMarkets() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'next_day_planning' }, fetchLiveMarkets)
       .subscribe();
 
+    const collectionsChannel = supabase
+      .channel('live-markets-collections')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'collections' }, fetchLiveMarkets)
+      .subscribe();
+
     return () => {
       supabase.removeChannel(sessionsChannel);
       supabase.removeChannel(stallsChannel);
@@ -93,6 +123,7 @@ export default function LiveMarkets() {
       supabase.removeChannel(feedbackChannel);
       supabase.removeChannel(inspectionsChannel);
       supabase.removeChannel(planningChannel);
+      supabase.removeChannel(collectionsChannel);
     };
   }, []);
 
@@ -187,6 +218,121 @@ export default function LiveMarkets() {
     }
   };
 
+  const fetchEmployeeDetails = async (marketId: string, todayDate: string): Promise<EmployeeInfo[]> => {
+    try {
+      // Fetch sessions with attendance for this market today
+      const { data: sessionsData } = await supabase
+        .from('sessions')
+        .select('id, user_id, punch_in_time, punch_out_time, status')
+        .eq('market_id', marketId)
+        .eq('session_date', todayDate)
+        .not('punch_in_time', 'is', null);
+
+      if (!sessionsData || sessionsData.length === 0) return [];
+
+      const userIds = [...new Set(sessionsData.map(s => s.user_id))];
+      
+      // Fetch employee names
+      const { data: employeesData } = await supabase
+        .from('employees')
+        .select('id, full_name')
+        .in('id', userIds);
+
+      const employeeMap = new Map(employeesData?.map(e => [e.id, e.full_name]) || []);
+
+      // Fetch attendance records with GPS data
+      const { data: attendanceData } = await supabase
+        .from('attendance_records')
+        .select('user_id, punch_in_lat, punch_in_lng, completed_tasks, total_tasks')
+        .eq('attendance_date', todayDate)
+        .in('user_id', userIds);
+
+      const attendanceMap = new Map(attendanceData?.map(a => [a.user_id, a]) || []);
+
+      // Build employee info array
+      const employees: EmployeeInfo[] = sessionsData.map(session => {
+        const name = employeeMap.get(session.user_id) || 'Unknown';
+        const attendance = attendanceMap.get(session.user_id);
+        
+        let duration: number | null = null;
+        if (session.punch_in_time && session.punch_out_time) {
+          const start = new Date(session.punch_in_time);
+          const end = new Date(session.punch_out_time);
+          duration = Math.round((end.getTime() - start.getTime()) / (1000 * 60)); // in minutes
+        }
+
+        let status: 'active' | 'completed' | 'half_day' = 'active';
+        if (session.status === 'finalized' || session.status === 'completed') {
+          status = 'completed';
+        } else if (session.punch_out_time && !session.punch_in_time) {
+          status = 'half_day';
+        }
+
+        const initials = name
+          .split(' ')
+          .map((n: string) => n[0])
+          .join('')
+          .toUpperCase()
+          .slice(0, 2);
+
+        return {
+          id: session.user_id,
+          name,
+          initials,
+          status,
+          punch_in_time: session.punch_in_time,
+          punch_out_time: session.punch_out_time,
+          punch_in_lat: attendance?.punch_in_lat || null,
+          punch_in_lng: attendance?.punch_in_lng || null,
+          duration,
+          completed_tasks: attendance?.completed_tasks || 0,
+          total_tasks: attendance?.total_tasks || 13,
+        };
+      });
+
+      // Remove duplicates (same user can have multiple sessions)
+      const uniqueEmployees = Array.from(
+        new Map(employees.map(e => [e.id, e])).values()
+      );
+
+      return uniqueEmployees;
+    } catch (error) {
+      console.error('Error fetching employee details:', error);
+      return [];
+    }
+  };
+
+  const fetchCollectionAmounts = async (marketId: string, todayDate: string): Promise<CollectionAmounts> => {
+    try {
+      // Expected from stall confirmations
+      const { data: confirmations } = await supabase
+        .from('stall_confirmations')
+        .select('rent_amount')
+        .eq('market_id', marketId)
+        .eq('market_date', todayDate);
+
+      const expected = confirmations?.reduce((sum, c) => sum + (c.rent_amount || 0), 0) || 0;
+
+      // Received from collections
+      const { data: collections } = await supabase
+        .from('collections')
+        .select('amount')
+        .eq('market_id', marketId)
+        .eq('collection_date', todayDate);
+
+      const received = collections?.reduce((sum, c) => sum + (c.amount || 0), 0) || 0;
+
+      return {
+        expected,
+        received,
+        pending: expected - received,
+      };
+    } catch (error) {
+      console.error('Error fetching collection amounts:', error);
+      return { expected: 0, received: 0, pending: 0 };
+    }
+  };
+
   const fetchLiveMarkets = async () => {
     try {
       const istNow = new Date(
@@ -202,33 +348,21 @@ export default function LiveMarkets() {
       if (data && data.length > 0) {
         const marketsWithStats = await Promise.all(
           (data as any[]).map(async (market) => {
-            const taskStats = await fetchTaskStats(market.market_id, todayDate);
+            const [taskStats, employees, collectionAmounts] = await Promise.all([
+              fetchTaskStats(market.market_id, todayDate),
+              fetchEmployeeDetails(market.market_id, todayDate),
+              fetchCollectionAmounts(market.market_id, todayDate),
+            ]);
             
-            // Fetch employee names for this market
-            const { data: sessionsData } = await supabase
-              .from('sessions')
-              .select('user_id')
-              .eq('market_id', market.market_id)
-              .eq('session_date', todayDate)
-              .not('punch_in_time', 'is', null);
+            const employeeNames = employees.map(e => e.name);
             
-            const userIds = sessionsData?.map((s: any) => s.user_id).filter(Boolean) || [];
-            const uniqueUserIds = [...new Set(userIds)];
-            let employeeNames: string[] = [];
-            
-            if (uniqueUserIds.length > 0) {
-              const { data: employeesData } = await supabase
-                .from('employees')
-                .select('full_name')
-                .in('id', uniqueUserIds);
-              
-              employeeNames = [...new Set((employeesData || []).map((e: any) => e.full_name).filter(Boolean))];
-              console.log('Employee names fetched:', employeeNames);
-            }
-            
-            console.log('Market with names:', { ...market, task_stats: taskStats, employee_names: employeeNames });
-            
-            return { ...market, task_stats: taskStats, employee_names: employeeNames };
+            return { 
+              ...market, 
+              task_stats: taskStats, 
+              employee_names: employeeNames,
+              employees,
+              collection_amounts: collectionAmounts,
+            };
           })
         );
         setMarkets(marketsWithStats);
@@ -264,10 +398,12 @@ export default function LiveMarkets() {
             active_sessions: 0,
             active_employees: 0,
             employee_names: [],
+            employees: [],
             stall_confirmations_count: 0,
             media_uploads_count: 0,
             last_upload_time: null,
             last_punch_in: null,
+            collection_amounts: { expected: 0, received: 0, pending: 0 },
           });
         });
 
@@ -290,10 +426,12 @@ export default function LiveMarkets() {
                 active_sessions: 0,
                 active_employees: 0,
                 employee_names: [],
+                employees: [],
                 stall_confirmations_count: 0,
                 media_uploads_count: 0,
                 last_upload_time: null,
                 last_punch_in: null,
+                collection_amounts: { expected: 0, received: 0, pending: 0 },
               });
             }
           });
@@ -302,30 +440,21 @@ export default function LiveMarkets() {
         const fallbackMarkets = Array.from(map.values());
         const marketsWithStats = await Promise.all(
           fallbackMarkets.map(async (market) => {
-            const taskStats = await fetchTaskStats(market.market_id, todayDate);
+            const [taskStats, employees, collectionAmounts] = await Promise.all([
+              fetchTaskStats(market.market_id, todayDate),
+              fetchEmployeeDetails(market.market_id, todayDate),
+              fetchCollectionAmounts(market.market_id, todayDate),
+            ]);
             
-            // Fetch employee names for this market
-            const { data: sessionsData } = await supabase
-              .from('sessions')
-              .select('user_id')
-              .eq('market_id', market.market_id)
-              .eq('session_date', todayDate)
-              .not('punch_in_time', 'is', null);
+            const employeeNames = employees.map(e => e.name);
             
-            const userIds = sessionsData?.map((s: any) => s.user_id).filter(Boolean) || [];
-            const uniqueUserIds = [...new Set(userIds)];
-            let employeeNames: string[] = [];
-            
-            if (uniqueUserIds.length > 0) {
-              const { data: employeesData } = await supabase
-                .from('employees')
-                .select('full_name')
-                .in('id', uniqueUserIds);
-              
-              employeeNames = [...new Set((employeesData || []).map((e: any) => e.full_name).filter(Boolean))];
-            }
-            
-            return { ...market, task_stats: taskStats, employee_names: employeeNames };
+            return { 
+              ...market, 
+              task_stats: taskStats, 
+              employee_names: employeeNames,
+              employees,
+              collection_amounts: collectionAmounts,
+            };
           })
         );
         setMarkets(marketsWithStats);
@@ -446,7 +575,7 @@ export default function LiveMarkets() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-4 md:p-6">
       <div>
         <Button 
           variant="ghost" 
@@ -456,8 +585,13 @@ export default function LiveMarkets() {
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back to Dashboard
         </Button>
-        <h1 className="text-3xl font-bold">Live Markets Today</h1>
-        <p className="text-muted-foreground mt-2">Real-time view of active markets</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl md:text-3xl font-bold">Live Markets Today</h1>
+            <p className="text-muted-foreground mt-1 text-sm">Real-time view of active markets</p>
+          </div>
+          <Badge variant="outline" className="text-xs px-2 py-0.5">{markets.length} Active</Badge>
+        </div>
       </div>
 
       <div className="space-y-4">
@@ -471,58 +605,213 @@ export default function LiveMarkets() {
           </Card>
         ) : (
           markets.map((market) => (
-            <Card key={market.market_id} className="overflow-hidden">
-              <div className="grid md:grid-cols-[1fr,auto] gap-6 p-6">
-                {/* Left: Market Info */}
-                <div 
-                  className="space-y-4 cursor-pointer"
-                  onClick={() => navigate(`/admin/market/${market.market_id}`)}
-                >
-                  <div>
-                    <div className="flex items-center justify-between mb-1">
-                      <h3 className="text-xl font-semibold">{market.market_name}</h3>
-                      <Badge variant="default" className="ml-2">{market.active_sessions} active</Badge>
+            <Card key={market.market_id} className="overflow-hidden hover:shadow-md transition-shadow">
+              <div className="grid md:grid-cols-[40%_60%] gap-2 md:gap-3 p-3">
+                {/* Left Column: Market Info + Employee Locations */}
+                <div className="space-y-3">
+                  {/* Mobile: Side-by-side layout for Market Info and Map */}
+                  <div className="grid grid-cols-[55%_45%] gap-2 md:grid-cols-1 md:gap-0">
+                    {/* Market Info */}
+                    <div className="space-y-2">
+                      <div>
+                        <div 
+                          className="flex items-center justify-between cursor-pointer hover:text-primary transition-colors"
+                          onClick={() => navigate(`/admin/market/${market.market_id}`)}
+                        >
+                          <h3 className="text-base font-semibold leading-tight">{market.market_name}</h3>
+                          <Badge variant="default" className="ml-2 text-[10px] px-1.5 py-0 h-5 hidden md:flex">{market.active_sessions} active</Badge>
+                        </div>
+                        <p className="text-[11px] text-muted-foreground flex items-center gap-1 mt-0.5">
+                          <MapPin className="h-3 w-3" />
+                          {market.city || 'N/A'}
+                        </p>
+                        <Badge variant="default" className="mt-1 text-[10px] px-1.5 py-0 h-5 md:hidden">{market.active_sessions} active</Badge>
+                      </div>
+
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                          <Users className="h-3 w-3" />
+                          <span>Employees ({market.employees.length})</span>
+                        </div>
+                        {market.employees.length === 0 ? (
+                          <p className="text-[11px] text-muted-foreground italic">No active employees</p>
+                        ) : (
+                          <div className="flex flex-wrap gap-2 mt-1">
+                            {market.employees.map((employee) => (
+                              <HoverCard key={employee.id}>
+                                <HoverCardTrigger asChild>
+                                  <div 
+                                    className="flex items-center gap-1.5 px-1.5 md:px-2 py-0.5 md:py-1 rounded-md bg-muted hover:bg-muted/80 cursor-pointer transition-colors"
+                                    onClick={() => navigate(`/admin/employee/${employee.id}/markets`)}
+                                  >
+                                    <span className={`h-1.5 w-1.5 md:h-2 md:w-2 rounded-full shrink-0 ${
+                                      employee.status === 'active' ? 'bg-green-500' :
+                                      employee.status === 'half_day' ? 'bg-yellow-500' :
+                                      'bg-red-500'
+                                    }`} />
+                                    <span className="text-[10px] md:text-xs font-medium truncate max-w-[60px] md:max-w-[120px] underline">{employee.name}</span>
+                                  </div>
+                                </HoverCardTrigger>
+                                <HoverCardContent className="w-80">
+                                  <div className="space-y-2">
+                                    <div className="flex items-center justify-between">
+                                      <h4 className="font-semibold">{employee.name}</h4>
+                                      <Badge variant={
+                                        employee.status === 'completed' ? 'default' :
+                                        employee.status === 'half_day' ? 'secondary' :
+                                        'outline'
+                                      }>
+                                        {employee.status === 'completed' ? '🟢 Completed' :
+                                         employee.status === 'half_day' ? '🟡 Incomplete' :
+                                         '🔴 Active'}
+                                      </Badge>
+                                    </div>
+                                    
+                                    <div className="space-y-1.5 text-sm">
+                                      {employee.punch_in_time && (
+                                        <div className="flex items-center gap-2">
+                                          <Clock className="h-3 w-3 text-muted-foreground" />
+                                          <span className="text-muted-foreground">Punch In:</span>
+                                          <span className="font-medium">
+                                            {format(new Date(employee.punch_in_time), 'hh:mm a')}
+                                          </span>
+                                        </div>
+                                      )}
+                                      
+                                      {employee.punch_out_time && (
+                                        <div className="flex items-center gap-2">
+                                          <Clock className="h-3 w-3 text-muted-foreground" />
+                                          <span className="text-muted-foreground">Punch Out:</span>
+                                          <span className="font-medium">
+                                            {format(new Date(employee.punch_out_time), 'hh:mm a')}
+                                          </span>
+                                        </div>
+                                      )}
+                                      
+                                      {employee.duration && (
+                                        <div className="flex items-center gap-2">
+                                          <span className="text-muted-foreground">Duration:</span>
+                                          <span className="font-medium">
+                                            {Math.floor(employee.duration / 60)}h {employee.duration % 60}m
+                                          </span>
+                                        </div>
+                                      )}
+                                      
+                                      <div className="flex items-center gap-2">
+                                        <span className="text-muted-foreground">Task Progress:</span>
+                                        <span className="font-medium">
+                                          {employee.completed_tasks}/{employee.total_tasks}
+                                        </span>
+                                        {employee.total_tasks > 0 && (
+                                          <span className="text-xs text-muted-foreground">
+                                            ({Math.round((employee.completed_tasks / employee.total_tasks) * 100)}%)
+                                          </span>
+                                        )}
+                                      </div>
+
+                                      {employee.punch_in_lat && employee.punch_in_lng && (
+                                        <a
+                                          href={`https://www.google.com/maps/dir/?api=1&destination=${employee.punch_in_lat},${employee.punch_in_lng}`}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="flex items-center gap-2 text-primary hover:underline"
+                                          onClick={(e) => e.stopPropagation()}
+                                        >
+                                          <Navigation className="h-3 w-3" />
+                                          <span>Navigate to Location</span>
+                                        </a>
+                                      )}
+                                    </div>
+                                  </div>
+                                </HoverCardContent>
+                              </HoverCard>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="pt-1 border-t">
+                        <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                          <Clock className="h-3 w-3" />
+                          <span>Last upload: {formatTime(market.last_upload_time)}</span>
+                        </div>
+                      </div>
+
+                      {/* Collection Amounts */}
+                      <div className="pt-2 border-t space-y-2">
+                        <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                          <IndianRupee className="h-3 w-3" />
+                          <span>Collections</span>
+                        </div>
+
+                        <div className="grid grid-cols-3 gap-1.5">
+                          <div className="rounded-md bg-muted px-2 py-1">
+                            <div className="text-[9px] text-muted-foreground leading-tight">Expected</div>
+                            <div className="text-[11px] font-semibold leading-tight">
+                              ₹{(market.collection_amounts?.expected ?? 0).toLocaleString('en-IN')}
+                            </div>
+                          </div>
+                          <div className="rounded-md bg-green-500/10 px-2 py-1">
+                            <div className="text-[9px] text-green-600 leading-tight">Received</div>
+                            <div className="text-[11px] font-semibold text-green-600 leading-tight">
+                              ₹{(market.collection_amounts?.received ?? 0).toLocaleString('en-IN')}
+                            </div>
+                          </div>
+                          <div className="rounded-md bg-orange-500/10 px-2 py-1">
+                            <div className="text-[9px] text-orange-600 leading-tight">Pending</div>
+                            <div className="text-[11px] font-semibold text-orange-600 leading-tight">
+                              ₹{(market.collection_amounts?.pending ?? 0).toLocaleString('en-IN')}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                    <p className="text-sm text-muted-foreground flex items-center gap-1">
+
+                    {/* Employee Locations Map - Beside on mobile, below on desktop */}
+                    <div className="md:hidden">
+                      <h4 className="text-[10px] font-semibold mb-1 flex items-center gap-1">
+                        <MapPin className="h-2.5 w-2.5" />
+                        Locations
+                      </h4>
+                      <EmployeeLocationMiniMap 
+                        employees={market.employees
+                          .filter(e => e.punch_in_lat && e.punch_in_lng)
+                          .map(e => ({
+                            id: e.id,
+                            name: e.name,
+                            initials: e.initials,
+                            lat: e.punch_in_lat!,
+                            lng: e.punch_in_lng!,
+                          }))}
+                        className="h-[120px]"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Desktop: Map below market info */}
+                  <div className="pt-2 border-t hidden md:block">
+                    <h4 className="text-xs font-semibold mb-1.5 flex items-center gap-1">
                       <MapPin className="h-3 w-3" />
-                      {market.city || 'N/A'}
-                    </p>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Users className="h-4 w-4" />
-                        <span>Employees</span>
-                      </div>
-                      <p className="text-2xl font-bold">{market.active_employees}</p>
-                      {market.employee_names && market.employee_names.length > 0 ? (
-                        <p className="text-sm text-foreground font-medium mt-1">{market.employee_names.join(', ')}</p>
-                      ) : (
-                        <p className="text-xs text-muted-foreground mt-1">No employee data</p>
-                      )}
-                    </div>
-                    
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Upload className="h-4 w-4" />
-                        <span>Uploads</span>
-                      </div>
-                      <p className="text-2xl font-bold">{market.media_uploads_count}</p>
-                    </div>
-                  </div>
-
-                  <div className="pt-2 border-t">
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                      <Clock className="h-3 w-3" />
-                      <span>Last upload: {formatTime(market.last_upload_time)}</span>
-                    </div>
+                      Employee Locations
+                    </h4>
+                    <EmployeeLocationMiniMap 
+                      employees={market.employees
+                        .filter(e => e.punch_in_lat && e.punch_in_lng)
+                        .map(e => ({
+                          id: e.id,
+                          name: e.name,
+                          initials: e.initials,
+                          lat: e.punch_in_lat!,
+                          lng: e.punch_in_lng!,
+                        }))}
+                      className="h-[140px]"
+                    />
                   </div>
                 </div>
 
-                {/* Right: Task Checklist */}
-                <div className="md:border-l md:pl-6 md:min-w-[280px]">
-                  <h4 className="text-sm font-medium mb-4">Task Status</h4>
+                {/* Right Column: Task Status */}
+                <div className="md:border-l md:pl-3 space-y-1.5 border-t pt-2 md:border-t-0 md:pt-0">
+                  <h4 className="text-xs font-semibold">Task Status</h4>
                   {renderTaskChecklist(market)}
                 </div>
               </div>
