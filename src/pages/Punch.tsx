@@ -53,15 +53,19 @@ export default function Punch() {
         .select('*')
         .eq('user_id', user.id)
         .eq('session_date', today)
-        .maybeSingle();
+        .neq('status', 'completed')
+        .order('created_at', { ascending: false })
+        .limit(1);
 
       if (error) throw error;
-      if (!data) {
-        toast.error('No session found for today');
+      
+      const sessionData = data?.[0];
+      if (!sessionData) {
+        toast.error('No active session found for today');
         navigate('/dashboard');
         return;
       }
-      setSession(data);
+      setSession(sessionData);
     } catch (error: any) {
       console.error('Error fetching session:', error);
       toast.error('Failed to load session');
