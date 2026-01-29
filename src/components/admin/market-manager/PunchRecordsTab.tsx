@@ -42,25 +42,41 @@ export function PunchRecordsTab() {
 
   const fetchRecords = async () => {
     setLoading(true);
+    
+    // Fetch punch records with session info
     const [inData, outData, sessionsData] = await Promise.all([
       supabase.from('market_manager_punchin').select('*').order('punched_at', { ascending: false }),
       supabase.from('market_manager_punchout').select('*').order('punched_at', { ascending: false }),
-      supabase.from('market_manager_sessions').select('id, user_id, profiles:user_id(full_name)'),
+      supabase.from('market_manager_sessions').select('id, user_id'),
     ]);
     
-    const sessionMap = new Map();
-    (sessionsData.data || []).forEach((s: any) => {
-      sessionMap.set(s.id, s.profiles?.full_name || 'Unknown');
-    });
+    // Get unique user IDs from sessions
+    const userIds = [...new Set((sessionsData.data || []).map(s => s.user_id).filter(Boolean))];
+    
+    // Fetch employee names
+    const { data: employeesData } = await supabase
+      .from('employees')
+      .select('id, full_name')
+      .in('id', userIds);
+    
+    // Create maps for lookups
+    const employeeMap = new Map((employeesData || []).map(e => [e.id, e.full_name]));
+    const sessionUserMap = new Map((sessionsData.data || []).map(s => [s.id, s.user_id]));
+    
+    const getManagerName = (sessionId: string) => {
+      const userId = sessionUserMap.get(sessionId);
+      if (!userId) return 'Unknown';
+      return employeeMap.get(userId) || 'Unknown';
+    };
     
     const punchInsWithNames = (inData.data || []).map((r: any) => ({
       ...r,
-      manager_name: sessionMap.get(r.session_id) || 'Unknown'
+      manager_name: getManagerName(r.session_id)
     }));
     
     const punchOutsWithNames = (outData.data || []).map((r: any) => ({
       ...r,
-      manager_name: sessionMap.get(r.session_id) || 'Unknown'
+      manager_name: getManagerName(r.session_id)
     }));
     
     setPunchIns(punchInsWithNames);
