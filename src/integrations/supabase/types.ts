@@ -14,6 +14,48 @@ export type Database = {
   }
   public: {
     Tables: {
+      advance_requests: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          reason: string
+          requester_id: string
+          required_date: string
+          review_notes: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          id?: string
+          reason: string
+          requester_id: string
+          required_date: string
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          reason?: string
+          requester_id?: string
+          required_date?: string
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       app_settings: {
         Row: {
           attendance_end: string
@@ -659,6 +701,87 @@ export type Database = {
           submitted_at?: string
           submitted_by?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      bms_asset_inspection_items: {
+        Row: {
+          actual_quantity: number
+          asset_id: string
+          available_quantity: number
+          created_at: string
+          id: string
+          inspection_id: string
+        }
+        Insert: {
+          actual_quantity: number
+          asset_id: string
+          available_quantity: number
+          created_at?: string
+          id?: string
+          inspection_id: string
+        }
+        Update: {
+          actual_quantity?: number
+          asset_id?: string
+          available_quantity?: number
+          created_at?: string
+          id?: string
+          inspection_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bms_asset_inspection_items_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "asset_inventory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bms_asset_inspection_items_inspection_id_fkey"
+            columns: ["inspection_id"]
+            isOneToOne: false
+            referencedRelation: "bms_asset_inspections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bms_asset_inspections: {
+        Row: {
+          created_at: string
+          gps_lat: number | null
+          gps_lng: number | null
+          id: string
+          inspection_date: string
+          inspection_status: string
+          inspection_week: string
+          selfie_url: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          gps_lat?: number | null
+          gps_lng?: number | null
+          id?: string
+          inspection_date?: string
+          inspection_status?: string
+          inspection_week: string
+          selfie_url?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          gps_lat?: number | null
+          gps_lng?: number | null
+          id?: string
+          inspection_date?: string
+          inspection_status?: string
+          inspection_week?: string
+          selfie_url?: string | null
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }

@@ -47,6 +47,7 @@ const AttendanceReporting = lazy(() => import("./pages/admin/AttendanceReporting
 const MyAttendance = lazy(() => import("./pages/MyAttendance"));
 const AssetRequests = lazy(() => import("./pages/AssetRequests"));
 const AssetManagement = lazy(() => import("./components/admin/AssetManagement").then(m => ({ default: m.AssetManagement })));
+const BMSExecutiveDashboard = lazy(() => import("./pages/BMSExecutiveDashboard"));
 const RequestsManagement = lazy(() => import("./pages/admin/RequestsManagement"));
 
 const LoadingFallback = () => (
@@ -94,6 +95,7 @@ const App = () => (
                 <Route path="/my-sessions" element={<ProtectedRoute><MySessions /></ProtectedRoute>} />
                 <Route path="/asset-requests" element={<ProtectedRoute><AssetRequests /></ProtectedRoute>} />
                 <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
+                <Route path="/bms-dashboard" element={<ProtectedRoute><BMSExecutiveDashboard /></ProtectedRoute>} />
                 <Route path="/admin" element={<ProtectedRoute><AdminLayout><AdminDashboard /></AdminLayout></ProtectedRoute>} />
                 <Route path="/admin/requests" element={<ProtectedRoute><AdminLayout><RequestsManagement /></AdminLayout></ProtectedRoute>} />
                 <Route path="/admin/asset-management" element={<ProtectedRoute><AdminLayout><AssetManagement /></AdminLayout></ProtectedRoute>} />
