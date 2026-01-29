@@ -42,7 +42,8 @@ export function BMSAssetInspectionTab() {
   const [selfieUrl, setSelfieUrl] = useState<string | null>(null);
   const [capturedBlob, setCapturedBlob] = useState<Blob | null>(null);
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
-  const [gettingLocation, setGettingLocation] = useState(false);
+  const [capturedAt, setCapturedAt] = useState<Date | null>(null);
+  const [capturing, setCapturing] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const [showCamera, setShowCamera] = useState(false);
   const [stream, setStream] = useState<MediaStream | null>(null);
@@ -163,22 +164,42 @@ export function BMSAssetInspectionTab() {
     }
   };
 
-  const capturePhoto = () => {
+  const capturePhoto = async () => {
     if (!videoRef.current) return;
 
-    const canvas = document.createElement('canvas');
-    canvas.width = videoRef.current.videoWidth;
-    canvas.height = videoRef.current.videoHeight;
-    const ctx = canvas.getContext('2d');
-    if (ctx) {
-      ctx.drawImage(videoRef.current, 0, 0);
-      canvas.toBlob((blob) => {
-        if (blob) {
-          setCapturedBlob(blob);
-          setSelfieUrl(URL.createObjectURL(blob));
-          stopCamera();
-        }
-      }, 'image/jpeg', 0.8);
+    setCapturing(true);
+    
+    try {
+      // Capture photo
+      const canvas = document.createElement('canvas');
+      canvas.width = videoRef.current.videoWidth;
+      canvas.height = videoRef.current.videoHeight;
+      const ctx = canvas.getContext('2d');
+      
+      if (ctx) {
+        ctx.drawImage(videoRef.current, 0, 0);
+        
+        // Get GPS location
+        const position = await getGPSPosition();
+        
+        canvas.toBlob((blob) => {
+          if (blob) {
+            setCapturedBlob(blob);
+            setSelfieUrl(URL.createObjectURL(blob));
+            setLocation({
+              lat: position.latitude,
+              lng: position.longitude
+            });
+            setCapturedAt(new Date());
+            stopCamera();
+            toast.success('Selfie & location captured');
+          }
+        }, 'image/jpeg', 0.8);
+      }
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to capture. Please try again.');
+    } finally {
+      setCapturing(false);
     }
   };
 
@@ -188,22 +209,6 @@ export function BMSAssetInspectionTab() {
       setStream(null);
     }
     setShowCamera(false);
-  };
-
-  const getLocation = async () => {
-    setGettingLocation(true);
-    try {
-      const position = await getGPSPosition();
-      setLocation({
-        lat: position.latitude,
-        lng: position.longitude
-      });
-      toast.success('Location captured');
-    } catch (error: any) {
-      toast.error(error.message || 'Unable to get location');
-    } finally {
-      setGettingLocation(false);
-    }
   };
 
   const openSubmitDialog = () => {
@@ -219,6 +224,7 @@ export function BMSAssetInspectionTab() {
     setSelfieUrl(null);
     setCapturedBlob(null);
     setLocation(null);
+    setCapturedAt(null);
     stopCamera();
   };
 
@@ -504,11 +510,15 @@ export function BMSAssetInspectionTab() {
                     className="w-full rounded-lg bg-black"
                   />
                   <div className="flex gap-2">
-                    <Button onClick={capturePhoto} className="flex-1">
-                      <Camera className="h-4 w-4 mr-2" />
-                      Capture
+                    <Button onClick={capturePhoto} disabled={capturing} className="flex-1">
+                      {capturing ? (
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      ) : (
+                        <Camera className="h-4 w-4 mr-2" />
+                      )}
+                      {capturing ? 'Capturing...' : 'Capture'}
                     </Button>
-                    <Button variant="outline" onClick={stopCamera}>
+                    <Button variant="outline" onClick={stopCamera} disabled={capturing}>
                       Cancel
                     </Button>
                   </div>
@@ -516,9 +526,25 @@ export function BMSAssetInspectionTab() {
               ) : selfieUrl ? (
                 <div className="space-y-3">
                   <img src={selfieUrl} alt="Captured selfie" className="w-32 h-32 rounded-lg object-cover mx-auto" />
+                  
+                  {/* Show captured info */}
+                  <div className="flex flex-wrap gap-2 justify-center">
+                    <Badge variant="outline" className="text-green-600">
+                      <MapPin className="h-3 w-3 mr-1" />
+                      GPS Captured
+                    </Badge>
+                    {capturedAt && (
+                      <Badge variant="outline" className="text-blue-600">
+                        {format(capturedAt, 'MMM d, h:mm a')}
+                      </Badge>
+                    )}
+                  </div>
+                  
                   <Button variant="outline" size="sm" onClick={() => {
                     setSelfieUrl(null);
                     setCapturedBlob(null);
+                    setLocation(null);
+                    setCapturedAt(null);
                   }} className="w-full">
                     Retake
                   </Button>
@@ -527,31 +553,6 @@ export function BMSAssetInspectionTab() {
                 <Button variant="outline" onClick={startCamera} className="w-full">
                   <Camera className="h-4 w-4 mr-2" />
                   Take Selfie
-                </Button>
-              )}
-            </div>
-
-            {/* Location Section */}
-            <div className="space-y-3">
-              <Label className="text-base font-semibold">Location</Label>
-              {location ? (
-                <div className="flex items-center justify-center gap-2">
-                  <Badge variant="outline" className="text-green-600">
-                    <MapPin className="h-3 w-3 mr-1" />
-                    Location Captured
-                  </Badge>
-                  <Button variant="ghost" size="sm" onClick={getLocation}>
-                    Refresh
-                  </Button>
-                </div>
-              ) : (
-                <Button variant="outline" onClick={getLocation} disabled={gettingLocation} className="w-full">
-                  {gettingLocation ? (
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  ) : (
-                    <MapPin className="h-4 w-4 mr-2" />
-                  )}
-                  Get Location
                 </Button>
               )}
             </div>
