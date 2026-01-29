@@ -37,8 +37,10 @@ export default function Auth() {
         navigate('/manager-dashboard');
       } else if (currentRole === 'bdo') {
         navigate('/bdo-dashboard');
+      } else if (currentRole === 'bms_executive') {
+        navigate('/bms-dashboard');
       } else {
-        // employee, bms_executive, or other roles
+        // employee or other roles
         navigate('/dashboard');
       }
     } else if (user) {
