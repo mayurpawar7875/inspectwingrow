@@ -39,6 +39,13 @@ export function BMSAttendanceTab() {
     };
   }, [user]);
 
+  // Set video srcObject when stream and video element are ready
+  useEffect(() => {
+    if (showCamera && stream && videoRef.current) {
+      videoRef.current.srcObject = stream;
+    }
+  }, [showCamera, stream]);
+
   const fetchTodayAttendance = async () => {
     if (!user) return;
     
@@ -69,10 +76,6 @@ export function BMSAttendanceTab() {
       });
       setStream(mediaStream);
       setShowCamera(true);
-      
-      if (videoRef.current) {
-        videoRef.current.srcObject = mediaStream;
-      }
     } catch (error) {
       toast.error('Unable to access camera');
     }
