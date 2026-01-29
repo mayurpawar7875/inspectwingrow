@@ -8,7 +8,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Users, Building2, ClipboardList, MapPin, TrendingUp, Activity, ChevronRight, Clock, Upload, Calendar, Navigation, IndianRupee, ShieldCheck } from 'lucide-react';
-import { BMSMonitoringWidget } from '@/components/admin/BMSMonitoringWidget';
+
 import { MobileBottomNav } from '@/components/MobileBottomNav';
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
 import { format } from 'date-fns';
@@ -1481,8 +1481,6 @@ export default function AdminDashboard() {
           </Card>
         </div>
 
-        {/* BMS Executive Monitoring */}
-        <BMSMonitoringWidget />
 
         <Dialog open={taskDialog.open} onOpenChange={(open) => setTaskDialog({ ...taskDialog, open })}>
           <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">

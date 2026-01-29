@@ -49,6 +49,7 @@ const AssetRequests = lazy(() => import("./pages/AssetRequests"));
 const AssetManagement = lazy(() => import("./components/admin/AssetManagement").then(m => ({ default: m.AssetManagement })));
 const BMSExecutiveDashboard = lazy(() => import("./pages/BMSExecutiveDashboard"));
 const RequestsManagement = lazy(() => import("./pages/admin/RequestsManagement"));
+const BMSMonitoring = lazy(() => import("./pages/admin/BMSMonitoring"));
 
 const LoadingFallback = () => (
   <div className="flex items-center justify-center min-h-screen">
@@ -98,6 +99,7 @@ const App = () => (
                 <Route path="/bms-dashboard" element={<ProtectedRoute><BMSExecutiveDashboard /></ProtectedRoute>} />
                 <Route path="/admin" element={<ProtectedRoute><AdminLayout><AdminDashboard /></AdminLayout></ProtectedRoute>} />
                 <Route path="/admin/requests" element={<ProtectedRoute><AdminLayout><RequestsManagement /></AdminLayout></ProtectedRoute>} />
+                <Route path="/admin/bms-monitoring" element={<ProtectedRoute><AdminLayout><BMSMonitoring /></AdminLayout></ProtectedRoute>} />
                 <Route path="/admin/asset-management" element={<ProtectedRoute><AdminLayout><AssetManagement /></AdminLayout></ProtectedRoute>} />
                 <Route path="/admin/bdo-reporting" element={<ProtectedRoute><AdminLayout><BDOReporting /></AdminLayout></ProtectedRoute>} />
                 <Route path="/admin/employee-reporting" element={<ProtectedRoute><AdminLayout><EmployeeCitySelection /></AdminLayout></ProtectedRoute>} />
