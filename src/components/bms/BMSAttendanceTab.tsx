@@ -14,6 +14,7 @@ export function BMSAttendanceTab() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [todayAttendance, setTodayAttendance] = useState<any>(null);
+  const [signedSelfieUrl, setSignedSelfieUrl] = useState<string | null>(null);
   const [selfieUrl, setSelfieUrl] = useState<string | null>(null);
   const [capturedBlob, setCapturedBlob] = useState<Blob | null>(null);
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
@@ -62,6 +63,21 @@ export function BMSAttendanceTab() {
 
       if (error) throw error;
       setTodayAttendance(data);
+
+      // Get signed URL for selfie if exists
+      if (data?.selfie_url) {
+        const filePath = data.selfie_url.includes('employee-media/') 
+          ? data.selfie_url.split('employee-media/')[1]
+          : data.selfie_url;
+        
+        const { data: signedData } = await supabase.storage
+          .from('employee-media')
+          .createSignedUrl(filePath, 3600);
+        
+        if (signedData?.signedUrl) {
+          setSignedSelfieUrl(signedData.signedUrl);
+        }
+      }
     } catch (error: any) {
       console.error('Error fetching attendance:', error);
     } finally {
@@ -206,11 +222,11 @@ export function BMSAttendanceTab() {
             </span>
           </div>
           
-          {todayAttendance.selfie_url && (
+          {signedSelfieUrl && (
             <div className="mt-4">
               <p className="text-sm text-muted-foreground mb-2">Check-in Selfie</p>
               <img 
-                src={todayAttendance.selfie_url} 
+                src={signedSelfieUrl} 
                 alt="Check-in selfie" 
                 className="w-32 h-32 rounded-lg object-cover"
               />
