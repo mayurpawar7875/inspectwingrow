@@ -6,9 +6,10 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { Camera, MapPin, CheckCircle2, Package, Loader2, AlertTriangle, Lock } from 'lucide-react';
+import { Camera, MapPin, CheckCircle2, Package, Loader2, AlertTriangle, Lock, Plus, Trash2 } from 'lucide-react';
 import { format, startOfWeek, isWednesday, getDay } from 'date-fns';
 import { getGPSPosition } from '@/lib/gpsHelper';
 
@@ -19,11 +20,11 @@ interface Asset {
   available_quantity: number;
 }
 
-interface InspectionItem {
+interface AddedAsset {
   asset_id: string;
   asset_name: string;
   actual_quantity: number;
-  available_quantity: number | null;
+  available_quantity: number;
 }
 
 export function BMSAssetInspectionTab() {
@@ -31,7 +32,11 @@ export function BMSAssetInspectionTab() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [assets, setAssets] = useState<Asset[]>([]);
-  const [inspectionItems, setInspectionItems] = useState<InspectionItem[]>([]);
+  const [addedAssets, setAddedAssets] = useState<AddedAsset[]>([]);
+  
+  // Form state for adding new asset
+  const [selectedAssetId, setSelectedAssetId] = useState<string>('');
+  const [availableQuantity, setAvailableQuantity] = useState<string>('');
   
   const [currentWeekInspection, setCurrentWeekInspection] = useState<any>(null);
   const [selfieUrl, setSelfieUrl] = useState<string | null>(null);
@@ -75,15 +80,6 @@ export function BMSAssetInspectionTab() {
       if (assetsError) throw assetsError;
       setAssets(assetsData || []);
 
-      // Initialize inspection items
-      const items: InspectionItem[] = (assetsData || []).map(asset => ({
-        asset_id: asset.id,
-        asset_name: asset.asset_name,
-        actual_quantity: asset.total_quantity,
-        available_quantity: null
-      }));
-      setInspectionItems(items);
-
       // Check for existing inspection this week
       const weekStart = format(getCurrentWeekStart(), 'yyyy-MM-dd');
       const { data: inspectionData, error: inspectionError } = await supabase
@@ -109,6 +105,47 @@ export function BMSAssetInspectionTab() {
       setLoading(false);
     }
   };
+
+  // Get assets that haven't been added yet
+  const availableAssets = assets.filter(
+    asset => !addedAssets.some(added => added.asset_id === asset.id)
+  );
+
+  const selectedAsset = assets.find(a => a.id === selectedAssetId);
+
+  const handleAddAsset = () => {
+    if (!selectedAssetId || availableQuantity === '') {
+      toast.error('Please select an asset and enter available quantity');
+      return;
+    }
+
+    const asset = assets.find(a => a.id === selectedAssetId);
+    if (!asset) return;
+
+    const qty = parseInt(availableQuantity, 10);
+    if (isNaN(qty) || qty < 0) {
+      toast.error('Please enter a valid quantity');
+      return;
+    }
+
+    setAddedAssets(prev => [...prev, {
+      asset_id: asset.id,
+      asset_name: asset.asset_name,
+      actual_quantity: asset.total_quantity,
+      available_quantity: qty
+    }]);
+
+    // Reset form
+    setSelectedAssetId('');
+    setAvailableQuantity('');
+    toast.success(`${asset.asset_name} added`);
+  };
+
+  const handleRemoveAsset = (assetId: string) => {
+    setAddedAssets(prev => prev.filter(a => a.asset_id !== assetId));
+  };
+
+  const allAssetsFilled = addedAssets.length === assets.length;
 
   const startCamera = async () => {
     try {
@@ -169,24 +206,9 @@ export function BMSAssetInspectionTab() {
     }
   };
 
-  const updateAvailableQuantity = (assetId: string, value: string) => {
-    const numValue = value === '' ? null : parseInt(value, 10);
-    setInspectionItems(prev => 
-      prev.map(item => 
-        item.asset_id === assetId 
-          ? { ...item, available_quantity: numValue }
-          : item
-      )
-    );
-  };
-
-  const filledAssetsCount = inspectionItems.filter(item => item.available_quantity !== null).length;
-
-  const allAssetsFilled = inspectionItems.every(item => item.available_quantity !== null);
-
   const openSubmitDialog = () => {
-    if (!allAssetsFilled) {
-      toast.error('Please fill all asset quantities first');
+    if (addedAssets.length === 0) {
+      toast.error('Please add at least one asset');
       return;
     }
     setShowSubmitDialog(true);
@@ -239,11 +261,11 @@ export function BMSAssetInspectionTab() {
       if (insertError) throw insertError;
 
       // Insert inspection items
-      const itemsToInsert = inspectionItems.map(item => ({
+      const itemsToInsert = addedAssets.map(item => ({
         inspection_id: inspectionResult.id,
         asset_id: item.asset_id,
         actual_quantity: item.actual_quantity,
-        available_quantity: item.available_quantity as number
+        available_quantity: item.available_quantity
       }));
 
       const { error: itemsError } = await supabase
@@ -363,41 +385,92 @@ export function BMSAssetInspectionTab() {
           </div>
         )}
 
-        {/* All Assets List */}
+        {/* Add Asset Form */}
         <div className="space-y-3">
           <div className="flex justify-between items-center">
-            <Label className="text-sm md:text-base font-semibold">Assets</Label>
-            <Badge variant="outline" className="text-xs">{filledAssetsCount} / {inspectionItems.length} filled</Badge>
+            <Label className="text-sm md:text-base font-semibold">Select Asset</Label>
+            <Badge variant="outline" className="text-xs">{addedAssets.length} / {assets.length} added</Badge>
           </div>
           
-          <div className="space-y-3">
-            {inspectionItems.map((item) => (
-              <div key={item.asset_id} className="p-3 border rounded-lg space-y-2 bg-muted/30">
-                <div className="flex justify-between items-center">
-                  <span className="font-medium text-sm">{item.asset_name}</span>
-                  <Badge variant="secondary" className="text-xs">Actual: {item.actual_quantity}</Badge>
+          {availableAssets.length > 0 ? (
+            <div className="space-y-3">
+              <Select value={selectedAssetId} onValueChange={setSelectedAssetId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Choose an asset" />
+                </SelectTrigger>
+                <SelectContent className="bg-background">
+                  {availableAssets.map((asset) => (
+                    <SelectItem key={asset.id} value={asset.id}>
+                      {asset.asset_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              {selectedAsset && (
+                <div className="p-3 border rounded-lg space-y-2 bg-muted/30">
+                  <div className="flex justify-between items-center">
+                    <span className="font-medium text-sm">{selectedAsset.asset_name}</span>
+                    <Badge variant="secondary" className="text-xs">Actual: {selectedAsset.total_quantity}</Badge>
+                  </div>
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Available Quantity</Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      placeholder="Enter available quantity"
+                      value={availableQuantity}
+                      onChange={(e) => setAvailableQuantity(e.target.value)}
+                      className="mt-1 h-9"
+                    />
+                  </div>
+                  <Button 
+                    onClick={handleAddAsset} 
+                    size="sm" 
+                    className="w-full mt-2"
+                    disabled={!availableQuantity}
+                  >
+                    <Plus className="h-4 w-4 mr-1" />
+                    Add Asset
+                  </Button>
                 </div>
-                <div>
-                  <Label className="text-xs text-muted-foreground">Available Quantity</Label>
-                  <Input
-                    type="number"
-                    min="0"
-                    max={item.actual_quantity}
-                    placeholder="Enter available quantity"
-                    value={item.available_quantity ?? ''}
-                    onChange={(e) => updateAvailableQuantity(item.asset_id, e.target.value)}
-                    className="mt-1 h-9"
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
+              )}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground text-center py-2">All assets have been added</p>
+          )}
         </div>
+
+        {/* Added Assets List */}
+        {addedAssets.length > 0 && (
+          <div className="space-y-3">
+            <Label className="text-sm md:text-base font-semibold">Added Assets</Label>
+            <div className="space-y-2">
+              {addedAssets.map((item) => (
+                <div key={item.asset_id} className="flex items-center justify-between p-2 border rounded-lg bg-muted/30">
+                  <div>
+                    <span className="font-medium text-sm">{item.asset_name}</span>
+                    <span className="text-xs text-muted-foreground ml-2">
+                      Available: {item.available_quantity} / {item.actual_quantity}
+                    </span>
+                  </div>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => handleRemoveAsset(item.asset_id)}
+                  >
+                    <Trash2 className="h-4 w-4 text-destructive" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Submit Button */}
         <Button
           onClick={openSubmitDialog}
-          disabled={!allAssetsFilled}
+          disabled={addedAssets.length === 0}
           className="w-full"
           size="lg"
         >
