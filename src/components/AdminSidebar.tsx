@@ -10,11 +10,13 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { LayoutDashboard, FileText, Settings, Package, ClipboardList, Users } from "lucide-react";
+import { LayoutDashboard, FileText, Settings, Package, ClipboardList, Users, MapPin, Building2 } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 const menuItems = [
   { title: "Dashboard", url: "/admin", icon: LayoutDashboard },
+  { title: "BDO Reporting", url: "/admin/bdo-reporting", icon: MapPin },
+  { title: "MM Reporting", url: "/admin/market-reporting", icon: Building2 },
   { title: "BMS Monitoring", url: "/admin/bms-monitoring", icon: Users },
   { title: "Requests Management", url: "/admin/requests", icon: ClipboardList },
   { title: "All Sessions", url: "/admin/sessions", icon: FileText },
