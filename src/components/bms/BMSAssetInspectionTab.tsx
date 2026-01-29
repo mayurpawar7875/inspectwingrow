@@ -32,6 +32,7 @@ export function BMSAssetInspectionTab() {
   const [submitting, setSubmitting] = useState(false);
   const [assets, setAssets] = useState<Asset[]>([]);
   const [inspectionItems, setInspectionItems] = useState<InspectionItem[]>([]);
+  const [selectedAssetId, setSelectedAssetId] = useState<string | null>(null);
   const [currentWeekInspection, setCurrentWeekInspection] = useState<any>(null);
   const [selfieUrl, setSelfieUrl] = useState<string | null>(null);
   const [capturedBlob, setCapturedBlob] = useState<Blob | null>(null);
@@ -177,6 +178,9 @@ export function BMSAssetInspectionTab() {
       )
     );
   };
+
+  const selectedAsset = inspectionItems.find(item => item.asset_id === selectedAssetId);
+  const filledAssetsCount = inspectionItems.filter(item => item.available_quantity !== null).length;
 
   const allAssetsFilled = inspectionItems.every(item => item.available_quantity !== null);
 
@@ -342,38 +346,64 @@ export function BMSAssetInspectionTab() {
           </div>
         )}
 
-        {/* Asset List */}
-        <div className="space-y-4">
-          <Label className="text-base font-semibold">Assets</Label>
-          {inspectionItems.map((item) => (
-            <div key={item.asset_id} className="p-4 border rounded-lg space-y-3">
-              <div className="flex justify-between items-center">
-                <span className="font-medium">{item.asset_name}</span>
-                <Badge variant="secondary">Actual: {item.actual_quantity}</Badge>
-              </div>
-              <div>
-                <Label htmlFor={`available-${item.asset_id}`} className="text-sm text-muted-foreground">
-                  Available Quantity
-                </Label>
-                <Select
-                  value={item.available_quantity?.toString() ?? ''}
-                  onValueChange={(value) => updateAvailableQuantity(item.asset_id, value)}
-                >
-                  <SelectTrigger className="mt-1">
-                    <SelectValue placeholder="Select available quantity" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-background">
-                    {Array.from({ length: item.actual_quantity + 1 }, (_, i) => (
-                      <SelectItem key={i} value={i.toString()}>
-                        {i}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          ))}
+        {/* Asset Dropdown */}
+        <div className="space-y-3">
+          <div className="flex justify-between items-center">
+            <Label className="text-base font-semibold">Select Asset</Label>
+            <Badge variant="outline">{filledAssetsCount} / {inspectionItems.length} filled</Badge>
+          </div>
+          
+          <Select
+            value={selectedAssetId || ''}
+            onValueChange={setSelectedAssetId}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select an asset to inspect" />
+            </SelectTrigger>
+            <SelectContent className="bg-background">
+              {inspectionItems.map((item) => (
+                <SelectItem key={item.asset_id} value={item.asset_id}>
+                  <div className="flex items-center gap-2">
+                    <span>{item.asset_name}</span>
+                    {item.available_quantity !== null && (
+                      <Badge variant="secondary" className="ml-2 text-xs">✓</Badge>
+                    )}
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
+
+        {/* Selected Asset Details */}
+        {selectedAsset && (
+          <div className="p-4 border rounded-lg space-y-3 bg-muted/30">
+            <div className="flex justify-between items-center">
+              <span className="font-medium">{selectedAsset.asset_name}</span>
+              <Badge variant="secondary">Actual: {selectedAsset.actual_quantity}</Badge>
+            </div>
+            <div>
+              <Label className="text-sm text-muted-foreground">
+                Available Quantity
+              </Label>
+              <Select
+                value={selectedAsset.available_quantity?.toString() ?? ''}
+                onValueChange={(value) => updateAvailableQuantity(selectedAsset.asset_id, value)}
+              >
+                <SelectTrigger className="mt-1">
+                  <SelectValue placeholder="Select available quantity" />
+                </SelectTrigger>
+                <SelectContent className="bg-background">
+                  {Array.from({ length: selectedAsset.actual_quantity + 1 }, (_, i) => (
+                    <SelectItem key={i} value={i.toString()}>
+                      {i}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        )}
 
         {/* Camera Section */}
         <div className="space-y-3">
