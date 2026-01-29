@@ -4,8 +4,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
+
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { Camera, MapPin, CheckCircle2, Package, Loader2, AlertTriangle, Lock } from 'lucide-react';
 import { format, startOfWeek, isWednesday, getDay } from 'date-fns';
@@ -354,16 +355,21 @@ export function BMSAssetInspectionTab() {
                 <Label htmlFor={`available-${item.asset_id}`} className="text-sm text-muted-foreground">
                   Available Quantity
                 </Label>
-                <Input
-                  id={`available-${item.asset_id}`}
-                  type="number"
-                  min="0"
-                  max={item.actual_quantity}
-                  placeholder="Enter available quantity"
-                  value={item.available_quantity ?? ''}
-                  onChange={(e) => updateAvailableQuantity(item.asset_id, e.target.value)}
-                  className="mt-1"
-                />
+                <Select
+                  value={item.available_quantity?.toString() ?? ''}
+                  onValueChange={(value) => updateAvailableQuantity(item.asset_id, value)}
+                >
+                  <SelectTrigger className="mt-1">
+                    <SelectValue placeholder="Select available quantity" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-background">
+                    {Array.from({ length: item.actual_quantity + 1 }, (_, i) => (
+                      <SelectItem key={i} value={i.toString()}>
+                        {i}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
           ))}
