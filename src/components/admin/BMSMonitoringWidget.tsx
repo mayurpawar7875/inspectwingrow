@@ -9,28 +9,28 @@ export function BMSMonitoringWidget() {
   const [activeTab, setActiveTab] = useState('realtime');
 
   return (
-    <Card className="col-span-full">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-lg">BMS Executive Monitoring</CardTitle>
+    <Card className="w-full overflow-hidden">
+      <CardHeader className="pb-2 px-3 sm:px-6">
+        <CardTitle className="text-base sm:text-lg">BMS Executive Monitoring</CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className="px-3 sm:px-6">
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-2 max-w-md">
-            <TabsTrigger value="realtime" className="flex items-center gap-2">
-              <Activity className="h-4 w-4" />
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="realtime" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
+              <Activity className="h-3 w-3 sm:h-4 sm:w-4" />
               Real-Time
             </TabsTrigger>
-            <TabsTrigger value="history" className="flex items-center gap-2">
-              <History className="h-4 w-4" />
+            <TabsTrigger value="history" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
+              <History className="h-3 w-3 sm:h-4 sm:w-4" />
               History
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="realtime" className="mt-4">
+          <TabsContent value="realtime" className="mt-3">
             <BMSRealTimeTab />
           </TabsContent>
 
-          <TabsContent value="history" className="mt-4">
+          <TabsContent value="history" className="mt-3">
             <BMSHistoryTab />
           </TabsContent>
         </Tabs>
