@@ -154,6 +154,10 @@ export function UsersTab({ onChangeMade }: UsersTabProps) {
         return;
       }
 
+      // Store current admin session before creating new user
+      const { data: currentSession } = await supabase.auth.getSession();
+      const adminSession = currentSession?.session;
+
       const redirectUrl = `${window.location.origin}/`;
       
       const { data, error } = await supabase.auth.signUp({
@@ -169,6 +173,14 @@ export function UsersTab({ onChangeMade }: UsersTabProps) {
       });
 
       if (error) throw error;
+
+      // Restore admin session immediately after signup
+      if (adminSession) {
+        await supabase.auth.setSession({
+          access_token: adminSession.access_token,
+          refresh_token: adminSession.refresh_token,
+        });
+      }
 
       if (data.user) {
         await supabase
