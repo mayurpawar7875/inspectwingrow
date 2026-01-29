@@ -17,7 +17,8 @@ export function BMSAttendanceTab() {
   const [selfieUrl, setSelfieUrl] = useState<string | null>(null);
   const [capturedBlob, setCapturedBlob] = useState<Blob | null>(null);
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
-  const [gettingLocation, setGettingLocation] = useState(false);
+  const [captureTime, setCaptureTime] = useState<Date | null>(null);
+  const [capturing, setCapturing] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const [showCamera, setShowCamera] = useState(false);
   const [stream, setStream] = useState<MediaStream | null>(null);
@@ -77,22 +78,39 @@ export function BMSAttendanceTab() {
     }
   };
 
-  const capturePhoto = () => {
+  const capturePhoto = async () => {
     if (!videoRef.current) return;
 
-    const canvas = document.createElement('canvas');
-    canvas.width = videoRef.current.videoWidth;
-    canvas.height = videoRef.current.videoHeight;
-    const ctx = canvas.getContext('2d');
-    if (ctx) {
-      ctx.drawImage(videoRef.current, 0, 0);
-      canvas.toBlob((blob) => {
-        if (blob) {
-          setCapturedBlob(blob);
-          setSelfieUrl(URL.createObjectURL(blob));
-          stopCamera();
-        }
-      }, 'image/jpeg', 0.8);
+    setCapturing(true);
+    try {
+      // Capture GPS location simultaneously
+      const position = await getGPSPosition();
+      setLocation({
+        lat: position.latitude,
+        lng: position.longitude
+      });
+      setCaptureTime(new Date());
+
+      // Capture photo
+      const canvas = document.createElement('canvas');
+      canvas.width = videoRef.current.videoWidth;
+      canvas.height = videoRef.current.videoHeight;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.drawImage(videoRef.current, 0, 0);
+        canvas.toBlob((blob) => {
+          if (blob) {
+            setCapturedBlob(blob);
+            setSelfieUrl(URL.createObjectURL(blob));
+            stopCamera();
+          }
+        }, 'image/jpeg', 0.8);
+      }
+      toast.success('Selfie & location captured');
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to capture location');
+    } finally {
+      setCapturing(false);
     }
   };
 
@@ -104,25 +122,9 @@ export function BMSAttendanceTab() {
     setShowCamera(false);
   };
 
-  const getLocation = async () => {
-    setGettingLocation(true);
-    try {
-      const position = await getGPSPosition();
-      setLocation({
-        lat: position.latitude,
-        lng: position.longitude
-      });
-      toast.success('Location captured');
-    } catch (error: any) {
-      toast.error(error.message || 'Unable to get location');
-    } finally {
-      setGettingLocation(false);
-    }
-  };
-
   const handleCheckIn = async () => {
     if (!user || !capturedBlob || !location) {
-      toast.error('Please capture selfie and location');
+      toast.error('Please capture selfie first');
       return;
     }
 
@@ -163,6 +165,7 @@ export function BMSAttendanceTab() {
       setSelfieUrl(null);
       setCapturedBlob(null);
       setLocation(null);
+      setCaptureTime(null);
     } catch (error: any) {
       console.error('Check-in error:', error);
       toast.error(error.message || 'Failed to check in');
@@ -245,7 +248,7 @@ export function BMSAttendanceTab() {
       <CardContent className="space-y-6">
         {/* Camera Section */}
         <div className="space-y-3">
-          <label className="text-sm font-medium">Selfie</label>
+          <label className="text-sm font-medium">Take Selfie with Location</label>
           
           {showCamera ? (
             <div className="space-y-3">
@@ -257,21 +260,42 @@ export function BMSAttendanceTab() {
                 className="w-full max-w-sm rounded-lg bg-black"
               />
               <div className="flex gap-2">
-                <Button onClick={capturePhoto} className="flex-1">
-                  <Camera className="h-4 w-4 mr-2" />
-                  Capture
+                <Button onClick={capturePhoto} disabled={capturing} className="flex-1">
+                  {capturing ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Capturing...
+                    </>
+                  ) : (
+                    <>
+                      <Camera className="h-4 w-4 mr-2" />
+                      Capture
+                    </>
+                  )}
                 </Button>
-                <Button variant="outline" onClick={stopCamera}>
+                <Button variant="outline" onClick={stopCamera} disabled={capturing}>
                   Cancel
                 </Button>
               </div>
             </div>
-          ) : selfieUrl ? (
+          ) : selfieUrl && location && captureTime ? (
             <div className="space-y-3">
               <img src={selfieUrl} alt="Captured selfie" className="w-32 h-32 rounded-lg object-cover" />
+              <div className="text-xs text-muted-foreground space-y-1">
+                <div className="flex items-center gap-1">
+                  <MapPin className="h-3 w-3" />
+                  <span>GPS: {location.lat.toFixed(6)}, {location.lng.toFixed(6)}</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <Clock className="h-3 w-3" />
+                  <span>{format(captureTime, 'dd MMM yyyy, h:mm:ss a')}</span>
+                </div>
+              </div>
               <Button variant="outline" size="sm" onClick={() => {
                 setSelfieUrl(null);
                 setCapturedBlob(null);
+                setLocation(null);
+                setCaptureTime(null);
               }}>
                 Retake
               </Button>
@@ -280,31 +304,6 @@ export function BMSAttendanceTab() {
             <Button variant="outline" onClick={startCamera} className="w-full">
               <Camera className="h-4 w-4 mr-2" />
               Take Selfie
-            </Button>
-          )}
-        </div>
-
-        {/* Location Section */}
-        <div className="space-y-3">
-          <label className="text-sm font-medium">Location</label>
-          {location ? (
-            <div className="flex items-center gap-2">
-              <Badge variant="outline" className="text-green-600">
-                <MapPin className="h-3 w-3 mr-1" />
-                Location Captured
-              </Badge>
-              <Button variant="ghost" size="sm" onClick={getLocation}>
-                Refresh
-              </Button>
-            </div>
-          ) : (
-            <Button variant="outline" onClick={getLocation} disabled={gettingLocation} className="w-full">
-              {gettingLocation ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
-                <MapPin className="h-4 w-4 mr-2" />
-              )}
-              Get Location
             </Button>
           )}
         </div>
