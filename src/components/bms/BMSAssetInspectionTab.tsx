@@ -4,9 +4,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { Camera, MapPin, CheckCircle2, Package, Loader2, AlertTriangle, Lock } from 'lucide-react';
 import { format, startOfWeek, isWednesday, getDay } from 'date-fns';
@@ -41,6 +41,7 @@ export function BMSAssetInspectionTab() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [showCamera, setShowCamera] = useState(false);
   const [stream, setStream] = useState<MediaStream | null>(null);
+  const [showSubmitDialog, setShowSubmitDialog] = useState(false);
 
   const getCurrentWeekStart = () => {
     const now = new Date();
@@ -184,9 +185,25 @@ export function BMSAssetInspectionTab() {
 
   const allAssetsFilled = inspectionItems.every(item => item.available_quantity !== null);
 
+  const openSubmitDialog = () => {
+    if (!allAssetsFilled) {
+      toast.error('Please fill all asset quantities first');
+      return;
+    }
+    setShowSubmitDialog(true);
+  };
+
+  const closeSubmitDialog = () => {
+    setShowSubmitDialog(false);
+    setSelfieUrl(null);
+    setCapturedBlob(null);
+    setLocation(null);
+    stopCamera();
+  };
+
   const handleSubmit = async () => {
-    if (!user || !capturedBlob || !location || !allAssetsFilled) {
-      toast.error('Please complete all fields, capture selfie and location');
+    if (!user || !capturedBlob || !location) {
+      toast.error('Please capture selfie and location');
       return;
     }
 
@@ -237,6 +254,7 @@ export function BMSAssetInspectionTab() {
       if (itemsError) throw itemsError;
 
       toast.success('Inspection submitted successfully!');
+      setShowSubmitDialog(false);
       fetchData();
       setSelfieUrl(null);
       setCapturedBlob(null);
@@ -405,92 +423,117 @@ export function BMSAssetInspectionTab() {
           </div>
         )}
 
-        {/* Camera Section */}
-        <div className="space-y-3">
-          <Label className="text-base font-semibold">Selfie</Label>
-          
-          {showCamera ? (
-            <div className="space-y-3">
-              <video
-                ref={videoRef}
-                autoPlay
-                playsInline
-                muted
-                className="w-full max-w-sm rounded-lg bg-black"
-              />
-              <div className="flex gap-2">
-                <Button onClick={capturePhoto} className="flex-1">
-                  <Camera className="h-4 w-4 mr-2" />
-                  Capture
-                </Button>
-                <Button variant="outline" onClick={stopCamera}>
-                  Cancel
-                </Button>
-              </div>
-            </div>
-          ) : selfieUrl ? (
-            <div className="space-y-3">
-              <img src={selfieUrl} alt="Captured selfie" className="w-32 h-32 rounded-lg object-cover" />
-              <Button variant="outline" size="sm" onClick={() => {
-                setSelfieUrl(null);
-                setCapturedBlob(null);
-              }}>
-                Retake
-              </Button>
-            </div>
-          ) : (
-            <Button variant="outline" onClick={startCamera} className="w-full">
-              <Camera className="h-4 w-4 mr-2" />
-              Take Selfie
-            </Button>
-          )}
-        </div>
-
-        {/* Location Section */}
-        <div className="space-y-3">
-          <Label className="text-base font-semibold">Location</Label>
-          {location ? (
-            <div className="flex items-center gap-2">
-              <Badge variant="outline" className="text-green-600">
-                <MapPin className="h-3 w-3 mr-1" />
-                Location Captured
-              </Badge>
-              <Button variant="ghost" size="sm" onClick={getLocation}>
-                Refresh
-              </Button>
-            </div>
-          ) : (
-            <Button variant="outline" onClick={getLocation} disabled={gettingLocation} className="w-full">
-              {gettingLocation ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
-                <MapPin className="h-4 w-4 mr-2" />
-              )}
-              Get Location
-            </Button>
-          )}
-        </div>
-
         {/* Submit Button */}
         <Button
-          onClick={handleSubmit}
-          disabled={!capturedBlob || !location || !allAssetsFilled || submitting}
+          onClick={openSubmitDialog}
+          disabled={!allAssetsFilled}
           className="w-full"
           size="lg"
         >
-          {submitting ? (
-            <>
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              Submitting...
-            </>
-          ) : (
-            <>
-              <CheckCircle2 className="h-4 w-4 mr-2" />
-              Submit Inspection
-            </>
-          )}
+          <CheckCircle2 className="h-4 w-4 mr-2" />
+          Submit Inspection
         </Button>
       </CardContent>
+
+      {/* Submit Dialog with Selfie & Location */}
+      <Dialog open={showSubmitDialog} onOpenChange={setShowSubmitDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Complete Inspection</DialogTitle>
+            <DialogDescription>
+              Capture selfie and location to submit your inspection
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-6 py-4">
+            {/* Camera Section */}
+            <div className="space-y-3">
+              <Label className="text-base font-semibold">Selfie</Label>
+              
+              {showCamera ? (
+                <div className="space-y-3">
+                  <video
+                    ref={videoRef}
+                    autoPlay
+                    playsInline
+                    muted
+                    className="w-full rounded-lg bg-black"
+                  />
+                  <div className="flex gap-2">
+                    <Button onClick={capturePhoto} className="flex-1">
+                      <Camera className="h-4 w-4 mr-2" />
+                      Capture
+                    </Button>
+                    <Button variant="outline" onClick={stopCamera}>
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              ) : selfieUrl ? (
+                <div className="space-y-3">
+                  <img src={selfieUrl} alt="Captured selfie" className="w-32 h-32 rounded-lg object-cover mx-auto" />
+                  <Button variant="outline" size="sm" onClick={() => {
+                    setSelfieUrl(null);
+                    setCapturedBlob(null);
+                  }} className="w-full">
+                    Retake
+                  </Button>
+                </div>
+              ) : (
+                <Button variant="outline" onClick={startCamera} className="w-full">
+                  <Camera className="h-4 w-4 mr-2" />
+                  Take Selfie
+                </Button>
+              )}
+            </div>
+
+            {/* Location Section */}
+            <div className="space-y-3">
+              <Label className="text-base font-semibold">Location</Label>
+              {location ? (
+                <div className="flex items-center justify-center gap-2">
+                  <Badge variant="outline" className="text-green-600">
+                    <MapPin className="h-3 w-3 mr-1" />
+                    Location Captured
+                  </Badge>
+                  <Button variant="ghost" size="sm" onClick={getLocation}>
+                    Refresh
+                  </Button>
+                </div>
+              ) : (
+                <Button variant="outline" onClick={getLocation} disabled={gettingLocation} className="w-full">
+                  {gettingLocation ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <MapPin className="h-4 w-4 mr-2" />
+                  )}
+                  Get Location
+                </Button>
+              )}
+            </div>
+
+            {/* Final Submit Button */}
+            <Button
+              onClick={handleSubmit}
+              disabled={!capturedBlob || !location || submitting}
+              className="w-full"
+              size="lg"
+            >
+              {submitting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Submitting...
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 className="h-4 w-4 mr-2" />
+                  Confirm & Submit
+                </>
+              )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
