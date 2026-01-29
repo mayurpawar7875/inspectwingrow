@@ -273,52 +273,34 @@ export function BMSRealTimeTab() {
               </CardContent>
             </Card>
           ) : (
-            <div className="border rounded-lg overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="text-xs whitespace-nowrap">Employee</TableHead>
-                    <TableHead className="text-xs whitespace-nowrap">Check-in</TableHead>
-                    <TableHead className="text-xs whitespace-nowrap">Selfie</TableHead>
-                    <TableHead className="text-xs whitespace-nowrap">Location</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {attendance.map((record) => (
-                    <TableRow key={record.id}>
-                      <TableCell className="font-medium text-xs whitespace-nowrap">
-                        {record.employee?.full_name || 'Unknown'}
-                      </TableCell>
-                      <TableCell className="text-xs whitespace-nowrap">
-                        {format(new Date(record.punch_in_time), 'h:mm a')}
-                      </TableCell>
-                      <TableCell>
-                        {record.selfie_url && (
-                          <img 
-                            src={record.selfie_url} 
-                            alt="Selfie" 
-                            loading="lazy"
-                            className="w-8 h-8 rounded object-cover"
-                          />
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {record.punch_in_lat && record.punch_in_lng && (
-                          <a
-                            href={`https://www.google.com/maps?q=${record.punch_in_lat},${record.punch_in_lng}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-primary hover:underline flex items-center gap-1 text-xs"
-                          >
-                            <MapPin className="h-3 w-3" />
-                            View
-                          </a>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+            <div className="space-y-2">
+              {attendance.map((record) => (
+                <div key={record.id} className="border rounded-lg p-3 flex items-center gap-3">
+                  {record.selfie_url && (
+                    <img 
+                      src={record.selfie_url} 
+                      alt="Selfie" 
+                      loading="lazy"
+                      className="w-10 h-10 rounded-full object-cover shrink-0"
+                    />
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{record.employee?.full_name || 'Unknown'}</p>
+                    <p className="text-xs text-muted-foreground">{format(new Date(record.punch_in_time), 'h:mm a')}</p>
+                  </div>
+                  {record.punch_in_lat && record.punch_in_lng && (
+                    <a
+                      href={`https://www.google.com/maps?q=${record.punch_in_lat},${record.punch_in_lng}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary hover:underline flex items-center gap-1 text-xs shrink-0"
+                    >
+                      <MapPin className="h-3 w-3" />
+                      View
+                    </a>
+                  )}
+                </div>
+              ))}
             </div>
           )}
         </TabsContent>
@@ -331,58 +313,36 @@ export function BMSRealTimeTab() {
               </CardContent>
             </Card>
           ) : (
-            <div className="border rounded-lg overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="text-xs whitespace-nowrap">Employee</TableHead>
-                    <TableHead className="text-xs whitespace-nowrap">Date</TableHead>
-                    <TableHead className="text-xs whitespace-nowrap">Status</TableHead>
-                    <TableHead className="text-xs whitespace-nowrap">Selfie</TableHead>
-                    <TableHead className="text-xs whitespace-nowrap">Location</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {inspections.map((inspection) => (
-                    <TableRow key={inspection.id}>
-                      <TableCell className="font-medium text-xs whitespace-nowrap">
-                        {inspection.employee?.full_name || 'Unknown'}
-                      </TableCell>
-                      <TableCell className="text-xs whitespace-nowrap">
-                        {format(new Date(inspection.inspection_date), 'MMM d, h:mm a')}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={inspection.inspection_status === 'on_time' ? 'default' : 'destructive'} className="text-[10px]">
-                          {inspection.inspection_status === 'on_time' ? 'On Time' : 'Late'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {inspection.selfie_url && (
-                          <img 
-                            src={inspection.selfie_url} 
-                            alt="Selfie" 
-                            loading="lazy"
-                            className="w-8 h-8 rounded object-cover"
-                          />
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {inspection.gps_lat && inspection.gps_lng && (
-                          <a
-                            href={`https://www.google.com/maps?q=${inspection.gps_lat},${inspection.gps_lng}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-primary hover:underline flex items-center gap-1 text-xs"
-                          >
-                            <MapPin className="h-3 w-3" />
-                            View
-                          </a>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+            <div className="space-y-2">
+              {inspections.map((inspection) => (
+                <div key={inspection.id} className="border rounded-lg p-3 flex items-center gap-3">
+                  {inspection.selfie_url && (
+                    <img 
+                      src={inspection.selfie_url} 
+                      alt="Selfie" 
+                      loading="lazy"
+                      className="w-10 h-10 rounded-full object-cover shrink-0"
+                    />
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{inspection.employee?.full_name || 'Unknown'}</p>
+                    <p className="text-xs text-muted-foreground">{format(new Date(inspection.inspection_date), 'MMM d, h:mm a')}</p>
+                  </div>
+                  <Badge variant={inspection.inspection_status === 'on_time' ? 'default' : 'destructive'} className="text-[10px] shrink-0">
+                    {inspection.inspection_status === 'on_time' ? 'On Time' : 'Late'}
+                  </Badge>
+                  {inspection.gps_lat && inspection.gps_lng && (
+                    <a
+                      href={`https://www.google.com/maps?q=${inspection.gps_lat},${inspection.gps_lng}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary hover:underline flex items-center gap-1 text-xs shrink-0"
+                    >
+                      <MapPin className="h-3 w-3" />
+                    </a>
+                  )}
+                </div>
+              ))}
             </div>
           )}
         </TabsContent>
@@ -395,40 +355,27 @@ export function BMSRealTimeTab() {
               </CardContent>
             </Card>
           ) : (
-            <div className="border rounded-lg overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="text-xs whitespace-nowrap">Employee</TableHead>
-                    <TableHead className="text-xs whitespace-nowrap">Amount</TableHead>
-                    <TableHead className="text-xs whitespace-nowrap">Reason</TableHead>
-                    <TableHead className="text-xs whitespace-nowrap">Required</TableHead>
-                    <TableHead className="text-xs whitespace-nowrap">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {advanceRequests.map((request) => (
-                    <TableRow key={request.id}>
-                      <TableCell className="font-medium text-xs whitespace-nowrap">
-                        {request.employee?.full_name || 'Unknown'}
-                      </TableCell>
-                      <TableCell className="text-xs whitespace-nowrap">₹{request.amount.toLocaleString('en-IN')}</TableCell>
-                      <TableCell className="text-xs max-w-[100px] truncate">{request.reason}</TableCell>
-                      <TableCell className="text-xs whitespace-nowrap">{format(new Date(request.required_date), 'MMM d')}</TableCell>
-                      <TableCell>
-                        <div className="flex gap-1">
-                          <Button size="sm" variant="default" className="h-7 px-2 text-[10px]" onClick={() => handleAdvanceAction(request.id, 'approved')}>
-                            Approve
-                          </Button>
-                          <Button size="sm" variant="destructive" className="h-7 px-2 text-[10px]" onClick={() => handleAdvanceAction(request.id, 'rejected')}>
-                            Reject
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+            <div className="space-y-2">
+              {advanceRequests.map((request) => (
+                <div key={request.id} className="border rounded-lg p-3 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-medium">{request.employee?.full_name || 'Unknown'}</p>
+                    <p className="text-sm font-semibold text-primary">₹{request.amount.toLocaleString('en-IN')}</p>
+                  </div>
+                  <p className="text-xs text-muted-foreground line-clamp-2">{request.reason}</p>
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs text-muted-foreground">Required: {format(new Date(request.required_date), 'MMM d')}</p>
+                    <div className="flex gap-1">
+                      <Button size="sm" variant="default" className="h-7 px-2 text-[10px]" onClick={() => handleAdvanceAction(request.id, 'approved')}>
+                        Approve
+                      </Button>
+                      <Button size="sm" variant="destructive" className="h-7 px-2 text-[10px]" onClick={() => handleAdvanceAction(request.id, 'rejected')}>
+                        Reject
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </TabsContent>
@@ -441,38 +388,24 @@ export function BMSRealTimeTab() {
               </CardContent>
             </Card>
           ) : (
-            <div className="border rounded-lg overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="text-xs whitespace-nowrap">Employee</TableHead>
-                    <TableHead className="text-xs whitespace-nowrap">Leave Date</TableHead>
-                    <TableHead className="text-xs whitespace-nowrap">Reason</TableHead>
-                    <TableHead className="text-xs whitespace-nowrap">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {leaveRequests.map((leave) => (
-                    <TableRow key={leave.id}>
-                      <TableCell className="font-medium text-xs whitespace-nowrap">
-                        {leave.employee?.full_name || 'Unknown'}
-                      </TableCell>
-                      <TableCell className="text-xs whitespace-nowrap">{format(new Date(leave.leave_date), 'MMM d, yyyy')}</TableCell>
-                      <TableCell className="text-xs max-w-[120px] truncate">{leave.reason}</TableCell>
-                      <TableCell>
-                        <div className="flex gap-1">
-                          <Button size="sm" variant="default" className="h-7 px-2 text-[10px]" onClick={() => handleLeaveAction(leave.id, 'approved')}>
-                            Approve
-                          </Button>
-                          <Button size="sm" variant="destructive" className="h-7 px-2 text-[10px]" onClick={() => handleLeaveAction(leave.id, 'rejected')}>
-                            Reject
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+            <div className="space-y-2">
+              {leaveRequests.map((leave) => (
+                <div key={leave.id} className="border rounded-lg p-3 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-medium">{leave.employee?.full_name || 'Unknown'}</p>
+                    <p className="text-xs text-muted-foreground">{format(new Date(leave.leave_date), 'MMM d, yyyy')}</p>
+                  </div>
+                  <p className="text-xs text-muted-foreground line-clamp-2">{leave.reason}</p>
+                  <div className="flex justify-end gap-1">
+                    <Button size="sm" variant="default" className="h-7 px-2 text-[10px]" onClick={() => handleLeaveAction(leave.id, 'approved')}>
+                      Approve
+                    </Button>
+                    <Button size="sm" variant="destructive" className="h-7 px-2 text-[10px]" onClick={() => handleLeaveAction(leave.id, 'rejected')}>
+                      Reject
+                    </Button>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </TabsContent>
