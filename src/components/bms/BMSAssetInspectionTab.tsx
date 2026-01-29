@@ -49,6 +49,34 @@ export function BMSAssetInspectionTab() {
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [showSubmitDialog, setShowSubmitDialog] = useState(false);
 
+  // Prevent black camera preview by attaching the stream after the <video> mounts
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!showCamera || !stream || !video) return;
+
+    video.srcObject = stream;
+
+    const tryPlay = async () => {
+      try {
+        await video.play();
+      } catch {
+        // ignore autoplay issues; user gesture already happened on mobile
+      }
+    };
+
+    if (video.readyState >= 2) {
+      void tryPlay();
+    } else {
+      video.onloadedmetadata = () => {
+        void tryPlay();
+      };
+    }
+
+    return () => {
+      video.onloadedmetadata = null;
+    };
+  }, [showCamera, stream]);
+
   const getCurrentWeekStart = () => {
     const now = new Date();
     return startOfWeek(now, { weekStartsOn: 1 }); // Monday
@@ -151,14 +179,11 @@ export function BMSAssetInspectionTab() {
   const startCamera = async () => {
     try {
       const mediaStream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'user', width: 640, height: 480 }
+        audio: false,
+        video: { facingMode: 'user' }
       });
       setStream(mediaStream);
       setShowCamera(true);
-      
-      if (videoRef.current) {
-        videoRef.current.srcObject = mediaStream;
-      }
     } catch (error) {
       toast.error('Unable to access camera');
     }
@@ -204,6 +229,9 @@ export function BMSAssetInspectionTab() {
   };
 
   const stopCamera = () => {
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
     if (stream) {
       stream.getTracks().forEach(track => track.stop());
       setStream(null);
