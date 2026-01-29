@@ -186,12 +186,12 @@ export function BMSAttendanceTab() {
   if (todayAttendance) {
     return (
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <CheckCircle2 className="h-5 w-5 text-green-500" />
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center gap-2 text-base md:text-lg">
+            <CheckCircle2 className="h-4 w-4 md:h-5 md:w-5 text-green-500" />
             Attendance Recorded
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="text-xs md:text-sm">
             {format(new Date(), 'EEEE, MMMM d, yyyy')}
           </CardDescription>
         </CardHeader>
@@ -233,22 +233,21 @@ export function BMSAttendanceTab() {
     );
   }
 
-  // Check-in form
   return (
     <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Clock className="h-5 w-5" />
+      <CardHeader className="pb-2">
+        <CardTitle className="flex items-center gap-2 text-base md:text-lg">
+          <Clock className="h-4 w-4 md:h-5 md:w-5" />
           Daily Check-In
         </CardTitle>
-        <CardDescription>
+        <CardDescription className="text-xs md:text-sm">
           {format(new Date(), 'EEEE, MMMM d, yyyy')}
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-6">
+      <CardContent className="space-y-4 pt-2">
         {/* Camera Section */}
-        <div className="space-y-3">
-          <label className="text-sm font-medium">Take Selfie with Location</label>
+        <div className="space-y-2">
+          <label className="text-xs md:text-sm font-medium">Take Selfie with Location</label>
           
           {showCamera ? (
             <div className="space-y-3">
