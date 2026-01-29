@@ -399,61 +399,49 @@ export function BMSHistoryTab() {
                   </CardContent>
                 </Card>
               ) : (
-                <div className="border rounded-lg overflow-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Employee</TableHead>
-                        <TableHead>Date</TableHead>
-                        <TableHead>Check-in</TableHead>
-                        <TableHead>Selfie</TableHead>
-                        <TableHead>Location</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {attendanceHistory.map((record) => (
-                        <TableRow key={record.id}>
-                          <TableCell className="font-medium">
-                            {record.employee?.full_name || 'Unknown'}
-                          </TableCell>
-                          <TableCell>{format(new Date(record.attendance_date), 'MMM d, yyyy')}</TableCell>
-                          <TableCell>
-                            {record.punch_in_time ? format(new Date(record.punch_in_time), 'h:mm a') : '-'}
-                          </TableCell>
-                          <TableCell>
-                            {record.selfie_url && (
-                              <Dialog>
-                                <DialogTrigger asChild>
-                                  <Button variant="ghost" size="sm">
-                                    <Eye className="h-4 w-4" />
-                                  </Button>
-                                </DialogTrigger>
-                                <DialogContent>
-                                  <DialogHeader>
-                                    <DialogTitle>Check-in Selfie</DialogTitle>
-                                  </DialogHeader>
-                                  <img src={record.selfie_url} alt="Selfie" loading="lazy" className="w-full rounded-lg" />
-                                </DialogContent>
-                              </Dialog>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            {record.punch_in_lat && record.punch_in_lng && (
-                              <a
-                                href={`https://www.google.com/maps?q=${record.punch_in_lat},${record.punch_in_lng}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-primary hover:underline flex items-center gap-1"
-                              >
-                                <MapPin className="h-3 w-3" />
-                                View
-                              </a>
-                            )}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                <div className="space-y-2">
+                  {attendanceHistory.map((record) => (
+                    <div key={record.id} className="border rounded-lg p-3 flex items-center gap-3">
+                      {record.selfie_url ? (
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <img 
+                              src={record.selfie_url} 
+                              alt="Selfie" 
+                              loading="lazy"
+                              className="w-10 h-10 rounded-full object-cover shrink-0 cursor-pointer hover:opacity-80" 
+                            />
+                          </DialogTrigger>
+                          <DialogContent>
+                            <DialogHeader>
+                              <DialogTitle>Check-in Selfie</DialogTitle>
+                            </DialogHeader>
+                            <img src={record.selfie_url} alt="Selfie" loading="lazy" className="w-full rounded-lg" />
+                          </DialogContent>
+                        </Dialog>
+                      ) : (
+                        <div className="w-10 h-10 rounded-full bg-muted shrink-0 flex items-center justify-center">
+                          <Eye className="h-4 w-4 text-muted-foreground" />
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">{record.employee?.full_name || 'Unknown'}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {format(new Date(record.attendance_date), 'MMM d')} • {record.punch_in_time ? format(new Date(record.punch_in_time), 'h:mm a') : '-'}
+                        </p>
+                      </div>
+                      {record.punch_in_lat && record.punch_in_lng && (
+                        <a
+                          href={`https://www.google.com/maps?q=${record.punch_in_lat},${record.punch_in_lng}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-primary shrink-0"
+                        >
+                          <MapPin className="h-4 w-4" />
+                        </a>
+                      )}
+                    </div>
+                  ))}
                 </div>
               )}
             </TabsContent>
@@ -466,61 +454,52 @@ export function BMSHistoryTab() {
                   </CardContent>
                 </Card>
               ) : (
-                <div className="border rounded-lg overflow-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Employee</TableHead>
-                        <TableHead>Week</TableHead>
-                        <TableHead>Inspection Date</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Selfie</TableHead>
-                        <TableHead>Location</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {inspectionHistory.map((record) => (
-                        <TableRow key={record.id}>
-                          <TableCell className="font-medium">
-                            {record.employee?.full_name || 'Unknown'}
-                          </TableCell>
-                          <TableCell>{format(new Date(record.inspection_week), 'MMM d')}</TableCell>
-                          <TableCell>{format(new Date(record.inspection_date), 'MMM d, h:mm a')}</TableCell>
-                          <TableCell>{getStatusBadge(record.inspection_status)}</TableCell>
-                          <TableCell>
-                            {record.selfie_url && (
-                              <Dialog>
-                                <DialogTrigger asChild>
-                                  <Button variant="ghost" size="sm">
-                                    <Eye className="h-4 w-4" />
-                                  </Button>
-                                </DialogTrigger>
-                                <DialogContent>
-                                  <DialogHeader>
-                                    <DialogTitle>Inspection Selfie</DialogTitle>
-                                  </DialogHeader>
-                                  <img src={record.selfie_url} alt="Selfie" loading="lazy" className="w-full rounded-lg" />
-                                </DialogContent>
-                              </Dialog>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            {record.gps_lat && record.gps_lng && (
-                              <a
-                                href={`https://www.google.com/maps?q=${record.gps_lat},${record.gps_lng}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-primary hover:underline flex items-center gap-1"
-                              >
-                                <MapPin className="h-3 w-3" />
-                                View
-                              </a>
-                            )}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                <div className="space-y-2">
+                  {inspectionHistory.map((record) => (
+                    <div key={record.id} className="border rounded-lg p-3 flex items-center gap-3">
+                      {record.selfie_url ? (
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <img 
+                              src={record.selfie_url} 
+                              alt="Selfie" 
+                              loading="lazy"
+                              className="w-10 h-10 rounded-full object-cover shrink-0 cursor-pointer hover:opacity-80" 
+                            />
+                          </DialogTrigger>
+                          <DialogContent>
+                            <DialogHeader>
+                              <DialogTitle>Inspection Selfie</DialogTitle>
+                            </DialogHeader>
+                            <img src={record.selfie_url} alt="Selfie" loading="lazy" className="w-full rounded-lg" />
+                          </DialogContent>
+                        </Dialog>
+                      ) : (
+                        <div className="w-10 h-10 rounded-full bg-muted shrink-0 flex items-center justify-center">
+                          <Package className="h-4 w-4 text-muted-foreground" />
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-medium truncate">{record.employee?.full_name || 'Unknown'}</p>
+                          {getStatusBadge(record.inspection_status)}
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          Week: {format(new Date(record.inspection_week), 'MMM d')} • {format(new Date(record.inspection_date), 'MMM d, h:mm a')}
+                        </p>
+                      </div>
+                      {record.gps_lat && record.gps_lng && (
+                        <a
+                          href={`https://www.google.com/maps?q=${record.gps_lat},${record.gps_lng}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-primary shrink-0"
+                        >
+                          <MapPin className="h-4 w-4" />
+                        </a>
+                      )}
+                    </div>
+                  ))}
                 </div>
               )}
             </TabsContent>
@@ -533,33 +512,20 @@ export function BMSHistoryTab() {
                   </CardContent>
                 </Card>
               ) : (
-                <div className="border rounded-lg overflow-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Employee</TableHead>
-                        <TableHead>Amount</TableHead>
-                        <TableHead>Reason</TableHead>
-                        <TableHead>Required By</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Submitted</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {advanceHistory.map((record) => (
-                        <TableRow key={record.id}>
-                          <TableCell className="font-medium">
-                            {record.employee?.full_name || 'Unknown'}
-                          </TableCell>
-                          <TableCell>₹{record.amount.toLocaleString('en-IN')}</TableCell>
-                          <TableCell className="max-w-[150px] truncate">{record.reason}</TableCell>
-                          <TableCell>{format(new Date(record.required_date), 'MMM d')}</TableCell>
-                          <TableCell>{getStatusBadge(record.status)}</TableCell>
-                          <TableCell>{format(new Date(record.created_at), 'MMM d')}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                <div className="space-y-2">
+                  {advanceHistory.map((record) => (
+                    <div key={record.id} className="border rounded-lg p-3">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-sm font-medium truncate">{record.employee?.full_name || 'Unknown'}</p>
+                        {getStatusBadge(record.status)}
+                      </div>
+                      <div className="flex items-center justify-between mt-1">
+                        <p className="text-sm font-semibold text-primary">₹{record.amount.toLocaleString('en-IN')}</p>
+                        <p className="text-xs text-muted-foreground">Due: {format(new Date(record.required_date), 'MMM d')}</p>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1 truncate">{record.reason}</p>
+                    </div>
+                  ))}
                 </div>
               )}
             </TabsContent>
@@ -572,29 +538,19 @@ export function BMSHistoryTab() {
                   </CardContent>
                 </Card>
               ) : (
-                <div className="border rounded-lg overflow-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Employee</TableHead>
-                        <TableHead>Leave Date</TableHead>
-                        <TableHead>Reason</TableHead>
-                        <TableHead>Status</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {leaveHistory.map((record) => (
-                        <TableRow key={record.id}>
-                          <TableCell className="font-medium">
-                            {record.employee?.full_name || 'Unknown'}
-                          </TableCell>
-                          <TableCell>{format(new Date(record.leave_date), 'MMM d, yyyy')}</TableCell>
-                          <TableCell className="max-w-[200px] truncate">{record.reason}</TableCell>
-                          <TableCell>{getStatusBadge(record.status)}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                <div className="space-y-2">
+                  {leaveHistory.map((record) => (
+                    <div key={record.id} className="border rounded-lg p-3">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-sm font-medium truncate">{record.employee?.full_name || 'Unknown'}</p>
+                        {getStatusBadge(record.status)}
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {format(new Date(record.leave_date), 'MMM d, yyyy')}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1 truncate">{record.reason}</p>
+                    </div>
+                  ))}
                 </div>
               )}
             </TabsContent>
