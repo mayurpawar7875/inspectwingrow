@@ -184,62 +184,62 @@ export function BMSRealTimeTab() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4 text-sm text-muted-foreground">
-          <span>Today: {format(new Date(), 'MMM d, yyyy')}</span>
-        </div>
-        <Button variant="outline" size="sm" onClick={fetchData}>
-          <RefreshCw className="h-4 w-4 mr-1" />
-          Refresh
+        <p className="text-xs sm:text-sm text-muted-foreground">
+          Today: {format(new Date(), 'MMM d, yyyy')}
+        </p>
+        <Button variant="outline" size="sm" onClick={fetchData} className="h-8">
+          <RefreshCw className="h-3 w-3 mr-1" />
+          <span className="text-xs">Refresh</span>
         </Button>
       </div>
 
       <Tabs value={activeSection} onValueChange={setActiveSection}>
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="attendance" className="flex items-center gap-1 text-xs">
-            <ClipboardCheck className="h-3 w-3" />
-            Attendance ({attendance.length})
+        <TabsList className="w-full h-auto p-1 flex overflow-x-auto">
+          <TabsTrigger value="attendance" className="flex-1 min-w-0 flex items-center justify-center gap-1 text-[10px] sm:text-xs px-2 py-1.5">
+            <ClipboardCheck className="h-3 w-3 shrink-0" />
+            <span className="truncate">Attendance ({attendance.length})</span>
           </TabsTrigger>
-          <TabsTrigger value="inspections" className="flex items-center gap-1 text-xs">
-            <Package className="h-3 w-3" />
-            Inspections ({inspections.length})
+          <TabsTrigger value="inspections" className="flex-1 min-w-0 flex items-center justify-center gap-1 text-[10px] sm:text-xs px-2 py-1.5">
+            <Package className="h-3 w-3 shrink-0" />
+            <span className="truncate">Inspections ({inspections.length})</span>
           </TabsTrigger>
-          <TabsTrigger value="advance" className="flex items-center gap-1 text-xs">
-            <Wallet className="h-3 w-3" />
-            Advance ({advanceRequests.length})
+          <TabsTrigger value="advance" className="flex-1 min-w-0 flex items-center justify-center gap-1 text-[10px] sm:text-xs px-2 py-1.5">
+            <Wallet className="h-3 w-3 shrink-0" />
+            <span className="truncate">Advance ({advanceRequests.length})</span>
           </TabsTrigger>
-          <TabsTrigger value="leave" className="flex items-center gap-1 text-xs">
-            <Calendar className="h-3 w-3" />
-            Leave ({leaveRequests.length})
+          <TabsTrigger value="leave" className="flex-1 min-w-0 flex items-center justify-center gap-1 text-[10px] sm:text-xs px-2 py-1.5">
+            <Calendar className="h-3 w-3 shrink-0" />
+            <span className="truncate">Leave ({leaveRequests.length})</span>
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="attendance" className="mt-4">
+        <TabsContent value="attendance" className="mt-3">
           {attendance.length === 0 ? (
             <Card>
-              <CardContent className="py-8 text-center text-muted-foreground">
+              <CardContent className="py-6 text-center text-muted-foreground text-sm">
                 No BMS attendance records for today
               </CardContent>
             </Card>
           ) : (
-            <div className="border rounded-lg overflow-hidden">
+            <div className="border rounded-lg overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Employee</TableHead>
-                    <TableHead>Check-in Time</TableHead>
-                    <TableHead>Selfie</TableHead>
-                    <TableHead>Location</TableHead>
+                    <TableHead className="text-xs whitespace-nowrap">Employee</TableHead>
+                    <TableHead className="text-xs whitespace-nowrap">Check-in</TableHead>
+                    <TableHead className="text-xs whitespace-nowrap">Selfie</TableHead>
+                    <TableHead className="text-xs whitespace-nowrap">Location</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {attendance.map((record) => (
                     <TableRow key={record.id}>
-                      <TableCell className="font-medium">
+                      <TableCell className="font-medium text-xs whitespace-nowrap">
                         {record.employee?.full_name || 'Unknown'}
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="text-xs whitespace-nowrap">
                         {format(new Date(record.punch_in_time), 'h:mm a')}
                       </TableCell>
                       <TableCell>
@@ -247,7 +247,7 @@ export function BMSRealTimeTab() {
                           <img 
                             src={record.selfie_url} 
                             alt="Selfie" 
-                            className="w-10 h-10 rounded object-cover"
+                            className="w-8 h-8 rounded object-cover"
                           />
                         )}
                       </TableCell>
@@ -257,7 +257,7 @@ export function BMSRealTimeTab() {
                             href={`https://www.google.com/maps?q=${record.punch_in_lat},${record.punch_in_lng}`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-primary hover:underline flex items-center gap-1"
+                            className="text-primary hover:underline flex items-center gap-1 text-xs"
                           >
                             <MapPin className="h-3 w-3" />
                             View
@@ -272,36 +272,36 @@ export function BMSRealTimeTab() {
           )}
         </TabsContent>
 
-        <TabsContent value="inspections" className="mt-4">
+        <TabsContent value="inspections" className="mt-3">
           {inspections.length === 0 ? (
             <Card>
-              <CardContent className="py-8 text-center text-muted-foreground">
+              <CardContent className="py-6 text-center text-muted-foreground text-sm">
                 No inspections this week
               </CardContent>
             </Card>
           ) : (
-            <div className="border rounded-lg overflow-hidden">
+            <div className="border rounded-lg overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Employee</TableHead>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Selfie</TableHead>
-                    <TableHead>Location</TableHead>
+                    <TableHead className="text-xs whitespace-nowrap">Employee</TableHead>
+                    <TableHead className="text-xs whitespace-nowrap">Date</TableHead>
+                    <TableHead className="text-xs whitespace-nowrap">Status</TableHead>
+                    <TableHead className="text-xs whitespace-nowrap">Selfie</TableHead>
+                    <TableHead className="text-xs whitespace-nowrap">Location</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {inspections.map((inspection) => (
                     <TableRow key={inspection.id}>
-                      <TableCell className="font-medium">
+                      <TableCell className="font-medium text-xs whitespace-nowrap">
                         {inspection.employee?.full_name || 'Unknown'}
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="text-xs whitespace-nowrap">
                         {format(new Date(inspection.inspection_date), 'MMM d, h:mm a')}
                       </TableCell>
                       <TableCell>
-                        <Badge variant={inspection.inspection_status === 'on_time' ? 'default' : 'destructive'}>
+                        <Badge variant={inspection.inspection_status === 'on_time' ? 'default' : 'destructive'} className="text-[10px]">
                           {inspection.inspection_status === 'on_time' ? 'On Time' : 'Late'}
                         </Badge>
                       </TableCell>
@@ -310,7 +310,7 @@ export function BMSRealTimeTab() {
                           <img 
                             src={inspection.selfie_url} 
                             alt="Selfie" 
-                            className="w-10 h-10 rounded object-cover"
+                            className="w-8 h-8 rounded object-cover"
                           />
                         )}
                       </TableCell>
@@ -320,7 +320,7 @@ export function BMSRealTimeTab() {
                             href={`https://www.google.com/maps?q=${inspection.gps_lat},${inspection.gps_lng}`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-primary hover:underline flex items-center gap-1"
+                            className="text-primary hover:underline flex items-center gap-1 text-xs"
                           >
                             <MapPin className="h-3 w-3" />
                             View
@@ -335,40 +335,40 @@ export function BMSRealTimeTab() {
           )}
         </TabsContent>
 
-        <TabsContent value="advance" className="mt-4">
+        <TabsContent value="advance" className="mt-3">
           {advanceRequests.length === 0 ? (
             <Card>
-              <CardContent className="py-8 text-center text-muted-foreground">
+              <CardContent className="py-6 text-center text-muted-foreground text-sm">
                 No pending advance requests
               </CardContent>
             </Card>
           ) : (
-            <div className="border rounded-lg overflow-hidden">
+            <div className="border rounded-lg overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Employee</TableHead>
-                    <TableHead>Amount</TableHead>
-                    <TableHead>Reason</TableHead>
-                    <TableHead>Required By</TableHead>
-                    <TableHead>Actions</TableHead>
+                    <TableHead className="text-xs whitespace-nowrap">Employee</TableHead>
+                    <TableHead className="text-xs whitespace-nowrap">Amount</TableHead>
+                    <TableHead className="text-xs whitespace-nowrap">Reason</TableHead>
+                    <TableHead className="text-xs whitespace-nowrap">Required</TableHead>
+                    <TableHead className="text-xs whitespace-nowrap">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {advanceRequests.map((request) => (
                     <TableRow key={request.id}>
-                      <TableCell className="font-medium">
+                      <TableCell className="font-medium text-xs whitespace-nowrap">
                         {request.employee?.full_name || 'Unknown'}
                       </TableCell>
-                      <TableCell>₹{request.amount.toLocaleString('en-IN')}</TableCell>
-                      <TableCell className="max-w-[200px] truncate">{request.reason}</TableCell>
-                      <TableCell>{format(new Date(request.required_date), 'MMM d')}</TableCell>
+                      <TableCell className="text-xs whitespace-nowrap">₹{request.amount.toLocaleString('en-IN')}</TableCell>
+                      <TableCell className="text-xs max-w-[100px] truncate">{request.reason}</TableCell>
+                      <TableCell className="text-xs whitespace-nowrap">{format(new Date(request.required_date), 'MMM d')}</TableCell>
                       <TableCell>
                         <div className="flex gap-1">
-                          <Button size="sm" variant="default" onClick={() => handleAdvanceAction(request.id, 'approved')}>
+                          <Button size="sm" variant="default" className="h-7 px-2 text-[10px]" onClick={() => handleAdvanceAction(request.id, 'approved')}>
                             Approve
                           </Button>
-                          <Button size="sm" variant="destructive" onClick={() => handleAdvanceAction(request.id, 'rejected')}>
+                          <Button size="sm" variant="destructive" className="h-7 px-2 text-[10px]" onClick={() => handleAdvanceAction(request.id, 'rejected')}>
                             Reject
                           </Button>
                         </div>
@@ -381,38 +381,38 @@ export function BMSRealTimeTab() {
           )}
         </TabsContent>
 
-        <TabsContent value="leave" className="mt-4">
+        <TabsContent value="leave" className="mt-3">
           {leaveRequests.length === 0 ? (
             <Card>
-              <CardContent className="py-8 text-center text-muted-foreground">
+              <CardContent className="py-6 text-center text-muted-foreground text-sm">
                 No pending leave requests
               </CardContent>
             </Card>
           ) : (
-            <div className="border rounded-lg overflow-hidden">
+            <div className="border rounded-lg overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Employee</TableHead>
-                    <TableHead>Leave Date</TableHead>
-                    <TableHead>Reason</TableHead>
-                    <TableHead>Actions</TableHead>
+                    <TableHead className="text-xs whitespace-nowrap">Employee</TableHead>
+                    <TableHead className="text-xs whitespace-nowrap">Leave Date</TableHead>
+                    <TableHead className="text-xs whitespace-nowrap">Reason</TableHead>
+                    <TableHead className="text-xs whitespace-nowrap">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {leaveRequests.map((leave) => (
                     <TableRow key={leave.id}>
-                      <TableCell className="font-medium">
+                      <TableCell className="font-medium text-xs whitespace-nowrap">
                         {leave.employee?.full_name || 'Unknown'}
                       </TableCell>
-                      <TableCell>{format(new Date(leave.leave_date), 'MMM d, yyyy')}</TableCell>
-                      <TableCell className="max-w-[200px] truncate">{leave.reason}</TableCell>
+                      <TableCell className="text-xs whitespace-nowrap">{format(new Date(leave.leave_date), 'MMM d, yyyy')}</TableCell>
+                      <TableCell className="text-xs max-w-[120px] truncate">{leave.reason}</TableCell>
                       <TableCell>
                         <div className="flex gap-1">
-                          <Button size="sm" variant="default" onClick={() => handleLeaveAction(leave.id, 'approved')}>
+                          <Button size="sm" variant="default" className="h-7 px-2 text-[10px]" onClick={() => handleLeaveAction(leave.id, 'approved')}>
                             Approve
                           </Button>
-                          <Button size="sm" variant="destructive" onClick={() => handleLeaveAction(leave.id, 'rejected')}>
+                          <Button size="sm" variant="destructive" className="h-7 px-2 text-[10px]" onClick={() => handleLeaveAction(leave.id, 'rejected')}>
                             Reject
                           </Button>
                         </div>
