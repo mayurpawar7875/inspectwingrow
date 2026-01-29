@@ -25,9 +25,15 @@ const menuItems = [
 ];
 
 export function AdminSidebar() {
-  const { state } = useSidebar();
+  const { state, setOpenMobile } = useSidebar();
   const isMobile = useIsMobile();
   const isCollapsed = state === "collapsed";
+
+  const handleNavClick = () => {
+    if (isMobile) {
+      setOpenMobile(false);
+    }
+  };
 
   const linkClass = ({ isActive }: { isActive: boolean }) =>
     [
@@ -55,7 +61,7 @@ export function AdminSidebar() {
               {menuItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild className="flex items-center gap-2">
-                    <NavLink to={item.url} end className={linkClass}>
+                    <NavLink to={item.url} end className={linkClass} onClick={handleNavClick}>
                       <item.icon className="h-4 w-4 flex-shrink-0 !text-neutral-900 dark:!text-neutral-100" />
                       {!isCollapsed && (
                         <span className="ml-1 !text-neutral-900 dark:!text-neutral-100">
