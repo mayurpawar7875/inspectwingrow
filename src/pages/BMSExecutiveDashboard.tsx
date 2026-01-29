@@ -3,11 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/lib/auth';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, ClipboardCheck, Package, Wallet, Calendar } from 'lucide-react';
+import { ClipboardCheck, Package, Wallet, Calendar, BoxSelect } from 'lucide-react';
 import { BMSAttendanceTab } from '@/components/bms/BMSAttendanceTab';
 import { BMSAssetInspectionTab } from '@/components/bms/BMSAssetInspectionTab';
 import { BMSAdvanceRequestTab } from '@/components/bms/BMSAdvanceRequestTab';
 import { BMSLeaveApplicationTab } from '@/components/bms/BMSLeaveApplicationTab';
+import { BMSAssetRequestTab } from '@/components/bms/BMSAssetRequestTab';
 import wingrowLogo from '@/assets/wingrow-logo-optimized.png';
 
 export default function BMSExecutiveDashboard() {
@@ -44,20 +45,24 @@ export default function BMSExecutiveDashboard() {
       {/* Main Content */}
       <main className="container px-4 py-4">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-4 mb-4">
-            <TabsTrigger value="attendance" className="text-xs sm:text-sm flex flex-col sm:flex-row items-center gap-1">
+          <TabsList className="grid w-full grid-cols-5 mb-4">
+            <TabsTrigger value="attendance" className="text-xs sm:text-sm flex flex-col sm:flex-row items-center gap-1 px-1">
               <ClipboardCheck className="h-4 w-4" />
               <span className="hidden sm:inline">Attendance</span>
             </TabsTrigger>
-            <TabsTrigger value="inspection" className="text-xs sm:text-sm flex flex-col sm:flex-row items-center gap-1">
+            <TabsTrigger value="inspection" className="text-xs sm:text-sm flex flex-col sm:flex-row items-center gap-1 px-1">
               <Package className="h-4 w-4" />
               <span className="hidden sm:inline">Inspection</span>
             </TabsTrigger>
-            <TabsTrigger value="advance" className="text-xs sm:text-sm flex flex-col sm:flex-row items-center gap-1">
+            <TabsTrigger value="asset-request" className="text-xs sm:text-sm flex flex-col sm:flex-row items-center gap-1 px-1">
+              <BoxSelect className="h-4 w-4" />
+              <span className="hidden sm:inline">Assets</span>
+            </TabsTrigger>
+            <TabsTrigger value="advance" className="text-xs sm:text-sm flex flex-col sm:flex-row items-center gap-1 px-1">
               <Wallet className="h-4 w-4" />
               <span className="hidden sm:inline">Advance</span>
             </TabsTrigger>
-            <TabsTrigger value="leave" className="text-xs sm:text-sm flex flex-col sm:flex-row items-center gap-1">
+            <TabsTrigger value="leave" className="text-xs sm:text-sm flex flex-col sm:flex-row items-center gap-1 px-1">
               <Calendar className="h-4 w-4" />
               <span className="hidden sm:inline">Leave</span>
             </TabsTrigger>
@@ -69,6 +74,10 @@ export default function BMSExecutiveDashboard() {
 
           <TabsContent value="inspection" className="mt-0">
             <BMSAssetInspectionTab />
+          </TabsContent>
+
+          <TabsContent value="asset-request" className="mt-0">
+            <BMSAssetRequestTab />
           </TabsContent>
 
           <TabsContent value="advance" className="mt-0">
