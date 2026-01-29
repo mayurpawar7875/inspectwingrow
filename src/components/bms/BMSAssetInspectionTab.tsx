@@ -39,6 +39,7 @@ export function BMSAssetInspectionTab() {
   const [availableQuantity, setAvailableQuantity] = useState<string>('');
   
   const [currentWeekInspection, setCurrentWeekInspection] = useState<any>(null);
+  const [signedInspectionSelfieUrl, setSignedInspectionSelfieUrl] = useState<string | null>(null);
   const [selfieUrl, setSelfieUrl] = useState<string | null>(null);
   const [capturedBlob, setCapturedBlob] = useState<Blob | null>(null);
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
@@ -94,6 +95,27 @@ export function BMSAssetInspectionTab() {
       }
     };
   }, [user]);
+
+  // Create signed URL for private bucket media
+  useEffect(() => {
+    const run = async () => {
+      setSignedInspectionSelfieUrl(null);
+      const raw = currentWeekInspection?.selfie_url as string | undefined;
+      if (!raw) return;
+
+      // raw can be a storage path (preferred) OR a full URL from older submissions
+      const idx = raw.indexOf('employee-media/');
+      const filePath = idx >= 0 ? raw.slice(idx + 'employee-media/'.length) : raw;
+
+      const { data, error } = await supabase.storage
+        .from('employee-media')
+        .createSignedUrl(filePath, 3600);
+
+      if (!error && data?.signedUrl) setSignedInspectionSelfieUrl(data.signedUrl);
+    };
+
+    void run();
+  }, [currentWeekInspection?.selfie_url]);
 
   const fetchData = async () => {
     if (!user) return;
@@ -274,10 +296,6 @@ export function BMSAssetInspectionTab() {
 
       if (uploadError) throw uploadError;
 
-      const { data: urlData } = supabase.storage
-        .from('employee-media')
-        .getPublicUrl(fileName);
-
       // Create inspection record
       const { data: inspectionResult, error: insertError } = await supabase
         .from('bms_asset_inspections')
@@ -287,7 +305,8 @@ export function BMSAssetInspectionTab() {
           inspection_status: isOnTime() ? 'on_time' : 'late',
           gps_lat: location.lat,
           gps_lng: location.lng,
-          selfie_url: urlData.publicUrl
+          // Store path; bucket is private so UI will use signed URL
+          selfie_url: fileName
         })
         .select()
         .single();
@@ -314,6 +333,7 @@ export function BMSAssetInspectionTab() {
       setSelfieUrl(null);
       setCapturedBlob(null);
       setLocation(null);
+      setCapturedAt(null);
     } catch (error: any) {
       console.error('Submission error:', error);
       toast.error(error.message || 'Failed to submit inspection');
@@ -354,11 +374,11 @@ export function BMSAssetInspectionTab() {
             </span>
           </div>
 
-          {currentWeekInspection.selfie_url && (
+          {signedInspectionSelfieUrl && (
             <div className="mt-4">
               <p className="text-sm text-muted-foreground mb-2">Inspection Selfie</p>
               <img 
-                src={currentWeekInspection.selfie_url} 
+                src={signedInspectionSelfieUrl} 
                 alt="Inspection selfie" 
                 className="w-32 h-32 rounded-lg object-cover"
               />
