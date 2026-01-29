@@ -32,6 +32,27 @@ export function BMSHistoryTab() {
   const [leaveHistory, setLeaveHistory] = useState<any[]>([]);
   const [selectedRecord, setSelectedRecord] = useState<any>(null);
 
+  const extractEmployeeMediaPath = (urlOrPath: string | null | undefined) => {
+    if (!urlOrPath) return null;
+    if (!urlOrPath.startsWith('http')) return urlOrPath.replace(/^\/+/, '');
+    const m = urlOrPath.match(/\/storage\/v1\/object\/(?:public\/)?employee-media\/([^?]+)/);
+    if (!m?.[1]) return null;
+    return decodeURIComponent(m[1]);
+  };
+
+  const signEmployeeMedia = async (urlOrPath: string | null | undefined) => {
+    if (!urlOrPath) return null;
+    const filePath = extractEmployeeMediaPath(urlOrPath);
+    if (!filePath) return urlOrPath;
+
+    const { data, error } = await supabase.storage
+      .from('employee-media')
+      .createSignedUrl(filePath, 60 * 60);
+
+    if (error || !data?.signedUrl) return urlOrPath;
+    return data.signedUrl;
+  };
+
   useEffect(() => {
     fetchEmployees();
   }, []);
@@ -102,6 +123,14 @@ export function BMSHistoryTab() {
     }
 
     const { data } = await query;
+
+    const signedSelfies = await Promise.all(
+      (data || []).map(async (d) => ({
+        id: d.id,
+        url: await signEmployeeMedia(d.selfie_url),
+      })),
+    );
+    const selfieMap = new Map(signedSelfies.map((x) => [x.id, x.url]));
     
     // Fetch employee names
     const userIds = [...new Set((data || []).map(d => d.user_id))];
@@ -111,10 +140,13 @@ export function BMSHistoryTab() {
       .in('id', userIds);
 
     const empMap = new Map((empData || []).map(e => [e.id, e]));
-    setAttendanceHistory((data || []).map(d => ({
-      ...d,
-      employee: empMap.get(d.user_id)
-    })));
+    setAttendanceHistory(
+      (data || []).map((d) => ({
+        ...d,
+        selfie_url: selfieMap.get(d.id) ?? d.selfie_url,
+        employee: empMap.get(d.user_id),
+      })),
+    );
   };
 
   const fetchInspectionHistory = async (employeeId: string | null) => {
@@ -130,6 +162,14 @@ export function BMSHistoryTab() {
     }
 
     const { data } = await query;
+
+    const signedSelfies = await Promise.all(
+      (data || []).map(async (d) => ({
+        id: d.id,
+        url: await signEmployeeMedia(d.selfie_url),
+      })),
+    );
+    const selfieMap = new Map(signedSelfies.map((x) => [x.id, x.url]));
     
     const userIds = [...new Set((data || []).map(d => d.user_id))];
     const { data: empData } = await supabase
@@ -138,10 +178,13 @@ export function BMSHistoryTab() {
       .in('id', userIds);
 
     const empMap = new Map((empData || []).map(e => [e.id, e]));
-    setInspectionHistory((data || []).map(d => ({
-      ...d,
-      employee: empMap.get(d.user_id)
-    })));
+    setInspectionHistory(
+      (data || []).map((d) => ({
+        ...d,
+        selfie_url: selfieMap.get(d.id) ?? d.selfie_url,
+        employee: empMap.get(d.user_id),
+      })),
+    );
   };
 
   const fetchAdvanceHistory = async (employeeId: string | null) => {
@@ -323,20 +366,20 @@ export function BMSHistoryTab() {
       </div>
 
       <Tabs value={activeSection} onValueChange={setActiveSection}>
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="attendance" className="flex items-center gap-1 text-xs">
+        <TabsList className="w-full h-auto p-1 flex flex-col gap-1 sm:grid sm:grid-cols-4 sm:gap-0">
+          <TabsTrigger value="attendance" className="w-full flex items-center justify-start sm:justify-center gap-2 sm:gap-1 text-xs px-3 py-2 sm:px-2 sm:py-1.5">
             <ClipboardCheck className="h-3 w-3" />
             Attendance
           </TabsTrigger>
-          <TabsTrigger value="inspections" className="flex items-center gap-1 text-xs">
+          <TabsTrigger value="inspections" className="w-full flex items-center justify-start sm:justify-center gap-2 sm:gap-1 text-xs px-3 py-2 sm:px-2 sm:py-1.5">
             <Package className="h-3 w-3" />
             Inspections
           </TabsTrigger>
-          <TabsTrigger value="advance" className="flex items-center gap-1 text-xs">
+          <TabsTrigger value="advance" className="w-full flex items-center justify-start sm:justify-center gap-2 sm:gap-1 text-xs px-3 py-2 sm:px-2 sm:py-1.5">
             <Wallet className="h-3 w-3" />
             Advance
           </TabsTrigger>
-          <TabsTrigger value="leave" className="flex items-center gap-1 text-xs">
+          <TabsTrigger value="leave" className="w-full flex items-center justify-start sm:justify-center gap-2 sm:gap-1 text-xs px-3 py-2 sm:px-2 sm:py-1.5">
             <Calendar className="h-3 w-3" />
             Leave
           </TabsTrigger>
@@ -389,7 +432,7 @@ export function BMSHistoryTab() {
                                   <DialogHeader>
                                     <DialogTitle>Check-in Selfie</DialogTitle>
                                   </DialogHeader>
-                                  <img src={record.selfie_url} alt="Selfie" className="w-full rounded-lg" />
+                                  <img src={record.selfie_url} alt="Selfie" loading="lazy" className="w-full rounded-lg" />
                                 </DialogContent>
                               </Dialog>
                             )}
@@ -456,7 +499,7 @@ export function BMSHistoryTab() {
                                   <DialogHeader>
                                     <DialogTitle>Inspection Selfie</DialogTitle>
                                   </DialogHeader>
-                                  <img src={record.selfie_url} alt="Selfie" className="w-full rounded-lg" />
+                                  <img src={record.selfie_url} alt="Selfie" loading="lazy" className="w-full rounded-lg" />
                                 </DialogContent>
                               </Dialog>
                             )}

@@ -14,7 +14,7 @@ interface AttendanceRecord {
   punch_in_time: string;
   punch_in_lat: number;
   punch_in_lng: number;
-  selfie_url: string;
+  selfie_url: string | null;
   employee?: { full_name: string; username: string };
 }
 
@@ -23,7 +23,7 @@ interface AssetInspection {
   user_id: string;
   inspection_date: string;
   inspection_status: string;
-  selfie_url: string;
+  selfie_url: string | null;
   gps_lat: number;
   gps_lng: number;
   employee?: { full_name: string; username: string };
@@ -57,6 +57,32 @@ export function BMSRealTimeTab() {
   const [inspections, setInspections] = useState<AssetInspection[]>([]);
   const [advanceRequests, setAdvanceRequests] = useState<AdvanceRequest[]>([]);
   const [leaveRequests, setLeaveRequests] = useState<LeaveRequest[]>([]);
+
+  const extractEmployeeMediaPath = (urlOrPath: string | null | undefined) => {
+    if (!urlOrPath) return null;
+
+    // Already a storage path
+    if (!urlOrPath.startsWith('http')) return urlOrPath.replace(/^\/+/, '');
+
+    // Extract path from any /storage/v1/object/(public/)?employee-media/<path>
+    const m = urlOrPath.match(/\/storage\/v1\/object\/(?:public\/)?employee-media\/([^?]+)/);
+    if (!m?.[1]) return null;
+    return decodeURIComponent(m[1]);
+  };
+
+  const signEmployeeMedia = async (urlOrPath: string | null | undefined) => {
+    if (!urlOrPath) return null;
+
+    const filePath = extractEmployeeMediaPath(urlOrPath);
+    if (!filePath) return urlOrPath;
+
+    const { data, error } = await supabase.storage
+      .from('employee-media')
+      .createSignedUrl(filePath, 60 * 60);
+
+    if (error || !data?.signedUrl) return urlOrPath;
+    return data.signedUrl;
+  };
 
   const getISTDateString = () => {
     const now = new Date();
@@ -116,15 +142,39 @@ export function BMSRealTimeTab() {
 
       const employeeMap = new Map((employees || []).map(e => [e.id, e]));
 
-      setAttendance((attendanceData || []).map(a => ({
-        ...a,
-        employee: employeeMap.get(a.user_id)
-      })));
+      const [signedAttendanceSelfies, signedInspectionSelfies] = await Promise.all([
+        Promise.all(
+          (attendanceData || []).map(async (a) => ({
+            id: a.id,
+            url: await signEmployeeMedia(a.selfie_url),
+          })),
+        ),
+        Promise.all(
+          (inspectionsData || []).map(async (i) => ({
+            id: i.id,
+            url: await signEmployeeMedia(i.selfie_url),
+          })),
+        ),
+      ]);
 
-      setInspections((inspectionsData || []).map(i => ({
-        ...i,
-        employee: employeeMap.get(i.user_id)
-      })));
+      const attendanceSelfieMap = new Map(signedAttendanceSelfies.map((x) => [x.id, x.url]));
+      const inspectionSelfieMap = new Map(signedInspectionSelfies.map((x) => [x.id, x.url]));
+
+      setAttendance(
+        (attendanceData || []).map((a) => ({
+          ...a,
+          selfie_url: attendanceSelfieMap.get(a.id) ?? a.selfie_url,
+          employee: employeeMap.get(a.user_id),
+        })),
+      );
+
+      setInspections(
+        (inspectionsData || []).map((i) => ({
+          ...i,
+          selfie_url: inspectionSelfieMap.get(i.id) ?? i.selfie_url,
+          employee: employeeMap.get(i.user_id),
+        })),
+      );
 
       setAdvanceRequests((advanceData || []).map(a => ({
         ...a,
@@ -196,20 +246,20 @@ export function BMSRealTimeTab() {
       </div>
 
       <Tabs value={activeSection} onValueChange={setActiveSection}>
-        <TabsList className="w-full h-auto p-1 flex overflow-x-auto">
-          <TabsTrigger value="attendance" className="flex-1 min-w-0 flex items-center justify-center gap-1 text-[10px] sm:text-xs px-2 py-1.5">
+        <TabsList className="w-full h-auto p-1 flex flex-col gap-1 sm:grid sm:grid-cols-4 sm:gap-0">
+          <TabsTrigger value="attendance" className="w-full flex items-center justify-start sm:justify-center gap-2 sm:gap-1 text-xs px-3 py-2 sm:px-2 sm:py-1.5">
             <ClipboardCheck className="h-3 w-3 shrink-0" />
             <span className="truncate">Attendance ({attendance.length})</span>
           </TabsTrigger>
-          <TabsTrigger value="inspections" className="flex-1 min-w-0 flex items-center justify-center gap-1 text-[10px] sm:text-xs px-2 py-1.5">
+          <TabsTrigger value="inspections" className="w-full flex items-center justify-start sm:justify-center gap-2 sm:gap-1 text-xs px-3 py-2 sm:px-2 sm:py-1.5">
             <Package className="h-3 w-3 shrink-0" />
             <span className="truncate">Inspections ({inspections.length})</span>
           </TabsTrigger>
-          <TabsTrigger value="advance" className="flex-1 min-w-0 flex items-center justify-center gap-1 text-[10px] sm:text-xs px-2 py-1.5">
+          <TabsTrigger value="advance" className="w-full flex items-center justify-start sm:justify-center gap-2 sm:gap-1 text-xs px-3 py-2 sm:px-2 sm:py-1.5">
             <Wallet className="h-3 w-3 shrink-0" />
             <span className="truncate">Advance ({advanceRequests.length})</span>
           </TabsTrigger>
-          <TabsTrigger value="leave" className="flex-1 min-w-0 flex items-center justify-center gap-1 text-[10px] sm:text-xs px-2 py-1.5">
+          <TabsTrigger value="leave" className="w-full flex items-center justify-start sm:justify-center gap-2 sm:gap-1 text-xs px-3 py-2 sm:px-2 sm:py-1.5">
             <Calendar className="h-3 w-3 shrink-0" />
             <span className="truncate">Leave ({leaveRequests.length})</span>
           </TabsTrigger>
@@ -247,6 +297,7 @@ export function BMSRealTimeTab() {
                           <img 
                             src={record.selfie_url} 
                             alt="Selfie" 
+                            loading="lazy"
                             className="w-8 h-8 rounded object-cover"
                           />
                         )}
@@ -310,6 +361,7 @@ export function BMSRealTimeTab() {
                           <img 
                             src={inspection.selfie_url} 
                             alt="Selfie" 
+                            loading="lazy"
                             className="w-8 h-8 rounded object-cover"
                           />
                         )}
