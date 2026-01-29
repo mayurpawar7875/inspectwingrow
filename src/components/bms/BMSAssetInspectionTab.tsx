@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { Camera, MapPin, CheckCircle2, Package, Loader2, AlertTriangle, Lock } from 'lucide-react';
@@ -32,7 +32,7 @@ export function BMSAssetInspectionTab() {
   const [submitting, setSubmitting] = useState(false);
   const [assets, setAssets] = useState<Asset[]>([]);
   const [inspectionItems, setInspectionItems] = useState<InspectionItem[]>([]);
-  const [selectedAssetId, setSelectedAssetId] = useState<string | null>(null);
+  
   const [currentWeekInspection, setCurrentWeekInspection] = useState<any>(null);
   const [selfieUrl, setSelfieUrl] = useState<string | null>(null);
   const [capturedBlob, setCapturedBlob] = useState<Blob | null>(null);
@@ -180,7 +180,6 @@ export function BMSAssetInspectionTab() {
     );
   };
 
-  const selectedAsset = inspectionItems.find(item => item.asset_id === selectedAssetId);
   const filledAssetsCount = inspectionItems.filter(item => item.available_quantity !== null).length;
 
   const allAssetsFilled = inspectionItems.every(item => item.available_quantity !== null);
@@ -364,64 +363,36 @@ export function BMSAssetInspectionTab() {
           </div>
         )}
 
-        {/* Asset Dropdown */}
+        {/* All Assets List */}
         <div className="space-y-3">
           <div className="flex justify-between items-center">
-            <Label className="text-base font-semibold">Select Asset</Label>
-            <Badge variant="outline">{filledAssetsCount} / {inspectionItems.length} filled</Badge>
+            <Label className="text-sm md:text-base font-semibold">Assets</Label>
+            <Badge variant="outline" className="text-xs">{filledAssetsCount} / {inspectionItems.length} filled</Badge>
           </div>
           
-          <Select
-            value={selectedAssetId || ''}
-            onValueChange={setSelectedAssetId}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select an asset to inspect" />
-            </SelectTrigger>
-            <SelectContent className="bg-background">
-              {inspectionItems.map((item) => (
-                <SelectItem key={item.asset_id} value={item.asset_id}>
-                  <div className="flex items-center gap-2">
-                    <span>{item.asset_name}</span>
-                    {item.available_quantity !== null && (
-                      <Badge variant="secondary" className="ml-2 text-xs">✓</Badge>
-                    )}
-                  </div>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* Selected Asset Details */}
-        {selectedAsset && (
-          <div className="p-4 border rounded-lg space-y-3 bg-muted/30">
-            <div className="flex justify-between items-center">
-              <span className="font-medium">{selectedAsset.asset_name}</span>
-              <Badge variant="secondary">Actual: {selectedAsset.actual_quantity}</Badge>
-            </div>
-            <div>
-              <Label className="text-sm text-muted-foreground">
-                Available Quantity
-              </Label>
-              <Select
-                value={selectedAsset.available_quantity?.toString() ?? ''}
-                onValueChange={(value) => updateAvailableQuantity(selectedAsset.asset_id, value)}
-              >
-                <SelectTrigger className="mt-1">
-                  <SelectValue placeholder="Select available quantity" />
-                </SelectTrigger>
-                <SelectContent className="bg-background">
-                  {Array.from({ length: selectedAsset.actual_quantity + 1 }, (_, i) => (
-                    <SelectItem key={i} value={i.toString()}>
-                      {i}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+          <div className="space-y-3">
+            {inspectionItems.map((item) => (
+              <div key={item.asset_id} className="p-3 border rounded-lg space-y-2 bg-muted/30">
+                <div className="flex justify-between items-center">
+                  <span className="font-medium text-sm">{item.asset_name}</span>
+                  <Badge variant="secondary" className="text-xs">Actual: {item.actual_quantity}</Badge>
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Available Quantity</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    max={item.actual_quantity}
+                    placeholder="Enter available quantity"
+                    value={item.available_quantity ?? ''}
+                    onChange={(e) => updateAvailableQuantity(item.asset_id, e.target.value)}
+                    className="mt-1 h-9"
+                  />
+                </div>
+              </div>
+            ))}
           </div>
-        )}
+        </div>
 
         {/* Submit Button */}
         <Button
