@@ -10,11 +10,12 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { LayoutDashboard, FileText, Settings, Package, ClipboardList } from "lucide-react";
+import { LayoutDashboard, FileText, Settings, Package, ClipboardList, Users } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 const menuItems = [
   { title: "Dashboard", url: "/admin", icon: LayoutDashboard },
+  { title: "BMS Monitoring", url: "/admin/bms-monitoring", icon: Users },
   { title: "Requests Management", url: "/admin/requests", icon: ClipboardList },
   { title: "All Sessions", url: "/admin/sessions", icon: FileText },
   { title: "Asset Management", url: "/admin/asset-management", icon: Package },
