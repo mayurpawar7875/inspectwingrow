@@ -23,14 +23,24 @@ const EmployeeLocationMiniMap: React.FC<EmployeeLocationMiniMapProps> = ({ emplo
   const map = useRef<mapboxgl.Map | null>(null);
   const markersRef = useRef<mapboxgl.Marker[]>([]);
 
+  // Filter out employees with invalid coordinates
+  const validEmployees = employees.filter(emp => 
+    typeof emp.lat === 'number' && 
+    typeof emp.lng === 'number' && 
+    !isNaN(emp.lat) && 
+    !isNaN(emp.lng) &&
+    emp.lat >= -90 && emp.lat <= 90 &&
+    emp.lng >= -180 && emp.lng <= 180
+  );
+
   useEffect(() => {
-    if (!mapContainer.current || employees.length === 0) return;
+    if (!mapContainer.current || validEmployees.length === 0) return;
 
     mapboxgl.accessToken = MAPBOX_TOKEN;
 
     // Calculate bounds
     const bounds = new mapboxgl.LngLatBounds();
-    employees.forEach(emp => {
+    validEmployees.forEach(emp => {
       bounds.extend([emp.lng, emp.lat]);
     });
 
@@ -38,15 +48,15 @@ const EmployeeLocationMiniMap: React.FC<EmployeeLocationMiniMapProps> = ({ emplo
     map.current = new mapboxgl.Map({
       container: mapContainer.current,
       style: 'mapbox://styles/mapbox/streets-v12',
-      bounds: employees.length > 1 ? bounds : undefined,
-      center: employees.length === 1 ? [employees[0].lng, employees[0].lat] : undefined,
-      zoom: employees.length === 1 ? 14 : undefined,
+      bounds: validEmployees.length > 1 ? bounds : undefined,
+      center: validEmployees.length === 1 ? [validEmployees[0].lng, validEmployees[0].lat] : undefined,
+      zoom: validEmployees.length === 1 ? 14 : undefined,
       fitBoundsOptions: { padding: 40 },
       interactive: false,
     });
 
     // Add markers for each employee
-    employees.forEach(emp => {
+    validEmployees.forEach(emp => {
       // Create custom marker element
       const el = document.createElement('div');
       el.className = 'employee-marker';
@@ -107,9 +117,9 @@ const EmployeeLocationMiniMap: React.FC<EmployeeLocationMiniMapProps> = ({ emplo
       markersRef.current = [];
       map.current?.remove();
     };
-  }, [employees]);
+  }, [validEmployees]);
 
-  if (employees.length === 0) {
+  if (validEmployees.length === 0) {
     return (
       <div className={`bg-muted/50 rounded-lg flex items-center justify-center ${className}`}>
         <p className="text-xs text-muted-foreground">No GPS data available</p>
