@@ -8,6 +8,7 @@ import { AuthProvider, ProtectedRoute } from "./lib/auth";
 import { AdminLayout } from "./components/AdminLayout";
 import { UpdateBanner } from "./components/UpdateBanner";
 import { WhatsNewDialog } from "./components/WhatsNewDialog";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 
 // Eager load entry point pages
 import Auth from "./pages/Auth";
@@ -67,7 +68,7 @@ const queryClient = new QueryClient({
 });
 
 const App = () => (
-  <React.Fragment>
+  <ErrorBoundary>
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <UpdateBanner />
@@ -126,7 +127,7 @@ const App = () => (
         </BrowserRouter>
       </TooltipProvider>
     </QueryClientProvider>
-  </React.Fragment>
+  </ErrorBoundary>
 );
 
 export default App;

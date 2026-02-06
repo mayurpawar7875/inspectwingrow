@@ -50,35 +50,53 @@ export function validateFile(
   file: File,
   options: FileValidationOptions = {}
 ): boolean {
-  const {
-    maxSize = MAX_FILE_SIZE,
-    allowedTypes = [...ALLOWED_IMAGE_TYPES, ...ALLOWED_VIDEO_TYPES],
-    allowedExtensions
-  } = options;
+  try {
+    const {
+      maxSize = MAX_FILE_SIZE,
+      allowedTypes = [...ALLOWED_IMAGE_TYPES, ...ALLOWED_VIDEO_TYPES],
+      allowedExtensions
+    } = options;
 
-  // Check file size
-  if (file.size > maxSize) {
-    const sizeMB = (maxSize / (1024 * 1024)).toFixed(0);
-    toast.error(`File too large. Maximum size is ${sizeMB}MB`);
-    throw new Error(`File size exceeds ${sizeMB}MB limit`);
-  }
-
-  // Check MIME type
-  if (!allowedTypes.includes(file.type)) {
-    toast.error('Invalid file type. Please upload a supported file format');
-    throw new Error(`File type ${file.type} is not allowed`);
-  }
-
-  // Check file extension if specified
-  if (allowedExtensions && allowedExtensions.length > 0) {
-    const extension = file.name.split('.').pop()?.toLowerCase();
-    if (!extension || !allowedExtensions.includes(extension)) {
-      toast.error(`Invalid file extension. Allowed: ${allowedExtensions.join(', ')}`);
-      throw new Error(`File extension not allowed`);
+    // Safety check for invalid file object
+    if (!file || typeof file.size !== 'number' || typeof file.type !== 'string') {
+      toast.error('Invalid file. Please try again.');
+      return false;
     }
-  }
 
-  return true;
+    // Check file size
+    if (file.size > maxSize) {
+      const sizeMB = (maxSize / (1024 * 1024)).toFixed(0);
+      toast.error(`File too large. Maximum size is ${sizeMB}MB`);
+      return false;
+    }
+
+    // Check file size is greater than 0
+    if (file.size === 0) {
+      toast.error('File is empty. Please select a valid file.');
+      return false;
+    }
+
+    // Check MIME type
+    if (!allowedTypes.includes(file.type)) {
+      toast.error('Invalid file type. Please upload a supported file format');
+      return false;
+    }
+
+    // Check file extension if specified
+    if (allowedExtensions && allowedExtensions.length > 0) {
+      const extension = file.name.split('.').pop()?.toLowerCase();
+      if (!extension || !allowedExtensions.includes(extension)) {
+        toast.error(`Invalid file extension. Allowed: ${allowedExtensions.join(', ')}`);
+        return false;
+      }
+    }
+
+    return true;
+  } catch (error) {
+    console.error('File validation error:', error);
+    toast.error('Error validating file. Please try again.');
+    return false;
+  }
 }
 
 /**
@@ -116,6 +134,7 @@ export function generateUploadPath(
  * Validates an image file
  */
 export function validateImage(file: File): boolean {
+  if (!file) return false;
   return validateFile(file, {
     maxSize: MAX_FILE_SIZE,
     allowedTypes: ALLOWED_IMAGE_TYPES,
@@ -127,6 +146,7 @@ export function validateImage(file: File): boolean {
  * Validates a video file
  */
 export function validateVideo(file: File): boolean {
+  if (!file) return false;
   return validateFile(file, {
     maxSize: MAX_VIDEO_SIZE,
     allowedTypes: ALLOWED_VIDEO_TYPES,
@@ -138,6 +158,7 @@ export function validateVideo(file: File): boolean {
  * Validates an audio file
  */
 export function validateAudio(file: File): boolean {
+  if (!file) return false;
   return validateFile(file, {
     maxSize: MAX_FILE_SIZE,
     allowedTypes: ALLOWED_AUDIO_TYPES,
@@ -149,6 +170,7 @@ export function validateAudio(file: File): boolean {
  * Validates a document file
  */
 export function validateDocument(file: File): boolean {
+  if (!file) return false;
   return validateFile(file, {
     maxSize: MAX_FILE_SIZE,
     allowedTypes: ALLOWED_DOCUMENT_TYPES,
