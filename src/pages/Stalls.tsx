@@ -97,12 +97,14 @@ export default function Stalls() {
       let marketId: string | undefined = dashboardState.selectedMarketId;
 
       const today = getISTDateString(new Date());
-      const { data: todaySession, error: sessionErr } = await supabase
+      const { data: todaySessions, error: sessionErr } = await supabase
         .from('sessions')
         .select('id, market_id, status, session_date')
         .eq('user_id', user.id)
         .eq('session_date', today)
-        .maybeSingle();
+        .order('created_at', { ascending: false })
+        .limit(1);
+      const todaySession = todaySessions?.[0] ?? null;
       if (sessionErr) throw sessionErr;
 
       // If a session already exists for today, always use its market to avoid duplicate session creation
