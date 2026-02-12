@@ -95,73 +95,84 @@ async function fetchDashboardData(userId: string) {
     };
   }
 
-  // Process all sessions with batched task queries
+  // Collect all unique market IDs and session IDs for batched queries
+  const allSessionIds = sessionsData.map(s => s.id);
+  const allMarketIds = [...new Set(sessionsData.map(s => s.market_id))];
+
+  // Batch ALL task-related queries across ALL sessions at once
+  const [
+    stallCountResults,
+    allMediaResults,
+    allOffersResults,
+    allCommoditiesResults,
+    allInspectionsResults,
+    allFeedbackResults,
+    allPlanningResults,
+  ] = await Promise.all([
+    supabase
+      .from('stall_confirmations')
+      .select('market_id')
+      .in('market_id', allMarketIds)
+      .eq('market_date', today),
+    supabase
+      .from('media')
+      .select('session_id, media_type')
+      .in('session_id', allSessionIds),
+    supabase
+      .from('offers')
+      .select('session_id')
+      .in('session_id', allSessionIds)
+      .eq('market_date', today),
+    supabase
+      .from('non_available_commodities')
+      .select('session_id')
+      .in('session_id', allSessionIds)
+      .eq('market_date', today),
+    supabase
+      .from('stall_inspections')
+      .select('session_id')
+      .in('session_id', allSessionIds),
+    supabase
+      .from('organiser_feedback')
+      .select('session_id')
+      .in('session_id', allSessionIds)
+      .eq('market_date', today),
+    supabase
+      .from('next_day_planning')
+      .select('session_id')
+      .in('session_id', allSessionIds)
+      .eq('market_date', today),
+  ]);
+
+  // Index results by market/session for O(1) lookups
+  const stallsByMarket = new Map<string, number>();
+  (stallCountResults.data || []).forEach(s => {
+    stallsByMarket.set(s.market_id, (stallsByMarket.get(s.market_id) || 0) + 1);
+  });
+
+  const mediaBySession = new Map<string, Record<string, number>>();
+  (allMediaResults.data || []).forEach(m => {
+    if (!mediaBySession.has(m.session_id)) mediaBySession.set(m.session_id, {});
+    const counts = mediaBySession.get(m.session_id)!;
+    counts[m.media_type] = (counts[m.media_type] || 0) + 1;
+  });
+
+  const offersBySession = new Set((allOffersResults.data || []).map(o => o.session_id));
+  const commoditiesBySession = new Set((allCommoditiesResults.data || []).map(c => c.session_id));
+  const inspectionsBySession = new Set((allInspectionsResults.data || []).map(i => i.session_id));
+  const feedbackBySession = new Set((allFeedbackResults.data || []).map(f => f.session_id));
+  const planningBySession = new Set((allPlanningResults.data || []).map(p => p.session_id));
+
+  // Process all sessions using indexed data (no more DB calls)
   const processedSessions: Session[] = [];
   let totalStallsCount = 0;
 
   for (const data of sessionsData) {
-    const dateStr = today;
     const sessionId = data.id;
     const marketId = data.market_id;
+    const mediaCounts = mediaBySession.get(sessionId) || {};
+    const stallCount = stallsByMarket.get(marketId) || 0;
 
-    // Batch ALL task-related queries for this session
-    const [
-      stallCountResult,
-      mediaResults,
-      offersResult,
-      commoditiesResult,
-      inspectionsResult,
-      feedbackResult,
-      planningResult,
-    ] = await Promise.all([
-      supabase
-        .from('stall_confirmations')
-        .select('*', { count: 'exact', head: true })
-        .eq('market_id', marketId)
-        .eq('market_date', dateStr),
-      // Get all media counts in one query grouped by type
-      supabase
-        .from('media')
-        .select('media_type')
-        .eq('session_id', sessionId),
-      supabase
-        .from('offers')
-        .select('*', { count: 'exact', head: true })
-        .eq('market_id', marketId)
-        .eq('market_date', dateStr)
-        .eq('session_id', sessionId),
-      supabase
-        .from('non_available_commodities')
-        .select('*', { count: 'exact', head: true })
-        .eq('market_id', marketId)
-        .eq('market_date', dateStr)
-        .eq('session_id', sessionId),
-      supabase
-        .from('stall_inspections')
-        .select('*', { count: 'exact', head: true })
-        .eq('session_id', sessionId),
-      supabase
-        .from('organiser_feedback')
-        .select('*', { count: 'exact', head: true })
-        .eq('market_id', marketId)
-        .eq('market_date', dateStr)
-        .eq('session_id', sessionId),
-      supabase
-        .from('next_day_planning')
-        .select('*', { count: 'exact', head: true })
-        .eq('market_id', marketId)
-        .eq('market_date', dateStr)
-        .eq('session_id', sessionId),
-    ]);
-
-    // Count media by type from single query result
-    const mediaData = mediaResults.data || [];
-    const mediaCounts: Record<string, number> = {};
-    mediaData.forEach((m) => {
-      mediaCounts[m.media_type] = (mediaCounts[m.media_type] || 0) + 1;
-    });
-
-    const stallCount = stallCountResult.count || 0;
     if (processedSessions.length === 0) {
       totalStallsCount = stallCount;
     }
@@ -170,17 +181,14 @@ async function fetchDashboardData(userId: string) {
     let completedTasks = 0;
     const taskDetails: TaskStatus[] = [];
 
-    // Task 1: Punch In
     const punchInCompleted = !!data.punch_in_time;
     if (punchInCompleted) completedTasks++;
     taskDetails.push({ name: 'Punch In', completed: punchInCompleted, icon: Clock });
 
-    // Task 2: Stall Confirmations
     const stallsCompleted = stallCount > 0;
     if (stallsCompleted) completedTasks++;
     taskDetails.push({ name: 'Stall Confirmations', completed: stallsCompleted, icon: FileText });
 
-    // Task 3-8: Media uploads
     const mediaTypes = [
       { type: 'outside_rates', label: 'Outside Rates', icon: Upload },
       { type: 'rate_board', label: 'Rate Board Photo', icon: ImageIcon },
@@ -196,32 +204,26 @@ async function fetchDashboardData(userId: string) {
       taskDetails.push({ name: mt.label, completed: mediaCompleted, icon: mt.icon });
     });
 
-    // Task 9: Today's Offers
-    const offersCompleted = (offersResult.count || 0) > 0;
+    const offersCompleted = offersBySession.has(sessionId);
     if (offersCompleted) completedTasks++;
     taskDetails.push({ name: "Today's Offers", completed: offersCompleted, icon: FileText });
 
-    // Task 10: Non-Available Commodities
-    const commoditiesCompleted = (commoditiesResult.count || 0) > 0;
+    const commoditiesCompleted = commoditiesBySession.has(sessionId);
     if (commoditiesCompleted) completedTasks++;
     taskDetails.push({ name: 'Non-Available Commodities', completed: commoditiesCompleted, icon: AlertCircle });
 
-    // Task 11: Stall Inspections
-    const inspectionsCompleted = (inspectionsResult.count || 0) > 0;
+    const inspectionsCompleted = inspectionsBySession.has(sessionId);
     if (inspectionsCompleted) completedTasks++;
     taskDetails.push({ name: 'Stall Inspections', completed: inspectionsCompleted, icon: ClipboardCheck });
 
-    // Task 12: Punch Out
     const punchOutCompleted = !!data.punch_out_time;
     if (punchOutCompleted) completedTasks++;
     taskDetails.push({ name: 'Punch Out', completed: punchOutCompleted, icon: LogOut });
 
-    // Task 13: Feedback or Planning
-    const feedbackCompleted = (feedbackResult.count || 0) > 0 || (planningResult.count || 0) > 0;
+    const feedbackCompleted = feedbackBySession.has(sessionId) || planningBySession.has(sessionId);
     if (feedbackCompleted) completedTasks++;
     taskDetails.push({ name: 'Feedback / Next Day Plan', completed: feedbackCompleted, icon: Calendar });
 
-    // Determine status
     const sessionDate = data.session_date;
     const currentDateTime = new Date();
     const sessionDateTime = new Date(sessionDate + 'T23:59:59');

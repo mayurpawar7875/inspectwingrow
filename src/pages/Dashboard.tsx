@@ -1,4 +1,4 @@
-import { useEffect, useState, lazy, Suspense, useMemo } from 'react';
+import { useEffect, useState, lazy, Suspense, useMemo, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/lib/auth';
 import { supabase } from '@/integrations/supabase/client';
@@ -92,6 +92,21 @@ export default function Dashboard() {
   // Combined loading state
   const loading = authLoading || dataLoading;
 
+  // Debounced refetch to avoid excessive re-renders from realtime events
+  const refetchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const debouncedRefetch = useCallback(() => {
+    if (refetchTimerRef.current) clearTimeout(refetchTimerRef.current);
+    refetchTimerRef.current = setTimeout(() => {
+      refetch();
+    }, 1000);
+  }, [refetch]);
+
+  useEffect(() => {
+    return () => {
+      if (refetchTimerRef.current) clearTimeout(refetchTimerRef.current);
+    };
+  }, []);
+
   // Handle redirects and real-time subscriptions
   useEffect(() => {
     if (authLoading) return;
@@ -138,21 +153,21 @@ export default function Dashboard() {
       })
       .subscribe();
 
-    // Subscribe to session-related changes to trigger refetch
+    // Subscribe to session-related changes with debounced refetch
     const sessionChannel = supabase
       .channel('dashboard-updates')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'sessions' }, () => refetch())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'media' }, () => refetch())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'stall_confirmations' }, () => refetch())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'offers' }, () => refetch())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'stall_inspections' }, () => refetch())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'sessions' }, () => debouncedRefetch())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'media' }, () => debouncedRefetch())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'stall_confirmations' }, () => debouncedRefetch())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'offers' }, () => debouncedRefetch())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'stall_inspections' }, () => debouncedRefetch())
       .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
       supabase.removeChannel(sessionChannel);
     };
-  }, [user, authLoading, currentRole, navigate, refetch]);
+  }, [user, authLoading, currentRole, navigate, debouncedRefetch]);
 
   // Countdown timer to midnight for active sessions
   useEffect(() => {
