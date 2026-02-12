@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
@@ -27,6 +27,57 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [currentRole, setCurrentRole] = useState<UserRole | null>(null);
   const [userRoles, setUserRoles] = useState<UserRole[]>([]);
 
+  const fetchAndSetRoles = useCallback(async (userId: string) => {
+    try {
+      console.log('Fetching roles for user:', userId);
+      const { data: rolesData, error: rolesError } = await (supabase as any)
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userId);
+
+      if (rolesError) {
+        console.error('Error fetching roles:', rolesError);
+        setUserRoles(['employee']);
+        setCurrentRole('employee');
+        setIsAdmin(false);
+        return;
+      }
+
+      console.log('Roles fetched:', rolesData);
+      const roles = (rolesData || []).map((r: any) => r.role as UserRole);
+      setUserRoles(roles);
+
+      const isAdminUser = roles.includes('admin');
+      setIsAdmin(isAdminUser);
+
+      if (roles.includes('admin')) {
+        setCurrentRole('admin');
+        console.log('Role set to: admin');
+      } else if (roles.includes('bdo')) {
+        setCurrentRole('bdo');
+        console.log('Role set to: bdo');
+      } else if (roles.includes('bms_executive')) {
+        setCurrentRole('bms_executive');
+        console.log('Role set to: bms_executive');
+      } else if (roles.includes('market_manager')) {
+        setCurrentRole('market_manager');
+        console.log('Role set to: market_manager');
+      } else if (roles.includes('employee')) {
+        setCurrentRole('employee');
+        console.log('Role set to: employee');
+      } else {
+        setCurrentRole('employee');
+        setUserRoles(['employee']);
+        console.log('No roles found, defaulting to employee');
+      }
+    } catch (error) {
+      console.error('Error setting up user roles:', error);
+      setCurrentRole('employee');
+      setUserRoles(['employee']);
+      setIsAdmin(false);
+    }
+  }, []);
+
   useEffect(() => {
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -36,48 +87,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         
         if (session?.user) {
           // Defer role fetching to avoid blocking auth state change
-          setTimeout(() => {
-            (supabase as any)
-              .from('user_roles')
-              .select('role')
-              .eq('user_id', session.user.id)
-              .then(({ data: rolesData, error: rolesError }: any) => {
-                if (rolesError) {
-                  console.error('Error fetching roles:', rolesError);
-                  setUserRoles(['employee']);
-                  setCurrentRole('employee');
-                  setIsAdmin(false);
-                  return;
-                }
-                
-                const roles = (rolesData || []).map(r => r.role as UserRole);
-                setUserRoles(roles);
-                
-                const isAdminUser = roles.includes('admin');
-                setIsAdmin(isAdminUser);
-                
-                if (roles.includes('admin')) {
-                  setCurrentRole('admin');
-                } else if (roles.includes('bdo')) {
-                  setCurrentRole('bdo');
-                } else if (roles.includes('bms_executive')) {
-                  setCurrentRole('bms_executive');
-                } else if (roles.includes('market_manager')) {
-                  setCurrentRole('market_manager');
-                } else if (roles.includes('employee')) {
-                  setCurrentRole('employee');
-                } else {
-                  setCurrentRole('employee');
-                  setUserRoles(['employee']);
-                }
-              })
-              .catch((error: any) => {
-                console.error('Error setting up user roles:', error);
-                setCurrentRole('employee');
-                setUserRoles(['employee']);
-                setIsAdmin(false);
-              });
-          }, 0);
+          setTimeout(() => fetchAndSetRoles(session.user.id), 0);
         } else {
           setIsAdmin(false);
           setCurrentRole(null);
@@ -99,61 +109,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(session?.user ?? null);
       
       if (session?.user) {
-        try {
-          console.log('Fetching roles for user:', session.user.id);
-          // Fetch user roles
-          const { data: rolesData, error: rolesError } = await (supabase as any)
-            .from('user_roles')
-            .select('role')
-            .eq('user_id', session.user.id);
-          
-          if (rolesError) {
-            console.error('Error fetching roles:', rolesError);
-            // Continue with default employee role on error
-            setUserRoles(['employee']);
-            setCurrentRole('employee');
-            setIsAdmin(false);
-            console.log('Using default employee role due to error');
-            setLoading(false);
-            return;
-          }
-          
-          console.log('Roles fetched:', rolesData);
-          const roles = (rolesData || []).map(r => r.role as UserRole);
-          setUserRoles(roles);
-          
-          // Check for admin role
-          const isAdminUser = roles.includes('admin');
-          setIsAdmin(isAdminUser);
-          
-          // Set current role (priority: admin > bdo > bms_executive > market_manager > employee)
-          if (roles.includes('admin')) {
-            setCurrentRole('admin');
-            console.log('Role set to: admin');
-          } else if (roles.includes('bdo')) {
-            setCurrentRole('bdo');
-            console.log('Role set to: bdo');
-          } else if (roles.includes('bms_executive')) {
-            setCurrentRole('bms_executive');
-            console.log('Role set to: bms_executive');
-          } else if (roles.includes('market_manager')) {
-            setCurrentRole('market_manager');
-            console.log('Role set to: market_manager');
-          } else if (roles.includes('employee')) {
-            setCurrentRole('employee');
-            console.log('Role set to: employee');
-          } else {
-            // Default to employee if no role found
-            setCurrentRole('employee');
-            setUserRoles(['employee']);
-            console.log('No roles found, defaulting to employee');
-          }
-        } catch (error) {
-          console.error('Error setting up user roles:', error);
-          setCurrentRole('employee');
-          setUserRoles(['employee']);
-          setIsAdmin(false);
-        }
+        await fetchAndSetRoles(session.user.id);
       } else {
         console.log('No session found, clearing user state');
         setIsAdmin(false);
@@ -169,7 +125,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [fetchAndSetRoles]);
 
   const signIn = async (username: string, password: string) => {
     try {
