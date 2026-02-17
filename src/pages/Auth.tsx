@@ -15,37 +15,26 @@ export default function Auth() {
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [waitingForRole, setWaitingForRole] = useState(false);
   const { signIn, signUp, user, currentRole, loading: authLoading } = useAuth();
   const navigate = useNavigate();
 
   // Redirect if already logged in based on role
   useEffect(() => {
-    // Wait for auth to finish loading
-    if (authLoading) {
-      console.log('Auth still loading...');
-      return;
-    }
-
-    console.log('Auth loaded - User:', user?.email, 'Role:', currentRole);
+    if (authLoading) return;
 
     if (user && currentRole) {
-      // Redirect based on role
-      console.log('Redirecting user with role:', currentRole);
-      if (currentRole === 'admin') {
-        navigate('/admin');
-      } else if (currentRole === 'market_manager') {
-        navigate('/manager-dashboard');
-      } else if (currentRole === 'bdo') {
-        navigate('/bdo-dashboard');
-      } else if (currentRole === 'bms_executive') {
-        navigate('/bms-dashboard');
-      } else {
-        // employee or other roles
-        navigate('/dashboard');
-      }
-    } else if (user) {
-      // User exists but no role yet - give it a moment
-      console.log('User exists but waiting for role to load...');
+      const routes: Record<string, string> = {
+        admin: '/admin',
+        market_manager: '/manager-dashboard',
+        bdo: '/bdo-dashboard',
+        bms_executive: '/bms-dashboard',
+      };
+      navigate(routes[currentRole] || '/dashboard');
+      setWaitingForRole(false);
+    } else if (user && !currentRole) {
+      // User logged in but role not loaded yet — show loading
+      setWaitingForRole(true);
     }
   }, [user, currentRole, authLoading, navigate]);
 
@@ -73,10 +62,8 @@ export default function Auth() {
               toast.error(result.error.message || 'Login failed');
             } else {
               toast.success('Logged in successfully');
-              // Wait a moment for role to load, then redirect based on role
-              setTimeout(() => {
-                // The useEffect will handle the redirect based on role
-              }, 500);
+              setWaitingForRole(true);
+              // useEffect will handle redirect once role loads
             }
           } catch (error: any) {
             toast.error(error.message || 'An error occurred during login. Please try again.');
@@ -105,6 +92,19 @@ export default function Auth() {
         setSubmitting(false);
       }
   };
+
+  if (authLoading || waitingForRole) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-4 text-muted-foreground">
+            {waitingForRole ? 'Signing you in...' : 'Loading...'}
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
