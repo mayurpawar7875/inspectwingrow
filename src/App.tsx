@@ -9,6 +9,7 @@ import { AdminLayout } from "./components/AdminLayout";
 import { UpdateBanner } from "./components/UpdateBanner";
 import { WhatsNewDialog } from "./components/WhatsNewDialog";
 import { ErrorBoundary } from "./components/ErrorBoundary";
+import { LanguageProvider } from "./contexts/LanguageContext";
 
 // Eager load entry point pages
 import Auth from "./pages/Auth";
@@ -70,6 +71,7 @@ const queryClient = new QueryClient({
 const App = () => (
   <ErrorBoundary>
     <QueryClientProvider client={queryClient}>
+      <LanguageProvider>
       <TooltipProvider>
         <UpdateBanner />
         <WhatsNewDialog />
@@ -126,6 +128,7 @@ const App = () => (
           </AuthProvider>
         </BrowserRouter>
       </TooltipProvider>
+      </LanguageProvider>
     </QueryClientProvider>
   </ErrorBoundary>
 );

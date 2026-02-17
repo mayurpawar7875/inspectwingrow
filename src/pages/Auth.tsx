@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/lib/auth';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
+import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import wingrowLogo from '@/assets/wingrow-logo.png';
 
 export default function Auth() {
@@ -18,11 +20,10 @@ export default function Auth() {
   const [waitingForRole, setWaitingForRole] = useState(false);
   const { signIn, signUp, user, currentRole, loading: authLoading } = useAuth();
   const navigate = useNavigate();
+  const { t } = useLanguage();
 
-  // Redirect if already logged in based on role
   useEffect(() => {
     if (authLoading) return;
-
     if (user && currentRole) {
       const routes: Record<string, string> = {
         admin: '/admin',
@@ -33,7 +34,6 @@ export default function Auth() {
       navigate(routes[currentRole] || '/dashboard');
       setWaitingForRole(false);
     } else if (user && !currentRole) {
-      // User logged in but role not loaded yet — show loading
       setWaitingForRole(true);
     }
   }, [user, currentRole, authLoading, navigate]);
@@ -41,36 +41,32 @@ export default function Auth() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
-      try {
-        if (isLogin) {
-          if (!username.trim()) {
-            toast.error('Please enter your username');
-            setSubmitting(false);
-            return;
+    try {
+      if (isLogin) {
+        if (!username.trim()) {
+          toast.error(t('auth.usernameRequired'));
+          setSubmitting(false);
+          return;
+        }
+        if (!password.trim()) {
+          toast.error(t('auth.passwordRequired'));
+          setSubmitting(false);
+          return;
+        }
+        try {
+          const result = await signIn(username, password);
+          if (result.error) {
+            toast.error(result.error.message || t('auth.loginFailed'));
+          } else {
+            toast.success(t('auth.loginSuccess'));
+            setWaitingForRole(true);
           }
-          
-          if (!password.trim()) {
-            toast.error('Please enter your password');
-            setSubmitting(false);
-            return;
-          }
-          
-          try {
-            const result = await signIn(username, password);
-            
-            if (result.error) {
-              toast.error(result.error.message || 'Login failed');
-            } else {
-              toast.success('Logged in successfully');
-              setWaitingForRole(true);
-              // useEffect will handle redirect once role loads
-            }
-          } catch (error: any) {
-            toast.error(error.message || 'An error occurred during login. Please try again.');
-          }
+        } catch (error: any) {
+          toast.error(error.message || t('auth.loginFailed'));
+        }
       } else {
         if (!fullName.trim() || !username.trim()) {
-          toast.error('Please fill in all required fields');
+          toast.error(t('auth.fillRequired'));
           setSubmitting(false);
           return;
         }
@@ -78,19 +74,19 @@ export default function Auth() {
         if (error) {
           toast.error(error.message);
         } else {
-          toast.success('Account created successfully! You can now log in.');
+          toast.success(t('auth.accountCreated'));
           setIsLogin(true);
           setUsername('');
           setEmail('');
           setPassword('');
           setFullName('');
         }
-        }
-      } catch (error: any) {
-        toast.error(error.message || 'An error occurred. Please try again.');
-      } finally {
-        setSubmitting(false);
       }
+    } catch (error: any) {
+      toast.error(error.message || t('common.error'));
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   if (authLoading || waitingForRole) {
@@ -99,7 +95,7 @@ export default function Auth() {
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
           <p className="mt-4 text-muted-foreground">
-            {waitingForRole ? 'Signing you in...' : 'Loading...'}
+            {waitingForRole ? t('common.signingIn') : t('common.loading')}
           </p>
         </div>
       </div>
@@ -108,22 +104,19 @@ export default function Auth() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
+      <div className="absolute top-4 right-4">
+        <LanguageSwitcher />
+      </div>
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1 text-center">
           <div className="flex justify-center mb-4">
-            <img 
-              src={wingrowLogo} 
-              alt="Wingrow Market" 
-              className="h-24 w-auto"
-            />
+            <img src={wingrowLogo} alt="Wingrow Market" className="h-24 w-auto" />
           </div>
           <CardTitle className="text-2xl font-bold">
-            {isLogin ? 'Welcome Back' : 'Create Account'}
+            {isLogin ? t('auth.welcomeBack') : t('auth.createAccount')}
           </CardTitle>
           <CardDescription>
-            {isLogin
-              ? 'Enter your credentials to access your dashboard'
-              : 'Register to start reporting your market activities'}
+            {isLogin ? t('auth.loginDescription') : t('auth.signupDescription')}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -131,73 +124,36 @@ export default function Auth() {
             {!isLogin && (
               <>
                 <div className="space-y-2">
-                  <Label htmlFor="fullName">Full Name</Label>
-                  <Input
-                    id="fullName"
-                    placeholder="John Doe"
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    required={!isLogin}
-                  />
+                  <Label htmlFor="fullName">{t('auth.fullName')}</Label>
+                  <Input id="fullName" placeholder="John Doe" value={fullName} onChange={(e) => setFullName(e.target.value)} required={!isLogin} />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="you@example.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required={!isLogin}
-                  />
+                  <Label htmlFor="email">{t('auth.email')}</Label>
+                  <Input id="email" type="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required={!isLogin} />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="username">Username</Label>
-                  <Input
-                    id="username"
-                    placeholder="johndoe"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    required={!isLogin}
-                  />
+                  <Label htmlFor="username">{t('auth.username')}</Label>
+                  <Input id="username" placeholder="johndoe" value={username} onChange={(e) => setUsername(e.target.value)} required={!isLogin} />
                 </div>
               </>
             )}
             {isLogin && (
               <div className="space-y-2">
-                <Label htmlFor="username">Username</Label>
-                <Input
-                  id="username"
-                  placeholder="Enter your username"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  required
-                />
+                <Label htmlFor="username">{t('auth.username')}</Label>
+                <Input id="username" placeholder={t('auth.enterUsername')} value={username} onChange={(e) => setUsername(e.target.value)} required />
               </div>
             )}
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                minLength={6}
-              />
+              <Label htmlFor="password">{t('auth.password')}</Label>
+              <Input id="password" type="password" placeholder={t('auth.enterPassword')} value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} />
             </div>
             <Button type="submit" className="w-full" disabled={submitting}>
-              {submitting ? 'Please wait...' : isLogin ? 'Sign In' : 'Create Account'}
+              {submitting ? t('common.pleaseWait') : isLogin ? t('auth.signIn') : t('auth.signUp')}
             </Button>
           </form>
           <div className="mt-4 text-center text-sm">
-            <button
-              type="button"
-              onClick={() => setIsLogin(!isLogin)}
-              className="text-accent hover:underline"
-            >
-              {isLogin ? "Don't have an account? Sign up" : 'Already have an account? Sign in'}
+            <button type="button" onClick={() => setIsLogin(!isLogin)} className="text-accent hover:underline">
+              {isLogin ? t('auth.noAccount') : t('auth.hasAccount')}
             </button>
           </div>
         </CardContent>
