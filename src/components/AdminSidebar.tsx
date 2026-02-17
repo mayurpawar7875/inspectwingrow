@@ -12,22 +12,24 @@ import {
 } from "@/components/ui/sidebar";
 import { LayoutDashboard, FileText, Settings, Package, ClipboardList, Users, MapPin, Building2 } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const menuItems = [
-  { title: "Dashboard", url: "/admin", icon: LayoutDashboard },
-  { title: "BDO Reporting", url: "/admin/bdo-reporting", icon: MapPin },
-  { title: "MM Reporting", url: "/admin/market-reporting", icon: Building2 },
-  { title: "BMS Monitoring", url: "/admin/bms-monitoring", icon: Users },
-  { title: "Requests Management", url: "/admin/requests", icon: ClipboardList },
-  { title: "All Sessions", url: "/admin/sessions", icon: FileText },
-  { title: "Asset Management", url: "/admin/asset-management", icon: Package },
-  { title: "Settings", url: "/admin/settings", icon: Settings },
+  { titleKey: "admin.dashboard", url: "/admin", icon: LayoutDashboard },
+  { titleKey: "admin.bdoReporting", url: "/admin/bdo-reporting", icon: MapPin },
+  { titleKey: "admin.mmReporting", url: "/admin/market-reporting", icon: Building2 },
+  { titleKey: "admin.bmsMonitoring", url: "/admin/bms-monitoring", icon: Users },
+  { titleKey: "admin.requests", url: "/admin/requests", icon: ClipboardList },
+  { titleKey: "admin.sessions", url: "/admin/sessions", icon: FileText },
+  { titleKey: "admin.assets", url: "/admin/asset-management", icon: Package },
+  { titleKey: "admin.settings", url: "/admin/settings", icon: Settings },
 ];
 
 export function AdminSidebar() {
   const { state, setOpenMobile } = useSidebar();
   const isMobile = useIsMobile();
   const isCollapsed = state === "collapsed";
+  const { t } = useLanguage();
 
   const handleNavClick = () => {
     if (isMobile) {
@@ -52,20 +54,20 @@ export function AdminSidebar() {
         <SidebarGroup>
           {!isCollapsed && (
             <SidebarGroupLabel className="!text-neutral-900 dark:!text-neutral-100">
-              Admin Panel
+              {t('admin.panel')}
             </SidebarGroupLabel>
           )}
 
           <SidebarGroupContent>
             <SidebarMenu>
               {menuItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
+                <SidebarMenuItem key={item.titleKey}>
                   <SidebarMenuButton asChild className="flex items-center gap-2">
                     <NavLink to={item.url} end className={linkClass} onClick={handleNavClick}>
                       <item.icon className="h-4 w-4 flex-shrink-0 !text-neutral-900 dark:!text-neutral-100" />
                       {!isCollapsed && (
                         <span className="ml-1 !text-neutral-900 dark:!text-neutral-100">
-                          {item.title}
+                          {t(item.titleKey)}
                         </span>
                       )}
                     </NavLink>

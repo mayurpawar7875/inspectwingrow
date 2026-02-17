@@ -40,6 +40,8 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { MobileBottomNav } from '@/components/MobileBottomNav';
+import { LanguageSwitcher } from '@/components/LanguageSwitcher';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface DistrictStats {
   total_markets: number;
@@ -67,6 +69,7 @@ interface MarketSummary {
 export default function BDODashboard() {
   const { user, signOut, currentRole, loading: authLoading } = useAuth();
   const navigate = useNavigate();
+  const { t } = useLanguage();
   const [stats, setStats] = useState<DistrictStats>({
     total_markets: 0,
     active_markets: 0,
@@ -853,21 +856,22 @@ export default function BDODashboard() {
         <div className="container mx-auto px-4 py-4">
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
             <div>
-              <h1 className="text-xl sm:text-2xl font-bold">BDO Dashboard</h1>
-              <p className="text-sm text-muted-foreground">District-level Reporting</p>
+              <h1 className="text-xl sm:text-2xl font-bold">{t('bdo.title')}</h1>
+              <p className="text-sm text-muted-foreground">{t('bdo.districtOverview')}</p>
             </div>
             <div className="flex flex-wrap gap-2">
+              <LanguageSwitcher variant="ghost" />
               <Button variant="default" size="sm" onClick={() => navigate('/bdo-session')}>
                 <Clock className="h-4 w-4 mr-2" />
-                My Session
+                {t('dashboard.mySessions')}
               </Button>
               <Button variant="outline" size="sm" onClick={() => navigate('/bdo/live-markets')}>
                 <MapPin className="h-4 w-4 mr-2" />
-                Live Markets
+                {t('bdo.liveMarkets')}
               </Button>
               <Button variant="outline" size="sm" onClick={() => signOut()}>
                 <LogOut className="h-4 w-4 mr-2" />
-                Sign Out
+                {t('common.signOut')}
               </Button>
             </div>
           </div>

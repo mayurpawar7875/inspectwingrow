@@ -44,6 +44,8 @@ const NextDayPlanningForm = lazy(() => import('@/components/NextDayPlanningForm'
 const MarketLocationVisitForm = lazy(() => import('@/components/MarketLocationVisitForm'));
 const ReimbursementForm = lazy(() => import('@/components/ReimbursementForm'));
 import { MobileBottomNav } from '@/components/MobileBottomNav';
+import { LanguageSwitcher } from '@/components/LanguageSwitcher';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface SessionSummary {
   stalls_count: number;
@@ -58,6 +60,7 @@ export default function Dashboard() {
   const { user, signOut, currentRole, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
+  const { t } = useLanguage();
   
   // Use centralized data hook with caching
   const { data: dashboardData, isLoading: dataLoading, refetch } = useDashboardData();
@@ -292,7 +295,7 @@ export default function Dashboard() {
       <div className="flex min-h-screen items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-4 text-muted-foreground">Loading dashboard...</p>
+          <p className="mt-4 text-muted-foreground">{t('dashboard.loadingDashboard')}</p>
         </div>
       </div>
     );
@@ -304,7 +307,7 @@ export default function Dashboard() {
       <div className="flex min-h-screen items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-4 text-muted-foreground">Redirecting...</p>
+          <p className="mt-4 text-muted-foreground">{t('common.redirecting')}</p>
         </div>
       </div>
     );
@@ -317,14 +320,15 @@ export default function Dashboard() {
         <div className="container mx-auto px-2 sm:px-4 py-2 sm:py-4">
           <div className="flex justify-between items-center gap-2 mb-1.5 sm:mb-0">
             <div className="flex-1 min-w-0">
-              <h1 className="text-xs sm:text-2xl font-bold text-foreground">Employee Dashboard</h1>
+              <h1 className="text-xs sm:text-2xl font-bold text-foreground">{t('dashboard.title')}</h1>
               <p className="text-[10px] sm:text-sm text-muted-foreground truncate">{user?.email}</p>
             </div>
             <div className="flex gap-1 sm:gap-2 flex-shrink-0">
+              <LanguageSwitcher variant="ghost" />
               <NotificationBell />
               <Button variant="outline" size="sm" className="h-7 px-2 sm:h-9 sm:px-3" onClick={handleSignOut}>
                 <LogOut className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-2" />
-                <span className="hidden sm:inline">Sign Out</span>
+                <span className="hidden sm:inline">{t('common.signOut')}</span>
               </Button>
             </div>
           </div>
@@ -334,11 +338,11 @@ export default function Dashboard() {
                 <TooltipTrigger asChild>
                   <Button variant="outline" size="sm" className="h-7 px-2 sm:h-9 sm:px-3 flex-shrink-0" onClick={() => navigate('/my-sessions')}>
                     <History className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-2" />
-                    <span className="hidden sm:inline">My Sessions</span>
+                    <span className="hidden sm:inline">{t('dashboard.mySessions')}</span>
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>My Sessions</p>
+                  <p>{t('dashboard.mySessions')}</p>
                 </TooltipContent>
               </Tooltip>
               
@@ -346,11 +350,11 @@ export default function Dashboard() {
                 <TooltipTrigger asChild>
                   <Button variant="outline" size="sm" className="h-7 px-2 sm:h-9 sm:px-3 flex-shrink-0" onClick={() => setLeaveDialog(true)}>
                     <Umbrella className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-2" />
-                    <span className="hidden sm:inline">Request Leave</span>
+                    <span className="hidden sm:inline">{t('dashboard.requestLeave')}</span>
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>Request Leave</p>
+                  <p>{t('dashboard.requestLeave')}</p>
                 </TooltipContent>
               </Tooltip>
               
@@ -358,11 +362,11 @@ export default function Dashboard() {
                 <TooltipTrigger asChild>
                   <Button variant="outline" size="sm" className="h-7 px-2 sm:h-9 sm:px-3 flex-shrink-0" onClick={() => navigate('/asset-requests')}>
                     <Package className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-2" />
-                    <span className="hidden sm:inline">Assets</span>
+                    <span className="hidden sm:inline">{t('dashboard.assets')}</span>
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>Request Assets</p>
+                  <p>{t('dashboard.assetRequests')}</p>
                 </TooltipContent>
               </Tooltip>
               
@@ -370,11 +374,11 @@ export default function Dashboard() {
                 <TooltipTrigger asChild>
                   <Button variant="outline" size="sm" className="h-7 px-2 sm:h-9 sm:px-3 flex-shrink-0" onClick={() => navigate('/my-attendance')}>
                     <CalendarCheck className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-2" />
-                    <span className="hidden sm:inline">Attendance</span>
+                    <span className="hidden sm:inline">{t('dashboard.attendance')}</span>
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>View My Attendance</p>
+                  <p>{t('dashboard.myAttendance')}</p>
                 </TooltipContent>
               </Tooltip>
               
@@ -382,11 +386,11 @@ export default function Dashboard() {
                 <TooltipTrigger asChild>
                   <Button variant="outline" size="sm" className="h-7 px-2 sm:h-9 sm:px-3 flex-shrink-0" onClick={() => setLocationVisitDialog(true)}>
                     <MapPin className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-2" />
-                    <span className="hidden sm:inline">Location Visit</span>
+                    <span className="hidden sm:inline">{t('dashboard.locationVisit')}</span>
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>Submit Location Visit</p>
+                  <p>{t('dashboard.locationVisit')}</p>
                 </TooltipContent>
               </Tooltip>
               
@@ -394,16 +398,16 @@ export default function Dashboard() {
                 <TooltipTrigger asChild>
                   <Button variant="outline" size="sm" className="h-7 px-2 sm:h-9 sm:px-3 flex-shrink-0" onClick={() => setReimbursementDialog(true)}>
                     <DollarSign className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-2" />
-                    <span className="hidden sm:inline">Reimbursement</span>
+                    <span className="hidden sm:inline">{t('dashboard.reimbursement')}</span>
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>Submit Reimbursement Request</p>
+                  <p>{t('dashboard.reimbursement')}</p>
                 </TooltipContent>
               </Tooltip>
               
               <Button variant="outline" size="sm" className="h-7 px-2 text-[10px] sm:h-9 sm:px-3 sm:text-sm flex-shrink-0" onClick={() => navigate('/install')}>
-                Install App
+                {t('common.installApp')}
               </Button>
             </div>
           </TooltipProvider>
@@ -424,10 +428,10 @@ export default function Dashboard() {
               <CardHeader>
                 <div className="flex items-center gap-2">
                   <Calendar className="h-5 w-5 text-info" />
-                  <CardTitle className="text-info">Monday - Planning Day</CardTitle>
+                   <CardTitle className="text-info">{t('dashboard.planningDay')}</CardTitle>
                 </div>
                 <CardDescription className="text-info-foreground">
-                  No markets are scheduled today. You can only submit Next Day Planning for tomorrow's market.
+                  {t('dashboard.planningDayDesc')}
                 </CardDescription>
               </CardHeader>
             </Card>
@@ -436,9 +440,9 @@ export default function Dashboard() {
             <Card className="cursor-pointer hover:shadow-lg transition-shadow border-primary/30" onClick={() => setPlanningDialog(true)}>
               <CardHeader className="p-4 sm:p-6">
                 <Calendar className="h-8 w-8 sm:h-10 sm:w-10 text-primary mb-2" />
-                <CardTitle className="text-base sm:text-lg">Next Day Planning</CardTitle>
+                <CardTitle className="text-base sm:text-lg">{t('dashboard.nextDayPlanning')}</CardTitle>
                 <CardDescription className="text-xs sm:text-sm">
-                  Plan stall confirmations for tomorrow's market
+                  {t('dashboard.nextDayPlanningDesc')}
                 </CardDescription>
               </CardHeader>
             </Card>

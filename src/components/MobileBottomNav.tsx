@@ -1,6 +1,7 @@
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/lib/auth';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useLanguage } from '@/contexts/LanguageContext';
 import {
   Home,
   CalendarCheck,
@@ -11,42 +12,41 @@ import {
   Users,
   ClipboardList,
   Package,
-  LogOut,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface NavItem {
   icon: any;
-  label: string;
+  labelKey: string;
   path: string;
 }
 
 const employeeNavItems: NavItem[] = [
-  { icon: Home, label: 'Home', path: '/dashboard' },
-  { icon: CalendarCheck, label: 'Attendance', path: '/my-attendance' },
-  { icon: History, label: 'Sessions', path: '/my-sessions' },
-  { icon: Package, label: 'Assets', path: '/asset-requests' },
+  { icon: Home, labelKey: 'nav.home', path: '/dashboard' },
+  { icon: CalendarCheck, labelKey: 'nav.attendance', path: '/my-attendance' },
+  { icon: History, labelKey: 'nav.sessions', path: '/my-sessions' },
+  { icon: Package, labelKey: 'nav.assets', path: '/asset-requests' },
 ];
 
 const adminNavItems: NavItem[] = [
-  { icon: Home, label: 'Home', path: '/admin' },
-  { icon: Users, label: 'Users', path: '/admin/users' },
-  { icon: MapPin, label: 'Markets', path: '/admin/live-markets' },
-  { icon: ClipboardList, label: 'Requests', path: '/admin/requests' },
-  { icon: Settings, label: 'Settings', path: '/admin/settings' },
+  { icon: Home, labelKey: 'nav.home', path: '/admin' },
+  { icon: Users, labelKey: 'nav.users', path: '/admin/users' },
+  { icon: MapPin, labelKey: 'nav.markets', path: '/admin/live-markets' },
+  { icon: ClipboardList, labelKey: 'nav.requests', path: '/admin/requests' },
+  { icon: Settings, labelKey: 'nav.settings', path: '/admin/settings' },
 ];
 
 const bdoNavItems: NavItem[] = [
-  { icon: Home, label: 'Home', path: '/bdo-dashboard' },
-  { icon: MapPin, label: 'Markets', path: '/admin/live-markets' },
-  { icon: CalendarCheck, label: 'Attendance', path: '/my-attendance' },
-  { icon: FileText, label: 'Documents', path: '/bdo-dashboard' },
+  { icon: Home, labelKey: 'nav.home', path: '/bdo-dashboard' },
+  { icon: MapPin, labelKey: 'nav.markets', path: '/admin/live-markets' },
+  { icon: CalendarCheck, labelKey: 'nav.attendance', path: '/my-attendance' },
+  { icon: FileText, labelKey: 'nav.documents', path: '/bdo-dashboard' },
 ];
 
 const marketManagerNavItems: NavItem[] = [
-  { icon: Home, label: 'Home', path: '/manager-dashboard' },
-  { icon: CalendarCheck, label: 'Attendance', path: '/my-attendance' },
-  { icon: History, label: 'Sessions', path: '/my-manager-sessions' },
+  { icon: Home, labelKey: 'nav.home', path: '/manager-dashboard' },
+  { icon: CalendarCheck, labelKey: 'nav.attendance', path: '/my-attendance' },
+  { icon: History, labelKey: 'nav.sessions', path: '/my-manager-sessions' },
 ];
 
 export function MobileBottomNav() {
@@ -54,6 +54,7 @@ export function MobileBottomNav() {
   const { currentRole } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
+  const { t } = useLanguage();
 
   if (!isMobile) return null;
 
@@ -101,7 +102,7 @@ export function MobileBottomNav() {
                 'text-[10px] mt-1 font-medium truncate max-w-full',
                 active ? 'text-primary' : 'text-muted-foreground'
               )}>
-                {item.label}
+                {t(item.labelKey)}
               </span>
             </button>
           );
