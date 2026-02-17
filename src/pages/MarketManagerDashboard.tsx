@@ -17,22 +17,25 @@ import { AssetsUsageForm } from '@/components/market-manager/AssetsUsageForm';
 import { StallFeedbackForm } from '@/components/market-manager/StallFeedbackForm';
 import { InspectionUpdateForm } from '@/components/market-manager/InspectionUpdateForm';
 import { PunchOutForm } from '@/components/market-manager/PunchOutForm';
+import { LanguageSwitcher } from '@/components/LanguageSwitcher';
+import { useLanguage } from '@/contexts/LanguageContext';
 
-const TASKS = [
-  { id: 1, name: 'Employee Allocation', completed: false },
-  { id: 2, name: 'Punch-In', completed: false },
-  { id: 3, name: 'New Market Land Search', completed: false },
-  { id: 4, name: 'Stall Searching Updates', completed: false },
-  { id: 5, name: 'Assets Money Recovery', completed: false },
-  { id: 6, name: 'Assets Usage in Live Markets', completed: false },
-  { id: 7, name: 'BMS Stall Feedbacks', completed: false },
-  { id: 8, name: 'Market Inspection Update', completed: false },
-  { id: 9, name: 'Punch-Out', completed: false },
+const TASK_KEYS = [
+  { id: 1, key: 'mm.employeeAllocation', completed: false },
+  { id: 2, key: 'mm.punchIn', completed: false },
+  { id: 3, key: 'mm.landSearch', completed: false },
+  { id: 4, key: 'mm.stallSearch', completed: false },
+  { id: 5, key: 'mm.moneyRecovery', completed: false },
+  { id: 6, key: 'mm.assetsUsage', completed: false },
+  { id: 7, key: 'mm.stallFeedbacks', completed: false },
+  { id: 8, key: 'mm.inspectionUpdate', completed: false },
+  { id: 9, key: 'mm.punchOut', completed: false },
 ];
 
 export default function MarketManagerDashboard() {
   const { user, signOut, currentRole, loading: authLoading } = useAuth();
   const navigate = useNavigate();
+  const { t } = useLanguage();
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [openDialog, setOpenDialog] = useState<number | null>(null);
   const [completedTasks, setCompletedTasks] = useState<number[]>([]);
@@ -168,7 +171,7 @@ export default function MarketManagerDashboard() {
       if (!sessionId) return;
 
       // Check if all tasks have at least one entry
-      const allTasksCompleted = TASKS.every(task => (taskCounts[task.id] || 0) > 0);
+      const allTasksCompleted = TASK_KEYS.every(task => (taskCounts[task.id] || 0) > 0);
 
       if (allTasksCompleted) {
         const { error } = await supabase
@@ -229,7 +232,7 @@ export default function MarketManagerDashboard() {
       <div className="flex min-h-screen items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-4 text-muted-foreground">Loading...</p>
+          <p className="mt-4 text-muted-foreground">{t('common.loading')}</p>
         </div>
       </div>
     );
@@ -240,21 +243,22 @@ export default function MarketManagerDashboard() {
       <header className="border-b bg-card">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           <div>
-            <h1 className="text-2xl font-bold">Market Manager Dashboard</h1>
+            <h1 className="text-2xl font-bold">{t('mm.title')}</h1>
             <p className="text-sm text-muted-foreground">{user?.email}</p>
           </div>
           <div className="flex gap-2">
+            <LanguageSwitcher variant="ghost" />
             <Button variant="outline" size="sm" onClick={() => navigate('/my-attendance')}>
               <CalendarCheck className="h-4 w-4 mr-2" />
-              Attendance
+              {t('dashboard.attendance')}
             </Button>
             <Button variant="outline" size="sm" onClick={() => navigate('/my-manager-sessions')}>
               <History className="h-4 w-4 mr-2" />
-              My Sessions
+              {t('dashboard.mySessions')}
             </Button>
             <Button variant="outline" size="sm" onClick={handleSignOut}>
               <LogOut className="h-4 w-4 mr-2" />
-              Sign Out
+              {t('common.signOut')}
             </Button>
           </div>
         </div>
@@ -265,8 +269,8 @@ export default function MarketManagerDashboard() {
           <SessionSelector onSessionCreate={handleSessionCreate} />
         ) : (
           <div className="space-y-2">
-            <h2 className="text-lg font-semibold mb-4">Tasks</h2>
-            {TASKS.map((task) => (
+            <h2 className="text-lg font-semibold mb-4">{t('mm.tasks')}</h2>
+            {TASK_KEYS.map((task) => (
               <button
                 key={task.id}
                 onClick={() => setOpenDialog(task.id)}
@@ -278,7 +282,7 @@ export default function MarketManagerDashboard() {
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium">{task.name}</span>
+                    <span className="text-sm font-medium">{t(task.key)}</span>
                     {taskCounts[task.id] > 0 && (
                       <span className="text-xs bg-primary text-primary-foreground px-2 py-0.5 rounded-full">
                         {taskCounts[task.id]}
@@ -296,7 +300,7 @@ export default function MarketManagerDashboard() {
             <Dialog open={openDialog !== null} onOpenChange={(open) => !open && setOpenDialog(null)}>
               <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
-                  <DialogTitle>{TASKS.find(t => t.id === openDialog)?.name}</DialogTitle>
+                  <DialogTitle>{TASK_KEYS.find(tk => tk.id === openDialog) ? t(TASK_KEYS.find(tk => tk.id === openDialog)!.key) : ''}</DialogTitle>
                 </DialogHeader>
                 {openDialog !== null && renderTaskForm(openDialog)}
               </DialogContent>
