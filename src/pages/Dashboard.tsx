@@ -63,7 +63,7 @@ export default function Dashboard() {
   const { t } = useLanguage();
   
   // Use centralized data hook with caching
-  const { data: dashboardData, isLoading: dataLoading, refetch } = useDashboardData();
+  const { data: dashboardData, isLoading: dataLoading, refetch, isError, error: dataError } = useDashboardData();
   
   // Derive sessions from hook data
   const todaySessions = useMemo(() => dashboardData?.sessions || [], [dashboardData?.sessions]);
@@ -292,10 +292,35 @@ export default function Dashboard() {
 
   if (authLoading || loading) {
     return (
+      <div className="min-h-screen bg-background p-4">
+        <div className="container mx-auto max-w-4xl space-y-4">
+          <div className="h-16 bg-muted rounded animate-pulse" />
+          <div className="grid grid-cols-2 gap-4">
+            <div className="h-32 bg-muted rounded animate-pulse" />
+            <div className="h-32 bg-muted rounded animate-pulse" />
+          </div>
+          <div className="h-48 bg-muted rounded animate-pulse" />
+          <div className="grid grid-cols-2 gap-4">
+            <div className="h-24 bg-muted rounded animate-pulse" />
+            <div className="h-24 bg-muted rounded animate-pulse" />
+            <div className="h-24 bg-muted rounded animate-pulse" />
+            <div className="h-24 bg-muted rounded animate-pulse" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
       <div className="flex min-h-screen items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-4 text-muted-foreground">{t('dashboard.loadingDashboard')}</p>
+        <div className="text-center space-y-4 max-w-md px-4">
+          <AlertCircle className="h-12 w-12 text-destructive mx-auto" />
+          <h2 className="text-lg font-semibold">Failed to load dashboard</h2>
+          <p className="text-sm text-muted-foreground">
+            {(dataError as Error)?.message || 'Something went wrong. Please try again.'}
+          </p>
+          <Button onClick={() => refetch()}>Try Again</Button>
         </div>
       </div>
     );
