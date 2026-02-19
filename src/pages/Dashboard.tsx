@@ -260,7 +260,7 @@ export default function Dashboard() {
       setViewDialog(type);
     } catch (error) {
       console.error('Error fetching details:', error);
-      toast.error('Failed to load details');
+      toast.error(t('dashboard.failedLoadDetails'));
     }
   };
 
@@ -452,16 +452,16 @@ export default function Dashboard() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
                   <History className="h-4 w-4 sm:h-5 sm:w-5" />
-                  View Your Session History
+                  {t('dashboard.viewSessionHistory')}
                 </CardTitle>
                 <CardDescription className="text-xs sm:text-sm">
-                  See all the markets you've attended and track your past sessions
+                  {t('dashboard.viewSessionHistoryDesc')}
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <Button onClick={() => navigate('/my-sessions')} variant="outline" size="sm">
                   <History className="mr-2 h-4 w-4" />
-                  View Session History
+                  {t('dashboard.viewHistory')}
                 </Button>
               </CardContent>
             </Card>
@@ -470,15 +470,15 @@ export default function Dashboard() {
           <div className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle>Start Your Daily Report</CardTitle>
+                <CardTitle>{t('dashboard.startDailyReport')}</CardTitle>
                 <CardDescription>
-                  You haven't started a reporting session for today. Click below to begin.
+                  {t('dashboard.noSessionStarted')}
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <Button onClick={() => navigate('/market-selection')} size="lg">
                   <MapPin className="mr-2 h-5 w-5" />
-                  Start New Session
+                  {t('dashboard.startNewSession')}
                 </Button>
               </CardContent>
             </Card>
@@ -486,16 +486,16 @@ export default function Dashboard() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <History className="h-5 w-5" />
-                  View Your Session History
+                  {t('dashboard.viewSessionHistory')}
                 </CardTitle>
                 <CardDescription>
-                  See all the markets you've attended and track your past sessions
+                  {t('dashboard.viewSessionHistoryDesc')}
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <Button onClick={() => navigate('/my-sessions')} variant="outline" size="lg">
                   <History className="mr-2 h-5 w-5" />
-                  View Session History
+                  {t('dashboard.viewHistory')}
                 </Button>
               </CardContent>
             </Card>
@@ -507,7 +507,7 @@ export default function Dashboard() {
               <Card className="bg-info/10 border-info/20">
                 <CardContent className="p-3 sm:p-4">
                   <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-                    <span className="text-sm font-medium text-info">Multiple Sessions Today:</span>
+                    <span className="text-sm font-medium text-info">{t('dashboard.multipleSessions')}</span>
                     <div className="flex flex-wrap gap-2">
                       {todaySessions.map((session, index) => (
                         <Button
@@ -530,7 +530,7 @@ export default function Dashboard() {
                       onClick={() => navigate('/market-selection')}
                       className="text-xs ml-auto"
                     >
-                      + Add Session
+                      {t('dashboard.addSession')}
                     </Button>
                   </div>
                 </CardContent>
@@ -542,7 +542,7 @@ export default function Dashboard() {
               <CardHeader className="p-3 sm:pb-6 sm:px-6 sm:pt-6">
                 <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-1.5 sm:gap-2">
                   <div className="flex-1 min-w-0">
-                    <CardTitle className="text-sm sm:text-xl">Today's Session</CardTitle>
+                    <CardTitle className="text-sm sm:text-xl">{t('dashboard.todaysSession')}</CardTitle>
                     <CardDescription className="mt-1 sm:mt-2 text-[10px] sm:text-sm break-words">
                       <span className="font-medium">{todaySession.market.name}</span>
                       <span className="mx-0.5 sm:mx-1">-</span>
@@ -553,7 +553,7 @@ export default function Dashboard() {
                         className="text-primary hover:underline inline-flex items-center gap-0.5 sm:gap-1"
                       >
                         <MapPin className="h-2.5 w-2.5 sm:h-3 sm:w-3 inline" />
-                        <span className="break-all">View Location</span>
+                        <span className="break-all">{t('dashboard.viewLocation')}</span>
                       </a>
                     </CardDescription>
                   </div>
@@ -569,16 +569,16 @@ export default function Dashboard() {
                       <Clock className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground" />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="text-[10px] sm:text-sm text-muted-foreground">Punch In</p>
+                      <p className="text-[10px] sm:text-sm text-muted-foreground">{t('dashboard.punchIn')}</p>
                       <p className="font-medium text-xs sm:text-base break-words">
                         {todaySession.punch_in_time
                           ? new Date(todaySession.punch_in_time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })
-                          : 'Not recorded'}
+                          : t('common.notRecorded')}
                       </p>
                       {/* Elapsed time for active session */}
                       {elapsedTime && (
                         <p className="text-[10px] sm:text-xs text-destructive font-mono mt-0.5 animate-pulse">
-                          ⏳ {elapsedTime} left
+                          ⏳ {elapsedTime} {t('dashboard.left')}
                         </p>
                       )}
                     </div>
@@ -588,11 +588,11 @@ export default function Dashboard() {
                       <Clock className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground" />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="text-[10px] sm:text-sm text-muted-foreground">Punch Out</p>
+                      <p className="text-[10px] sm:text-sm text-muted-foreground">{t('dashboard.punchOut')}</p>
                       <p className="font-medium text-xs sm:text-base break-words">
                         {todaySession.punch_out_time
                           ? new Date(todaySession.punch_out_time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })
-                          : 'Not recorded'}
+                          : t('common.notRecorded')}
                       </p>
                     </div>
                   </div>
@@ -601,7 +601,7 @@ export default function Dashboard() {
                       <Calendar className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground" />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="text-[10px] sm:text-sm text-muted-foreground">Date</p>
+                      <p className="text-[10px] sm:text-sm text-muted-foreground">{t('common.date')}</p>
                       <p className="font-medium text-xs sm:text-base break-words">
                         {new Date(todaySession.session_date).toLocaleDateString()}
                       </p>
@@ -646,7 +646,7 @@ export default function Dashboard() {
                             <span className="text-2xl sm:text-3xl font-bold text-foreground">
                               {todaySession.completed_tasks}
                             </span>
-                            <span className="text-xs text-muted-foreground">of {todaySession.total_tasks}</span>
+                            <span className="text-xs text-muted-foreground">{t('common.of')} {todaySession.total_tasks}</span>
                             <span className="text-xs font-medium text-primary mt-0.5">
                               {Math.round((todaySession.completed_tasks / todaySession.total_tasks) * 100)}%
                             </span>
@@ -656,12 +656,12 @@ export default function Dashboard() {
                         {/* Task Status Summary */}
                         <div className="flex-1 text-center sm:text-left">
                           <h4 className="text-sm sm:text-base font-semibold text-foreground mb-1">
-                            Task Completion
+                            {t('dashboard.taskCompletion')}
                           </h4>
                           <p className="text-xs sm:text-sm text-muted-foreground">
                             {todaySession.completed_tasks === todaySession.total_tasks 
-                              ? "All tasks completed! Great job!" 
-                              : `${todaySession.total_tasks - todaySession.completed_tasks} task${todaySession.total_tasks - todaySession.completed_tasks > 1 ? 's' : ''} remaining`
+                              ? t('dashboard.allTasksCompleted')
+                              : `${todaySession.total_tasks - todaySession.completed_tasks} ${t('dashboard.tasksRemaining')}`
                             }
                           </p>
                         </div>
@@ -670,7 +670,7 @@ export default function Dashboard() {
                       {/* Task Details - Collapsible */}
                       <details className="group">
                         <summary className="cursor-pointer text-xs sm:text-sm text-primary hover:underline flex items-center gap-1">
-                          View Task Details
+                          {t('dashboard.viewTaskDetails')}
                           <span className="transition-transform group-open:rotate-180">▼</span>
                         </summary>
                         <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -723,7 +723,7 @@ export default function Dashboard() {
                         <div className="flex items-center gap-2">
                           <AlertCircle className="h-4 w-4 sm:h-5 sm:w-5 text-info" />
                           <CardDescription className="text-xs sm:text-sm text-info-foreground">
-                            You can complete tasks until midnight (11:59 PM) even after punch out
+                            {t('dashboard.canCompleteTasks')}
                           </CardDescription>
                         </div>
                       </CardHeader>
@@ -734,8 +734,8 @@ export default function Dashboard() {
                   <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate('/punch')}>
                     <CardHeader className="p-2 sm:p-4">
                       <Clock className="h-5 w-5 sm:h-7 sm:w-7 text-accent mb-0.5 sm:mb-1" />
-                      <CardTitle className="text-xs sm:text-base">Punch In</CardTitle>
-                      <CardDescription className="text-[10px] sm:text-xs">Record arrival</CardDescription>
+                      <CardTitle className="text-xs sm:text-base">{t('dashboard.punchIn')}</CardTitle>
+                      <CardDescription className="text-[10px] sm:text-xs">{t('dashboard.recordArrival')}</CardDescription>
                     </CardHeader>
                   </Card>
                 )}
@@ -744,9 +744,9 @@ export default function Dashboard() {
                 <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate('/stalls')}>
                   <CardHeader className="p-2 sm:p-4">
                     <FileText className="h-5 w-5 sm:h-7 sm:w-7 text-accent mb-0.5 sm:mb-1" />
-                    <CardTitle className="text-xs sm:text-base">Stalls</CardTitle>
+                    <CardTitle className="text-xs sm:text-base">{t('dashboard.stalls')}</CardTitle>
                     <CardDescription className="text-[10px] sm:text-xs">
-                      {stallsCount} added
+                      {stallsCount} {t('dashboard.added')}
                     </CardDescription>
                   </CardHeader>
                 </Card>
@@ -755,8 +755,8 @@ export default function Dashboard() {
                 <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate('/media-upload?type=outside_rates')}>
                   <CardHeader className="p-2 sm:p-4">
                     <Upload className="h-5 w-5 sm:h-7 sm:w-7 text-accent mb-0.5 sm:mb-1" />
-                    <CardTitle className="text-xs sm:text-base">Outside Rates</CardTitle>
-                    <CardDescription className="text-[10px] sm:text-xs">Upload media</CardDescription>
+                    <CardTitle className="text-xs sm:text-base">{t('dashboard.outsideRates')}</CardTitle>
+                    <CardDescription className="text-[10px] sm:text-xs">{t('dashboard.uploadMedia')}</CardDescription>
                   </CardHeader>
                 </Card>
 
@@ -764,8 +764,8 @@ export default function Dashboard() {
                 <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate('/media-upload?type=rate_board')}>
                   <CardHeader className="p-2 sm:p-4">
                     <ImageIcon className="h-5 w-5 sm:h-7 sm:w-7 text-accent mb-0.5 sm:mb-1" />
-                    <CardTitle className="text-xs sm:text-base">Rate Board</CardTitle>
-                    <CardDescription className="text-[10px] sm:text-xs">Photo upload</CardDescription>
+                    <CardTitle className="text-xs sm:text-base">{t('dashboard.rateBoard')}</CardTitle>
+                    <CardDescription className="text-[10px] sm:text-xs">{t('dashboard.photoUpload')}</CardDescription>
                   </CardHeader>
                 </Card>
 
@@ -773,8 +773,8 @@ export default function Dashboard() {
                 <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate('/media-upload?type=market_video')}>
                   <CardHeader className="p-2 sm:p-4">
                     <Video className="h-5 w-5 sm:h-7 sm:w-7 text-accent mb-0.5 sm:mb-1" />
-                    <CardTitle className="text-xs sm:text-base">Market Video</CardTitle>
-                    <CardDescription className="text-[10px] sm:text-xs">Pan video</CardDescription>
+                    <CardTitle className="text-xs sm:text-base">{t('dashboard.marketVideo')}</CardTitle>
+                    <CardDescription className="text-[10px] sm:text-xs">{t('dashboard.panVideo')}</CardDescription>
                   </CardHeader>
                 </Card>
 
@@ -782,8 +782,8 @@ export default function Dashboard() {
                 <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate('/media-upload?type=cleaning_video')}>
                   <CardHeader className="p-2 sm:p-4">
                     <Sparkles className="h-5 w-5 sm:h-7 sm:w-7 text-accent mb-0.5 sm:mb-1" />
-                    <CardTitle className="text-xs sm:text-base">Cleaning</CardTitle>
-                    <CardDescription className="text-[10px] sm:text-xs">Video upload</CardDescription>
+                    <CardTitle className="text-xs sm:text-base">{t('dashboard.cleaning')}</CardTitle>
+                    <CardDescription className="text-[10px] sm:text-xs">{t('dashboard.videoUpload')}</CardDescription>
                   </CardHeader>
                 </Card>
 
@@ -791,8 +791,8 @@ export default function Dashboard() {
                 <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate('/media-upload?type=customer_feedback')}>
                   <CardHeader className="p-2 sm:p-4">
                     <MessageSquare className="h-5 w-5 sm:h-7 sm:w-7 text-accent mb-0.5 sm:mb-1" />
-                    <CardTitle className="text-xs sm:text-base">Feedback</CardTitle>
-                    <CardDescription className="text-[10px] sm:text-xs">Customer video</CardDescription>
+                    <CardTitle className="text-xs sm:text-base">{t('dashboard.feedback')}</CardTitle>
+                    <CardDescription className="text-[10px] sm:text-xs">{t('dashboard.customerVideo')}</CardDescription>
                   </CardHeader>
                 </Card>
 
@@ -800,8 +800,8 @@ export default function Dashboard() {
                 <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setOffersDialog(true)}>
                   <CardHeader className="p-2 sm:p-4">
                     <FileText className="h-5 w-5 sm:h-7 sm:w-7 text-accent mb-0.5 sm:mb-1" />
-                    <CardTitle className="text-xs sm:text-base">Today's Offers</CardTitle>
-                    <CardDescription className="text-[10px] sm:text-xs">Add pricing</CardDescription>
+                    <CardTitle className="text-xs sm:text-base">{t('dashboard.todaysOffers')}</CardTitle>
+                    <CardDescription className="text-[10px] sm:text-xs">{t('dashboard.addPricing')}</CardDescription>
                   </CardHeader>
                 </Card>
 
@@ -809,8 +809,8 @@ export default function Dashboard() {
                 <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setCommoditiesDialog(true)}>
                   <CardHeader className="p-2 sm:p-4">
                     <AlertCircle className="h-5 w-5 sm:h-7 sm:w-7 text-accent mb-0.5 sm:mb-1" />
-                    <CardTitle className="text-xs sm:text-base">Non-Available</CardTitle>
-                    <CardDescription className="text-[10px] sm:text-xs">Report items</CardDescription>
+                    <CardTitle className="text-xs sm:text-base">{t('dashboard.nonAvailableShort')}</CardTitle>
+                    <CardDescription className="text-[10px] sm:text-xs">{t('dashboard.reportItems')}</CardDescription>
                   </CardHeader>
                 </Card>
 
@@ -818,8 +818,8 @@ export default function Dashboard() {
                 <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setFeedbackDialog(true)}>
                   <CardHeader className="p-2 sm:p-4">
                     <MessageSquare className="h-5 w-5 sm:h-7 sm:w-7 text-accent mb-0.5 sm:mb-1" />
-                    <CardTitle className="text-xs sm:text-base">My Feedback</CardTitle>
-                    <CardDescription className="text-[10px] sm:text-xs">Share thoughts</CardDescription>
+                    <CardTitle className="text-xs sm:text-base">{t('dashboard.myFeedback')}</CardTitle>
+                    <CardDescription className="text-[10px] sm:text-xs">{t('dashboard.shareThoughts')}</CardDescription>
                   </CardHeader>
                 </Card>
 
@@ -827,8 +827,8 @@ export default function Dashboard() {
                 <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setInspectionDialog(true)}>
                   <CardHeader className="p-2 sm:p-4">
                     <ClipboardCheck className="h-5 w-5 sm:h-7 sm:w-7 text-accent mb-0.5 sm:mb-1" />
-                    <CardTitle className="text-xs sm:text-base">Inspection</CardTitle>
-                    <CardDescription className="text-[10px] sm:text-xs">Stall check</CardDescription>
+                    <CardTitle className="text-xs sm:text-base">{t('dashboard.inspection')}</CardTitle>
+                    <CardDescription className="text-[10px] sm:text-xs">{t('dashboard.stallCheck')}</CardDescription>
                   </CardHeader>
                 </Card>
 
@@ -836,8 +836,8 @@ export default function Dashboard() {
                 <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setPlanningDialog(true)}>
                   <CardHeader className="p-2 sm:p-4">
                     <Calendar className="h-5 w-5 sm:h-7 sm:w-7 text-accent mb-0.5 sm:mb-1" />
-                    <CardTitle className="text-xs sm:text-base">Planning</CardTitle>
-                    <CardDescription className="text-[10px] sm:text-xs">Next day</CardDescription>
+                    <CardTitle className="text-xs sm:text-base">{t('dashboard.planning')}</CardTitle>
+                    <CardDescription className="text-[10px] sm:text-xs">{t('dashboard.nextDay')}</CardDescription>
                   </CardHeader>
                 </Card>
 
@@ -845,8 +845,8 @@ export default function Dashboard() {
                 <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={handleOpenCollectionSheet}>
                   <CardHeader className="p-2 sm:p-4">
                     <ExternalLink className="h-5 w-5 sm:h-7 sm:w-7 text-accent mb-0.5 sm:mb-1" />
-                    <CardTitle className="text-xs sm:text-base">Collections</CardTitle>
-                    <CardDescription className="text-[10px] sm:text-xs">Record daily</CardDescription>
+                    <CardTitle className="text-xs sm:text-base">{t('dashboard.collections')}</CardTitle>
+                    <CardDescription className="text-[10px] sm:text-xs">{t('dashboard.recordDaily')}</CardDescription>
                   </CardHeader>
                 </Card>
 
@@ -873,17 +873,17 @@ export default function Dashboard() {
 
                             if (sessionError) throw sessionError;
 
-                            toast.success('Punched out successfully! You can continue uploading tasks until midnight.');
+                            toast.success(t('dashboard.punchedOutSuccess'));
                             
                             // Refresh the session data
                             refetch();
                           } catch (error: any) {
                             console.error('Punch out error:', error);
-                            toast.error('Failed to punch out: ' + error.message);
+                            toast.error(t('dashboard.failedPunchOut') + ': ' + error.message);
                           }
                         },
                         (error) => {
-                          toast.error('Failed to get GPS location. Please enable location services.');
+                          toast.error(t('dashboard.failedGPS'));
                         },
                         { enableHighAccuracy: true, timeout: 10000 }
                       );
@@ -891,8 +891,8 @@ export default function Dashboard() {
                   >
                     <CardHeader className="p-2 sm:p-4">
                       <LogOut className="h-5 w-5 sm:h-7 sm:w-7 text-accent mb-0.5 sm:mb-1" />
-                      <CardTitle className="text-xs sm:text-base">Punch Out</CardTitle>
-                      <CardDescription className="text-[10px] sm:text-xs">Record departure</CardDescription>
+                      <CardTitle className="text-xs sm:text-base">{t('dashboard.punchOut')}</CardTitle>
+                      <CardDescription className="text-[10px] sm:text-xs">{t('dashboard.recordDeparture')}</CardDescription>
                     </CardHeader>
                   </Card>
                 )}
@@ -913,9 +913,9 @@ export default function Dashboard() {
                     <div className="flex items-center gap-2">
                       <AlertCircle className="h-5 w-5 text-destructive" />
                       <div>
-                        <CardTitle className="text-sm sm:text-base text-destructive">Session Expired</CardTitle>
+                        <CardTitle className="text-sm sm:text-base text-destructive">{t('dashboard.sessionExpired')}</CardTitle>
                         <CardDescription className="text-xs sm:text-sm text-destructive/80 mt-1">
-                          The deadline for completing tasks has passed. This session is now marked as incomplete and expired.
+                          {t('dashboard.sessionExpiredDesc')}
                         </CardDescription>
                       </div>
                     </div>
@@ -930,9 +930,9 @@ export default function Dashboard() {
                 <CardHeader>
                   <div className="flex items-center gap-2">
                     <CheckCircle className="h-5 w-5 text-success" />
-                    <CardTitle>Session Summary</CardTitle>
+                    <CardTitle>{t('dashboard.sessionSummary')}</CardTitle>
                   </div>
-                  <CardDescription>Your session has been completed and finalized</CardDescription>
+                  <CardDescription>{t('dashboard.sessionCompletedFinalized')}</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
@@ -940,25 +940,25 @@ export default function Dashboard() {
                       className="p-4 bg-muted rounded-lg cursor-pointer hover:bg-muted/80 transition-colors"
                       onClick={() => handleViewDetails('stalls')}
                     >
-                      <p className="text-sm text-muted-foreground">Stalls Confirmed</p>
+                      <p className="text-sm text-muted-foreground">{t('dashboard.stallsConfirmed')}</p>
                       <p className="text-2xl font-bold">{sessionSummary.stalls_count}</p>
                     </div>
                     <div 
                       className="p-4 bg-muted rounded-lg cursor-pointer hover:bg-muted/80 transition-colors"
                       onClick={() => handleViewDetails('media')}
                     >
-                      <p className="text-sm text-muted-foreground">Media Uploaded</p>
+                      <p className="text-sm text-muted-foreground">{t('dashboard.mediaUploaded')}</p>
                       <p className="text-2xl font-bold">{sessionSummary.media_count}</p>
                     </div>
                     <div 
                       className="p-4 bg-muted rounded-lg cursor-pointer hover:bg-muted/80 transition-colors"
                       onClick={() => handleViewDetails('late')}
                     >
-                      <p className="text-sm text-muted-foreground">Late Uploads</p>
+                      <p className="text-sm text-muted-foreground">{t('dashboard.lateUploads')}</p>
                       <p className="text-2xl font-bold text-warning">{sessionSummary.late_uploads_count}</p>
                     </div>
                     <div className="p-4 bg-muted rounded-lg">
-                      <p className="text-sm text-muted-foreground">Finalized At</p>
+                      <p className="text-sm text-muted-foreground">{t('dashboard.finalizedAt')}</p>
                       <p className="text-sm font-semibold">
                         {new Date(sessionSummary.finalized_at).toLocaleTimeString('en-IN', { 
                           hour: '2-digit', 
@@ -971,7 +971,7 @@ export default function Dashboard() {
                   {sessionSummary.first_activity_at && sessionSummary.last_activity_at && (
                     <div className="mt-4 p-3 bg-info/10 rounded-lg">
                       <p className="text-sm">
-                        <strong>Activity Period:</strong> {new Date(sessionSummary.first_activity_at).toLocaleTimeString('en-IN')} - {new Date(sessionSummary.last_activity_at).toLocaleTimeString('en-IN')} IST
+                        <strong>{t('dashboard.activityPeriod')}:</strong> {new Date(sessionSummary.first_activity_at).toLocaleTimeString('en-IN')} - {new Date(sessionSummary.last_activity_at).toLocaleTimeString('en-IN')} IST
                       </p>
                     </div>
                   )}
@@ -985,13 +985,13 @@ export default function Dashboard() {
                 <CardHeader>
                   <div className="flex items-center gap-2">
                     <AlertCircle className="h-5 w-5 text-info" />
-                    <CardTitle>Instructions</CardTitle>
+                    <CardTitle>{t('dashboard.instructions')}</CardTitle>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-2 text-sm">
-                  <p>• All tasks are saved automatically in real-time</p>
-                  <p>• Your session will be finalized when you Punch Out</p>
-                  <p>• Remember to Punch Out at the end of your shift</p>
+                  <p>{t('dashboard.instruction1')}</p>
+                  <p>{t('dashboard.instruction2')}</p>
+                  <p>{t('dashboard.instruction3')}</p>
                 </CardContent>
               </Card>
             )}
@@ -1003,7 +1003,7 @@ export default function Dashboard() {
       <Dialog open={offersDialog} onOpenChange={setOffersDialog}>
         <DialogContent className="w-screen h-screen max-w-full max-h-full overflow-y-auto p-4 sm:p-6">
           <DialogHeader>
-            <DialogTitle>Today's Offers</DialogTitle>
+            <DialogTitle>{t('dashboard.todaysOffers')}</DialogTitle>
           </DialogHeader>
           <Suspense fallback={<div className="p-6 text-center text-muted-foreground">Loading form...</div>}>
             {todaySession && (
@@ -1026,7 +1026,7 @@ export default function Dashboard() {
       <Dialog open={commoditiesDialog} onOpenChange={setCommoditiesDialog}>
         <DialogContent className="w-screen h-screen max-w-full max-h-full overflow-y-auto p-4 sm:p-6">
           <DialogHeader>
-            <DialogTitle>Non-Available Commodities</DialogTitle>
+            <DialogTitle>{t('dashboard.nonAvailable')}</DialogTitle>
           </DialogHeader>
           <Suspense fallback={<div className="p-6 text-center text-muted-foreground">Loading form...</div>}>
             {todaySession && (
@@ -1049,7 +1049,7 @@ export default function Dashboard() {
       <Dialog open={feedbackDialog} onOpenChange={setFeedbackDialog}>
         <DialogContent className="w-screen h-screen max-w-full max-h-full overflow-y-auto p-4 sm:p-6">
           <DialogHeader>
-            <DialogTitle>Organiser Feedback & Difficulties</DialogTitle>
+            <DialogTitle>{t('dashboard.organiserFeedbackDifficulties')}</DialogTitle>
           </DialogHeader>
           <Suspense fallback={<div className="p-6 text-center text-muted-foreground">Loading form...</div>}>
             {todaySession && (
@@ -1072,7 +1072,7 @@ export default function Dashboard() {
       <Dialog open={inspectionDialog} onOpenChange={setInspectionDialog}>
         <DialogContent className="w-screen h-screen max-w-full max-h-full overflow-y-auto p-4 sm:p-6">
           <DialogHeader>
-            <DialogTitle>Stall Inspection</DialogTitle>
+            <DialogTitle>{t('dashboard.stallInspection')}</DialogTitle>
           </DialogHeader>
           <Suspense fallback={<div className="p-6 text-center text-muted-foreground">Loading form...</div>}>
             {todaySession && (
@@ -1095,7 +1095,7 @@ export default function Dashboard() {
       <Dialog open={planningDialog} onOpenChange={setPlanningDialog}>
         <DialogContent className="w-screen h-screen max-w-full max-h-full overflow-y-auto p-4 sm:p-6">
           <DialogHeader>
-            <DialogTitle>Next Day Market Planning</DialogTitle>
+            <DialogTitle>{t('dashboard.nextDayMarketPlanning')}</DialogTitle>
           </DialogHeader>
           <Suspense fallback={<div className="p-6 text-center text-muted-foreground">Loading form...</div>}>
             {/* Render form when session exists OR on Monday (no session) */}
@@ -1121,11 +1121,11 @@ export default function Dashboard() {
       <Dialog open={leaveDialog} onOpenChange={setLeaveDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Request Leave</DialogTitle>
+            <DialogTitle>{t('dashboard.requestLeave')}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium" htmlFor="leave-date">Leave Date</label>
+              <label className="text-sm font-medium" htmlFor="leave-date">{t('dashboard.leaveDate')}</label>
               <input
                 id="leave-date"
                 type="date"
@@ -1135,23 +1135,23 @@ export default function Dashboard() {
               />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium" htmlFor="leave-reason">Reason</label>
+              <label className="text-sm font-medium" htmlFor="leave-reason">{t('dashboard.reason')}</label>
               <textarea
                 id="leave-reason"
                 className="border rounded-md px-3 py-2 w-full bg-background min-h-[100px]"
-                placeholder="Describe your reason"
+                placeholder={t('dashboard.describeReason')}
                 value={leaveReason}
                 onChange={(e) => setLeaveReason(e.target.value)}
               />
-              <p className="text-xs text-muted-foreground">Your request will be sent to admin for approval.</p>
+              <p className="text-xs text-muted-foreground">{t('dashboard.leaveApprovalNote')}</p>
             </div>
           </div>
           <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setLeaveDialog(false)} disabled={submittingLeave}>Cancel</Button>
+            <Button variant="outline" onClick={() => setLeaveDialog(false)} disabled={submittingLeave}>{t('common.cancel')}</Button>
             <Button
               onClick={async () => {
                 if (!leaveDate || !leaveReason.trim() || !user) {
-                  toast.error('Please select a date and enter a reason');
+                  toast.error(t('dashboard.selectDateAndReason'));
                   return;
                 }
                 setSubmittingLeave(true);
@@ -1160,20 +1160,20 @@ export default function Dashboard() {
                     .from('employee_leaves')
                     .insert({ user_id: user.id, leave_date: leaveDate, reason: leaveReason.trim(), status: 'pending' });
                   if (error) throw error;
-                  toast.success('Leave request submitted');
+                  toast.success(t('dashboard.leaveRequestSubmitted'));
                   setLeaveDialog(false);
                   setLeaveDate('');
                   setLeaveReason('');
                 } catch (err) {
                   console.error('Error submitting leave:', err);
-                  toast.error('Failed to submit leave request');
+                  toast.error(t('dashboard.failedSubmitLeave'));
                 } finally {
                   setSubmittingLeave(false);
                 }
               }}
               disabled={submittingLeave}
             >
-              {submittingLeave ? 'Submitting...' : 'Apply for Approval'}
+              {submittingLeave ? t('common.submitting') : t('dashboard.applyForApproval')}
             </Button>
           </div>
         </DialogContent>
@@ -1183,7 +1183,7 @@ export default function Dashboard() {
       <Dialog open={inspectionDialog} onOpenChange={setInspectionDialog}>
         <DialogContent className="w-screen h-screen max-w-full max-h-full overflow-y-auto p-4 sm:p-6">
           <DialogHeader>
-            <DialogTitle>Stall Inspection</DialogTitle>
+            <DialogTitle>{t('dashboard.stallInspection')}</DialogTitle>
           </DialogHeader>
           <Suspense fallback={<div className="p-6 text-center text-muted-foreground">Loading form...</div>}>
             {todaySession && (
@@ -1206,7 +1206,7 @@ export default function Dashboard() {
       <Dialog open={locationVisitDialog} onOpenChange={setLocationVisitDialog}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Market Location Visit</DialogTitle>
+            <DialogTitle>{t('dashboard.marketLocationVisit')}</DialogTitle>
           </DialogHeader>
           <Suspense fallback={<div className="p-6 text-center text-muted-foreground">Loading form...</div>}>
             <MarketLocationVisitForm />
@@ -1219,7 +1219,7 @@ export default function Dashboard() {
         <Sheet open={reimbursementDialog} onOpenChange={setReimbursementDialog}>
           <SheetContent side="bottom" className="h-[100vh] overflow-y-auto p-0">
             <SheetHeader className="p-4 border-b">
-              <SheetTitle className="text-base">Reimbursement Request</SheetTitle>
+              <SheetTitle className="text-base">{t('dashboard.reimbursementRequest')}</SheetTitle>
             </SheetHeader>
             <div className="p-4">
               <Suspense fallback={<div className="py-8 text-center text-sm text-muted-foreground">Loading form...</div>}>
@@ -1232,7 +1232,7 @@ export default function Dashboard() {
         <Dialog open={reimbursementDialog} onOpenChange={setReimbursementDialog}>
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Reimbursement Request</DialogTitle>
+              <DialogTitle>{t('dashboard.reimbursementRequest')}</DialogTitle>
             </DialogHeader>
             <Suspense fallback={<div className="p-6 text-center text-muted-foreground">Loading form...</div>}>
               <ReimbursementForm />
@@ -1246,9 +1246,9 @@ export default function Dashboard() {
         <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
-              {viewDialog === 'stalls' && 'Stall Confirmations'}
-              {viewDialog === 'media' && 'Media Uploads'}
-              {viewDialog === 'late' && 'Late Uploads'}
+              {viewDialog === 'stalls' && t('dashboard.stallConfirmations')}
+              {viewDialog === 'media' && t('dashboard.mediaUploads')}
+              {viewDialog === 'late' && t('dashboard.lateUploads')}
             </DialogTitle>
           </DialogHeader>
           
@@ -1258,17 +1258,17 @@ export default function Dashboard() {
                 <table className="w-full">
                   <thead className="bg-muted">
                     <tr>
-                      <th className="text-left p-3 text-sm font-semibold">Stall No</th>
-                      <th className="text-left p-3 text-sm font-semibold">Stall Name</th>
-                      <th className="text-left p-3 text-sm font-semibold">Farmer Name</th>
-                      <th className="text-left p-3 text-sm font-semibold">Time</th>
+                      <th className="text-left p-3 text-sm font-semibold">{t('dashboard.stallNo')}</th>
+                      <th className="text-left p-3 text-sm font-semibold">{t('dashboard.stallName')}</th>
+                      <th className="text-left p-3 text-sm font-semibold">{t('dashboard.farmerName')}</th>
+                      <th className="text-left p-3 text-sm font-semibold">{t('dashboard.time')}</th>
                     </tr>
                   </thead>
                   <tbody>
                     {dialogData.length === 0 ? (
                       <tr>
                         <td colSpan={4} className="text-center p-6 text-muted-foreground">
-                          No stall confirmations found
+                          {t('dashboard.noStallConfirmations')}
                         </td>
                       </tr>
                     ) : (
@@ -1292,7 +1292,7 @@ export default function Dashboard() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {dialogData.length === 0 ? (
                   <div className="col-span-full text-center p-6 text-muted-foreground">
-                    No media uploads found
+                    {t('dashboard.noMediaUploads')}
                   </div>
                 ) : (
                   dialogData.map((media: any) => (
