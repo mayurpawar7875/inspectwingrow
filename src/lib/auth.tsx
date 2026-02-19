@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState, useCallback } fr
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
 
 export type UserRole = 'employee' | 'admin' | 'market_manager' | 'bms_executive' | 'bdo';
 
@@ -77,6 +78,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setIsAdmin(false);
     }
   }, []);
+
+  // Safety timeout for auth loading - prevent infinite loading state
+  useEffect(() => {
+    if (!loading) return;
+    const timer = setTimeout(() => {
+      console.warn('Auth loading timed out after 15s, forcing load complete');
+      setLoading(false);
+    }, 15000);
+    return () => clearTimeout(timer);
+  }, [loading]);
 
   useEffect(() => {
     // Set up auth state listener
@@ -320,6 +331,7 @@ export function useAuth() {
 export function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
+  const [timedOut, setTimedOut] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -327,26 +339,48 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
     }
   }, [user, loading, navigate]);
 
-  if (loading) {
+  // Safety timeout to prevent infinite spinner
+  useEffect(() => {
+    if (!loading) {
+      setTimedOut(false);
+      return;
+    }
+    const timer = setTimeout(() => setTimedOut(true), 10000);
+    return () => clearTimeout(timer);
+  }, [loading]);
+
+  if (loading && !timedOut) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-4 text-muted-foreground">Loading...</p>
+          <div className="animate-pulse space-y-4 w-full max-w-md px-4">
+            <div className="h-8 bg-muted rounded w-3/4 mx-auto" />
+            <div className="h-4 bg-muted rounded w-1/2 mx-auto" />
+            <div className="grid grid-cols-2 gap-4 mt-6">
+              <div className="h-24 bg-muted rounded" />
+              <div className="h-24 bg-muted rounded" />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (timedOut) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="text-center space-y-4">
+          <p className="text-muted-foreground">Taking longer than expected...</p>
+          <Button variant="outline" onClick={() => window.location.reload()}>
+            Refresh Page
+          </Button>
         </div>
       </div>
     );
   }
 
   if (!user) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-4 text-muted-foreground">Redirecting to login...</p>
-        </div>
-      </div>
-    );
+    return null;
   }
 
   return <>{children}</>;

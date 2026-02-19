@@ -89,12 +89,26 @@ export default function Auth() {
     }
   };
 
+  // Safety timeout for waiting state
+  useEffect(() => {
+    if (!waitingForRole) return;
+    const timer = setTimeout(() => {
+      console.warn('Role loading timed out, refreshing');
+      window.location.reload();
+    }, 12000);
+    return () => clearTimeout(timer);
+  }, [waitingForRole]);
+
   if (authLoading || waitingForRole) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background p-4">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-4 text-muted-foreground">
+        <div className="text-center space-y-4">
+          <div className="space-y-3 w-64 mx-auto">
+            <div className="h-24 w-24 bg-muted rounded-full mx-auto animate-pulse" />
+            <div className="h-6 bg-muted rounded animate-pulse" />
+            <div className="h-4 bg-muted rounded w-3/4 mx-auto animate-pulse" />
+          </div>
+          <p className="mt-4 text-sm text-muted-foreground">
             {waitingForRole ? t('common.signingIn') : t('common.loading')}
           </p>
         </div>
