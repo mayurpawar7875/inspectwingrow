@@ -21,7 +21,11 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const t = useCallback((key: string): string => {
-    return translations[language][key] || translations['en'][key] || key;
+    const value = translations[language][key] || translations['en'][key];
+    if (!value && import.meta.env.DEV) {
+      console.warn(`[i18n] Missing translation key: "${key}" for language: "${language}"`);
+    }
+    return value || key;
   }, [language]);
 
   return (
