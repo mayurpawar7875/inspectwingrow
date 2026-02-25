@@ -1,5 +1,5 @@
 import { useEffect, useState, lazy, Suspense, useMemo, useCallback, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/lib/auth';
 import { supabase } from '@/integrations/supabase/client';
 import { useDashboardData } from '@/hooks/useDashboardData';
@@ -60,6 +60,8 @@ export default function Dashboard() {
   const { user, signOut, currentRole, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
+  const [searchParams] = useSearchParams();
+  const isOrganiserMode = searchParams.get('as') === 'organiser';
   const { t } = useLanguage();
   
   // Use centralized data hook with caching
@@ -124,7 +126,7 @@ export default function Dashboard() {
       navigate('/admin');
       return;
     }
-    if (currentRole === 'market_manager') {
+    if (currentRole === 'market_manager' && !isOrganiserMode) {
       navigate('/manager-dashboard');
       return;
     }
@@ -327,7 +329,7 @@ export default function Dashboard() {
   }
 
   // Don't render if we're redirecting to another dashboard
-  if (currentRole === 'admin' || currentRole === 'market_manager' || currentRole === 'bdo') {
+  if (currentRole === 'admin' || (currentRole === 'market_manager' && !isOrganiserMode) || currentRole === 'bdo') {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <div className="text-center">
@@ -345,7 +347,14 @@ export default function Dashboard() {
         <div className="container mx-auto px-2 sm:px-4 py-2 sm:py-4">
           <div className="flex justify-between items-center gap-2 mb-1.5 sm:mb-0">
             <div className="flex-1 min-w-0">
-              <h1 className="text-xs sm:text-2xl font-bold text-foreground">{t('dashboard.title')}</h1>
+              {isOrganiserMode && (
+                <Button variant="ghost" size="sm" className="h-6 px-1 sm:h-8 sm:px-2 mb-1 -ml-1 text-xs" onClick={() => navigate('/manager-dashboard')}>
+                  ← Back to Manager Dashboard
+                </Button>
+              )}
+              <h1 className="text-xs sm:text-2xl font-bold text-foreground">
+                {isOrganiserMode ? 'Organiser Dashboard' : t('dashboard.title')}
+              </h1>
               <p className="text-[10px] sm:text-sm text-muted-foreground truncate">{user?.email}</p>
             </div>
             <div className="flex gap-1 sm:gap-2 flex-shrink-0">

@@ -3,9 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/lib/auth';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { LogOut, CheckCircle2, History, CalendarCheck } from 'lucide-react';
+import { LogOut, CheckCircle2, History, CalendarCheck, MapPin } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { MobileBottomNav } from '@/components/MobileBottomNav';
 import { SessionSelector } from '@/components/market-manager/SessionSelector';
@@ -270,6 +271,7 @@ export default function MarketManagerDashboard() {
         <Tabs defaultValue="my-tasks">
           <TabsList className="mb-4">
             <TabsTrigger value="my-tasks">{t('mm.tasks')}</TabsTrigger>
+            <TabsTrigger value="organiser">Organiser Session</TabsTrigger>
             <TabsTrigger value="live-markets">Live Markets Today</TabsTrigger>
           </TabsList>
 
@@ -315,6 +317,27 @@ export default function MarketManagerDashboard() {
                 </Dialog>
               </div>
             )}
+          </TabsContent>
+
+          <TabsContent value="organiser">
+            <Card>
+              <CardContent className="pt-6">
+                <div className="text-center space-y-4">
+                  <div className="p-3 bg-accent/10 rounded-full w-fit mx-auto">
+                    <MapPin className="h-8 w-8 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold">Start Organiser Session</h3>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Select a market and complete organiser tasks like stall confirmations, media uploads, and more.
+                    </p>
+                  </div>
+                  <Button onClick={() => navigate('/market-selection?as=organiser')} className="w-full max-w-xs">
+                    Select Market & Start
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
           </TabsContent>
 
           <TabsContent value="live-markets">

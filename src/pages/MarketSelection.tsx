@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/lib/auth';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -18,6 +18,8 @@ interface Market {
 export default function MarketSelection() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const isOrganiserMode = searchParams.get('as') === 'organiser';
   const [markets, setMarkets] = useState<Market[]>([]);
   const [selectedMarket, setSelectedMarket] = useState<string>('');
   const [loading, setLoading] = useState(false);
@@ -137,7 +139,7 @@ export default function MarketSelection() {
       if (error) throw error;
 
       toast.success('Session created successfully!');
-      navigate('/dashboard');
+      navigate(isOrganiserMode ? '/dashboard?as=organiser' : '/dashboard');
     } catch (error: any) {
       if (error.code === '23505') {
         toast.error('You already have a session for today');
@@ -154,9 +156,9 @@ export default function MarketSelection() {
     <div className="min-h-screen bg-background">
       <header className="border-b bg-card">
         <div className="container mx-auto px-4 py-4">
-          <Button variant="ghost" onClick={() => navigate('/dashboard')}>
+          <Button variant="ghost" onClick={() => navigate(isOrganiserMode ? '/manager-dashboard' : '/dashboard')}>
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Dashboard
+            {isOrganiserMode ? 'Back to Manager Dashboard' : 'Back to Dashboard'}
           </Button>
         </div>
       </header>
