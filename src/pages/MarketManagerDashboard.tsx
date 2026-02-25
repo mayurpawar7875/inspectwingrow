@@ -25,6 +25,7 @@ import LiveMarketsSection from '@/components/LiveMarketsSection';
 
 const MarketLocationVisitForm = lazy(() => import('@/components/MarketLocationVisitForm'));
 import { BMSAdvanceRequestTab } from '@/components/bms/BMSAdvanceRequestTab';
+import { BMSAssetRequestTab } from '@/components/bms/BMSAssetRequestTab';
 
 const TASK_KEYS = [
   { id: 1, key: 'mm.employeeAllocation', completed: false },
@@ -298,9 +299,10 @@ export default function MarketManagerDashboard() {
 
       <main className="container mx-auto px-3 py-4 md:px-4 md:py-8">
         <Tabs defaultValue="my-tasks">
-          <TabsList className="mb-3 md:mb-4 w-full grid grid-cols-3">
+          <TabsList className="mb-3 md:mb-4 w-full grid grid-cols-4">
             <TabsTrigger value="my-tasks" className="text-xs md:text-sm">{t('mm.tasks')}</TabsTrigger>
             <TabsTrigger value="organiser" className="text-xs md:text-sm">Organiser</TabsTrigger>
+            <TabsTrigger value="assets" className="text-xs md:text-sm">Assets</TabsTrigger>
             <TabsTrigger value="live-markets" className="text-xs md:text-sm">Live Markets</TabsTrigger>
           </TabsList>
 
@@ -367,6 +369,10 @@ export default function MarketManagerDashboard() {
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="assets">
+            <BMSAssetRequestTab />
           </TabsContent>
 
           <TabsContent value="live-markets">
