@@ -1,15 +1,18 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { Button } from "@/components/ui/button";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { Download } from "lucide-react";
 import wingrowLogo from "@/assets/wingrow-logo-optimized.png";
 
 const Index = () => {
   const { user, currentRole, loading } = useAuth();
   const navigate = useNavigate();
   const { t } = useLanguage();
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [isInstalled, setIsInstalled] = useState(false);
 
   useEffect(() => {
     if (loading) return;
@@ -20,6 +23,30 @@ const Index = () => {
       else navigate("/dashboard");
     }
   }, [user, currentRole, loading, navigate]);
+
+  useEffect(() => {
+    if (window.matchMedia('(display-mode: standalone)').matches) {
+      setIsInstalled(true);
+    }
+    const handler = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+    window.addEventListener('beforeinstallprompt', handler);
+    window.addEventListener('appinstalled', () => setIsInstalled(true));
+    return () => window.removeEventListener('beforeinstallprompt', handler);
+  }, []);
+
+  const handleInstall = async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === 'accepted') setIsInstalled(true);
+      setDeferredPrompt(null);
+    } else {
+      navigate('/install');
+    }
+  };
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
@@ -44,9 +71,17 @@ const Index = () => {
         <p className="text-base sm:text-lg md:text-xl text-muted-foreground max-w-md px-4">
           {t('app.tagline')}
         </p>
-        <Button size="lg" onClick={() => navigate("/auth")}>
-          {t('landing.getStarted')}
-        </Button>
+        <div className="flex flex-col gap-3 items-center">
+          <Button size="lg" onClick={() => navigate("/auth")}>
+            {t('landing.getStarted')}
+          </Button>
+          {!isInstalled && (
+            <Button variant="outline" size="sm" onClick={handleInstall} className="gap-2">
+              <Download className="h-4 w-4" />
+              Install App
+            </Button>
+          )}
+        </div>
       </div>
     </div>
   );
