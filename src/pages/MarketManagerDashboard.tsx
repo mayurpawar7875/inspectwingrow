@@ -382,30 +382,13 @@ export default function MarketManagerDashboard() {
         </Tabs>
       </main>
 
-      {/* Mobile action bar - above bottom nav */}
-      <div className="fixed bottom-16 left-0 right-0 z-40 bg-card border-t border-border md:hidden">
-        <div className="flex items-center justify-around h-12 px-2">
-          <button onClick={() => setLeaveDialog(true)} className="flex flex-col items-center justify-center flex-1 h-full py-1 text-muted-foreground hover:text-foreground transition-colors">
-            <Umbrella className="h-4 w-4" />
-            <span className="text-[9px] mt-0.5 font-medium">Leave</span>
-          </button>
-          <button onClick={() => setAssetRequestDialog(true)} className="flex flex-col items-center justify-center flex-1 h-full py-1 text-muted-foreground hover:text-foreground transition-colors">
-            <Package className="h-4 w-4" />
-            <span className="text-[9px] mt-0.5 font-medium">Assets</span>
-          </button>
-          <button onClick={() => setAdvanceDialog(true)} className="flex flex-col items-center justify-center flex-1 h-full py-1 text-muted-foreground hover:text-foreground transition-colors">
-            <Wallet className="h-4 w-4" />
-            <span className="text-[9px] mt-0.5 font-medium">Advance</span>
-          </button>
-          <button onClick={() => setLocationVisitDialog(true)} className="flex flex-col items-center justify-center flex-1 h-full py-1 text-muted-foreground hover:text-foreground transition-colors">
-            <MapPin className="h-4 w-4" />
-            <span className="text-[9px] mt-0.5 font-medium">Location</span>
-          </button>
-        </div>
-      </div>
-
-      <MobileBottomNav />
-      <div className="h-32 md:h-0" />
+      <MobileBottomNav onAction={(action) => {
+        if (action === 'leave') setLeaveDialog(true);
+        else if (action === 'assets') setAssetRequestDialog(true);
+        else if (action === 'advance') setAdvanceDialog(true);
+        else if (action === 'location') setLocationVisitDialog(true);
+      }} />
+      <div className="h-20 md:hidden" />
 
       {/* Leave Request Dialog */}
       <Dialog open={leaveDialog} onOpenChange={setLeaveDialog}>
