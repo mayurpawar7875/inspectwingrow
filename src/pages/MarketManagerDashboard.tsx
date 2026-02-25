@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { LogOut, CheckCircle2, History, CalendarCheck } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { MobileBottomNav } from '@/components/MobileBottomNav';
 import { SessionSelector } from '@/components/market-manager/SessionSelector';
 import { EmployeeAllocationForm } from '@/components/market-manager/EmployeeAllocationForm';
@@ -265,51 +266,61 @@ export default function MarketManagerDashboard() {
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-8 space-y-6">
-        {/* Live Markets Widget - always visible for monitoring */}
-        <LiveMarketsSection />
+      <main className="container mx-auto px-4 py-8">
+        <Tabs defaultValue="my-tasks">
+          <TabsList className="mb-4">
+            <TabsTrigger value="my-tasks">{t('mm.tasks')}</TabsTrigger>
+            <TabsTrigger value="live-markets">Live Markets Today</TabsTrigger>
+          </TabsList>
 
-        {!sessionId ? (
-          <SessionSelector onSessionCreate={handleSessionCreate} />
-        ) : (
-          <div className="space-y-2">
-            <h2 className="text-lg font-semibold mb-4">{t('mm.tasks')}</h2>
-            {TASK_KEYS.map((task) => (
-              <button
-                key={task.id}
-                onClick={() => setOpenDialog(task.id)}
-                className={`w-full text-left p-3 rounded-lg border transition-colors ${
-                  completedTasks.includes(task.id)
-                    ? 'bg-muted border-muted'
-                    : 'bg-card border-border hover:bg-muted'
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium">{t(task.key)}</span>
-                    {taskCounts[task.id] > 0 && (
-                      <span className="text-xs bg-primary text-primary-foreground px-2 py-0.5 rounded-full">
-                        {taskCounts[task.id]}
-                      </span>
-                    )}
-                  </div>
-                  {completedTasks.includes(task.id) && (
-                    <CheckCircle2 className="h-4 w-4 text-green-500" />
-                  )}
-                </div>
-              </button>
-            ))}
+          <TabsContent value="my-tasks">
+            {!sessionId ? (
+              <SessionSelector onSessionCreate={handleSessionCreate} />
+            ) : (
+              <div className="space-y-2">
+                <h2 className="text-lg font-semibold mb-4">{t('mm.tasks')}</h2>
+                {TASK_KEYS.map((task) => (
+                  <button
+                    key={task.id}
+                    onClick={() => setOpenDialog(task.id)}
+                    className={`w-full text-left p-3 rounded-lg border transition-colors ${
+                      completedTasks.includes(task.id)
+                        ? 'bg-muted border-muted'
+                        : 'bg-card border-border hover:bg-muted'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium">{t(task.key)}</span>
+                        {taskCounts[task.id] > 0 && (
+                          <span className="text-xs bg-primary text-primary-foreground px-2 py-0.5 rounded-full">
+                            {taskCounts[task.id]}
+                          </span>
+                        )}
+                      </div>
+                      {completedTasks.includes(task.id) && (
+                        <CheckCircle2 className="h-4 w-4 text-green-500" />
+                      )}
+                    </div>
+                  </button>
+                ))}
 
-            <Dialog open={openDialog !== null} onOpenChange={(open) => !open && setOpenDialog(null)}>
-              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-                <DialogHeader>
-                  <DialogTitle>{TASK_KEYS.find(tk => tk.id === openDialog) ? t(TASK_KEYS.find(tk => tk.id === openDialog)!.key) : ''}</DialogTitle>
-                </DialogHeader>
-                {openDialog !== null && renderTaskForm(openDialog)}
-              </DialogContent>
-            </Dialog>
-          </div>
-        )}
+                <Dialog open={openDialog !== null} onOpenChange={(open) => !open && setOpenDialog(null)}>
+                  <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                    <DialogHeader>
+                      <DialogTitle>{TASK_KEYS.find(tk => tk.id === openDialog) ? t(TASK_KEYS.find(tk => tk.id === openDialog)!.key) : ''}</DialogTitle>
+                    </DialogHeader>
+                    {openDialog !== null && renderTaskForm(openDialog)}
+                  </DialogContent>
+                </Dialog>
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="live-markets">
+            <LiveMarketsSection />
+          </TabsContent>
+        </Tabs>
       </main>
       <MobileBottomNav />
       <div className="h-16 md:hidden" /> {/* Spacer for bottom nav */}
