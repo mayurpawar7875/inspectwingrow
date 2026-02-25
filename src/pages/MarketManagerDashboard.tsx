@@ -272,29 +272,29 @@ export default function MarketManagerDashboard() {
               </Button>
             </div>
           </div>
-          {/* Action buttons - icon only on mobile, with labels on desktop */}
-          <div className="flex gap-1.5 md:gap-2 mt-2">
-            <Button variant="outline" size="icon" className="h-8 w-8 md:h-9 md:w-auto md:px-3" onClick={() => setLeaveDialog(true)} title={t('dashboard.requestLeave')}>
-              <Umbrella className="h-4 w-4 md:mr-2" />
-              <span className="hidden md:inline text-sm">{t('dashboard.requestLeave')}</span>
+          {/* Action buttons - desktop only in header */}
+          <div className="hidden md:flex gap-2 mt-2">
+            <Button variant="outline" size="sm" className="text-sm h-9 px-3" onClick={() => setLeaveDialog(true)}>
+              <Umbrella className="h-4 w-4 mr-2" />
+              {t('dashboard.requestLeave')}
             </Button>
-            <Button variant="outline" size="icon" className="h-8 w-8 md:h-9 md:w-auto md:px-3" onClick={() => setAssetRequestDialog(true)} title="Assets">
-              <Package className="h-4 w-4 md:mr-2" />
-              <span className="hidden md:inline text-sm">Assets</span>
+            <Button variant="outline" size="sm" className="text-sm h-9 px-3" onClick={() => setAssetRequestDialog(true)}>
+              <Package className="h-4 w-4 mr-2" />
+              Assets
             </Button>
-            <Button variant="outline" size="icon" className="h-8 w-8 md:h-9 md:w-auto md:px-3" onClick={() => setAdvanceDialog(true)} title="Advance">
-              <Wallet className="h-4 w-4 md:mr-2" />
-              <span className="hidden md:inline text-sm">Advance</span>
+            <Button variant="outline" size="sm" className="text-sm h-9 px-3" onClick={() => setAdvanceDialog(true)}>
+              <Wallet className="h-4 w-4 mr-2" />
+              Advance
             </Button>
-            <Button variant="outline" size="icon" className="h-8 w-8 md:h-9 md:w-auto md:px-3" onClick={() => setLocationVisitDialog(true)} title={t('dashboard.locationVisit')}>
-              <MapPin className="h-4 w-4 md:mr-2" />
-              <span className="hidden md:inline text-sm">{t('dashboard.locationVisit')}</span>
+            <Button variant="outline" size="sm" className="text-sm h-9 px-3" onClick={() => setLocationVisitDialog(true)}>
+              <MapPin className="h-4 w-4 mr-2" />
+              {t('dashboard.locationVisit')}
             </Button>
-            <Button variant="outline" size="sm" className="text-sm shrink-0 h-9 px-3 hidden md:inline-flex" onClick={() => navigate('/my-attendance')}>
+            <Button variant="outline" size="sm" className="text-sm h-9 px-3" onClick={() => navigate('/my-attendance')}>
               <CalendarCheck className="h-4 w-4 mr-2" />
               {t('dashboard.attendance')}
             </Button>
-            <Button variant="outline" size="sm" className="text-sm shrink-0 h-9 px-3 hidden md:inline-flex" onClick={() => navigate('/my-manager-sessions')}>
+            <Button variant="outline" size="sm" className="text-sm h-9 px-3" onClick={() => navigate('/my-manager-sessions')}>
               <History className="h-4 w-4 mr-2" />
               {t('dashboard.mySessions')}
             </Button>
@@ -381,8 +381,31 @@ export default function MarketManagerDashboard() {
           </TabsContent>
         </Tabs>
       </main>
+
+      {/* Mobile action bar - above bottom nav */}
+      <div className="fixed bottom-16 left-0 right-0 z-40 bg-card border-t border-border md:hidden">
+        <div className="flex items-center justify-around h-12 px-2">
+          <button onClick={() => setLeaveDialog(true)} className="flex flex-col items-center justify-center flex-1 h-full py-1 text-muted-foreground hover:text-foreground transition-colors">
+            <Umbrella className="h-4 w-4" />
+            <span className="text-[9px] mt-0.5 font-medium">Leave</span>
+          </button>
+          <button onClick={() => setAssetRequestDialog(true)} className="flex flex-col items-center justify-center flex-1 h-full py-1 text-muted-foreground hover:text-foreground transition-colors">
+            <Package className="h-4 w-4" />
+            <span className="text-[9px] mt-0.5 font-medium">Assets</span>
+          </button>
+          <button onClick={() => setAdvanceDialog(true)} className="flex flex-col items-center justify-center flex-1 h-full py-1 text-muted-foreground hover:text-foreground transition-colors">
+            <Wallet className="h-4 w-4" />
+            <span className="text-[9px] mt-0.5 font-medium">Advance</span>
+          </button>
+          <button onClick={() => setLocationVisitDialog(true)} className="flex flex-col items-center justify-center flex-1 h-full py-1 text-muted-foreground hover:text-foreground transition-colors">
+            <MapPin className="h-4 w-4" />
+            <span className="text-[9px] mt-0.5 font-medium">Location</span>
+          </button>
+        </div>
+      </div>
+
       <MobileBottomNav />
-      <div className="h-20 md:hidden" />
+      <div className="h-32 md:h-0" />
 
       {/* Leave Request Dialog */}
       <Dialog open={leaveDialog} onOpenChange={setLeaveDialog}>
