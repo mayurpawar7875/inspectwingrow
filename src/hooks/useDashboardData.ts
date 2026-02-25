@@ -39,7 +39,10 @@ interface Session {
 
 const getISTDateString = (date: Date): string => {
   const istDate = new Date(date.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
-  return istDate.toISOString().split('T')[0];
+  const y = istDate.getFullYear();
+  const m = String(istDate.getMonth() + 1).padStart(2, '0');
+  const d = String(istDate.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
 };
 
 async function fetchDashboardData(userId: string) {
