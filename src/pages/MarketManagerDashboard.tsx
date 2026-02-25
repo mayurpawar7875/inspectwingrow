@@ -253,85 +253,93 @@ export default function MarketManagerDashboard() {
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b bg-card">
-        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <div>
-            <h1 className="text-2xl font-bold">{t('mm.title')}</h1>
-            <p className="text-sm text-muted-foreground">{user?.email}</p>
+        <div className="container mx-auto px-3 py-3 md:px-4 md:py-4">
+          <div className="flex justify-between items-center">
+            <div className="min-w-0">
+              <h1 className="text-lg md:text-2xl font-bold truncate">{t('mm.title')}</h1>
+              <p className="text-xs md:text-sm text-muted-foreground truncate">{user?.email}</p>
+            </div>
+            <div className="flex items-center gap-1 md:gap-2 shrink-0">
+              <LanguageSwitcher variant="ghost" />
+              <Button variant="outline" size="icon" className="h-8 w-8 md:hidden" onClick={handleSignOut}>
+                <LogOut className="h-4 w-4" />
+              </Button>
+              <Button variant="outline" size="sm" className="hidden md:inline-flex" onClick={handleSignOut}>
+                <LogOut className="h-4 w-4 mr-2" />
+                {t('common.signOut')}
+              </Button>
+            </div>
           </div>
-          <div className="flex gap-2">
-            <LanguageSwitcher variant="ghost" />
-            <Button variant="outline" size="sm" onClick={() => setLeaveDialog(true)}>
-              <Umbrella className="h-4 w-4 mr-2" />
+          {/* Action buttons - scrollable on mobile */}
+          <div className="flex gap-1.5 md:gap-2 mt-2 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-none">
+            <Button variant="outline" size="sm" className="text-xs md:text-sm shrink-0 h-7 md:h-9 px-2 md:px-3" onClick={() => setLeaveDialog(true)}>
+              <Umbrella className="h-3.5 w-3.5 md:h-4 md:w-4 mr-1 md:mr-2" />
               {t('dashboard.requestLeave')}
             </Button>
-            <Button variant="outline" size="sm" onClick={() => setAdvanceDialog(true)}>
-              <Wallet className="h-4 w-4 mr-2" />
-              Request Advance
+            <Button variant="outline" size="sm" className="text-xs md:text-sm shrink-0 h-7 md:h-9 px-2 md:px-3" onClick={() => setAdvanceDialog(true)}>
+              <Wallet className="h-3.5 w-3.5 md:h-4 md:w-4 mr-1 md:mr-2" />
+              Advance
             </Button>
-            <Button variant="outline" size="sm" onClick={() => setLocationVisitDialog(true)}>
-              <MapPin className="h-4 w-4 mr-2" />
+            <Button variant="outline" size="sm" className="text-xs md:text-sm shrink-0 h-7 md:h-9 px-2 md:px-3" onClick={() => setLocationVisitDialog(true)}>
+              <MapPin className="h-3.5 w-3.5 md:h-4 md:w-4 mr-1 md:mr-2" />
               {t('dashboard.locationVisit')}
             </Button>
-            <Button variant="outline" size="sm" onClick={() => navigate('/my-attendance')}>
+            <Button variant="outline" size="sm" className="text-xs md:text-sm shrink-0 h-7 md:h-9 px-2 md:px-3 hidden md:inline-flex" onClick={() => navigate('/my-attendance')}>
               <CalendarCheck className="h-4 w-4 mr-2" />
               {t('dashboard.attendance')}
             </Button>
-            <Button variant="outline" size="sm" onClick={() => navigate('/my-manager-sessions')}>
+            <Button variant="outline" size="sm" className="text-xs md:text-sm shrink-0 h-7 md:h-9 px-2 md:px-3 hidden md:inline-flex" onClick={() => navigate('/my-manager-sessions')}>
               <History className="h-4 w-4 mr-2" />
               {t('dashboard.mySessions')}
-            </Button>
-            <Button variant="outline" size="sm" onClick={handleSignOut}>
-              <LogOut className="h-4 w-4 mr-2" />
-              {t('common.signOut')}
             </Button>
           </div>
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-3 py-4 md:px-4 md:py-8">
         <Tabs defaultValue="my-tasks">
-          <TabsList className="mb-4">
-            <TabsTrigger value="my-tasks">{t('mm.tasks')}</TabsTrigger>
-            <TabsTrigger value="organiser">Organiser Session</TabsTrigger>
-            <TabsTrigger value="live-markets">Live Markets Today</TabsTrigger>
+          <TabsList className="mb-3 md:mb-4 w-full grid grid-cols-3">
+            <TabsTrigger value="my-tasks" className="text-xs md:text-sm">{t('mm.tasks')}</TabsTrigger>
+            <TabsTrigger value="organiser" className="text-xs md:text-sm">Organiser</TabsTrigger>
+            <TabsTrigger value="live-markets" className="text-xs md:text-sm">Live Markets</TabsTrigger>
           </TabsList>
 
           <TabsContent value="my-tasks">
             {!sessionId ? (
               <SessionSelector onSessionCreate={handleSessionCreate} />
             ) : (
-              <div className="space-y-2">
-                <h2 className="text-lg font-semibold mb-4">{t('mm.tasks')}</h2>
+              <div className="space-y-1.5 md:space-y-2">
+                <h2 className="text-sm md:text-lg font-semibold mb-2 md:mb-4">{t('mm.tasks')}</h2>
                 {TASK_KEYS.map((task) => (
                   <button
                     key={task.id}
                     onClick={() => setOpenDialog(task.id)}
-                    className={`w-full text-left p-3 rounded-lg border transition-colors ${
+                    className={`w-full text-left p-2.5 md:p-3 rounded-lg border transition-colors ${
                       completedTasks.includes(task.id)
                         ? 'bg-muted border-muted'
                         : 'bg-card border-border hover:bg-muted'
                     }`}
                   >
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium">{t(task.key)}</span>
+                      <div className="flex items-center gap-1.5 md:gap-2">
+                        <span className="text-xs md:text-sm font-medium">{t(task.key)}</span>
                         {taskCounts[task.id] > 0 && (
-                          <span className="text-xs bg-primary text-primary-foreground px-2 py-0.5 rounded-full">
+                          <span className="text-[10px] md:text-xs bg-primary text-primary-foreground px-1.5 md:px-2 py-0.5 rounded-full">
                             {taskCounts[task.id]}
                           </span>
                         )}
                       </div>
                       {completedTasks.includes(task.id) && (
-                        <CheckCircle2 className="h-4 w-4 text-green-500" />
+                        <CheckCircle2 className="h-3.5 w-3.5 md:h-4 md:w-4 text-green-500" />
                       )}
                     </div>
                   </button>
                 ))}
 
                 <Dialog open={openDialog !== null} onOpenChange={(open) => !open && setOpenDialog(null)}>
-                  <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                  <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto w-[95vw] md:w-auto">
                     <DialogHeader>
-                      <DialogTitle>{TASK_KEYS.find(tk => tk.id === openDialog) ? t(TASK_KEYS.find(tk => tk.id === openDialog)!.key) : ''}</DialogTitle>
+                      <DialogTitle className="text-sm md:text-lg">{TASK_KEYS.find(tk => tk.id === openDialog) ? t(TASK_KEYS.find(tk => tk.id === openDialog)!.key) : ''}</DialogTitle>
                     </DialogHeader>
                     {openDialog !== null && renderTaskForm(openDialog)}
                   </DialogContent>
@@ -342,18 +350,18 @@ export default function MarketManagerDashboard() {
 
           <TabsContent value="organiser">
             <Card>
-              <CardContent className="pt-6">
-                <div className="text-center space-y-4">
-                  <div className="p-3 bg-accent/10 rounded-full w-fit mx-auto">
-                    <MapPin className="h-8 w-8 text-primary" />
+              <CardContent className="pt-4 md:pt-6">
+                <div className="text-center space-y-3 md:space-y-4">
+                  <div className="p-2.5 md:p-3 bg-accent/10 rounded-full w-fit mx-auto">
+                    <MapPin className="h-6 w-6 md:h-8 md:w-8 text-primary" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-semibold">Start Organiser Session</h3>
-                    <p className="text-sm text-muted-foreground mt-1">
+                    <h3 className="text-sm md:text-lg font-semibold">Start Organiser Session</h3>
+                    <p className="text-xs md:text-sm text-muted-foreground mt-1">
                       Select a market and complete organiser tasks like stall confirmations, media uploads, and more.
                     </p>
                   </div>
-                  <Button onClick={() => navigate('/market-selection?as=organiser')} className="w-full max-w-xs">
+                  <Button onClick={() => navigate('/market-selection?as=organiser')} className="w-full max-w-xs text-xs md:text-sm">
                     Select Market & Start
                   </Button>
                 </div>
@@ -367,7 +375,7 @@ export default function MarketManagerDashboard() {
         </Tabs>
       </main>
       <MobileBottomNav />
-      <div className="h-16 md:hidden" />
+      <div className="h-20 md:hidden" />
 
       {/* Leave Request Dialog */}
       <Dialog open={leaveDialog} onOpenChange={setLeaveDialog}>
