@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { LogOut, CheckCircle2, History, CalendarCheck, MapPin, Umbrella, Wallet } from 'lucide-react';
+import { LogOut, CheckCircle2, History, CalendarCheck, MapPin, Umbrella, Wallet, Package } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { MobileBottomNav } from '@/components/MobileBottomNav';
 import { SessionSelector } from '@/components/market-manager/SessionSelector';
@@ -53,6 +53,7 @@ export default function MarketManagerDashboard() {
   const [submittingLeave, setSubmittingLeave] = useState(false);
   const [locationVisitDialog, setLocationVisitDialog] = useState(false);
   const [advanceDialog, setAdvanceDialog] = useState(false);
+  const [assetRequestDialog, setAssetRequestDialog] = useState(false);
 
   useEffect(() => {
     if (authLoading) return;
@@ -277,6 +278,10 @@ export default function MarketManagerDashboard() {
               <Umbrella className="h-3.5 w-3.5 md:h-4 md:w-4 mr-1 md:mr-2" />
               {t('dashboard.requestLeave')}
             </Button>
+            <Button variant="outline" size="sm" className="text-xs md:text-sm shrink-0 h-7 md:h-9 px-2 md:px-3" onClick={() => setAssetRequestDialog(true)}>
+              <Package className="h-3.5 w-3.5 md:h-4 md:w-4 mr-1 md:mr-2" />
+              Assets
+            </Button>
             <Button variant="outline" size="sm" className="text-xs md:text-sm shrink-0 h-7 md:h-9 px-2 md:px-3" onClick={() => setAdvanceDialog(true)}>
               <Wallet className="h-3.5 w-3.5 md:h-4 md:w-4 mr-1 md:mr-2" />
               Advance
@@ -299,10 +304,9 @@ export default function MarketManagerDashboard() {
 
       <main className="container mx-auto px-3 py-4 md:px-4 md:py-8">
         <Tabs defaultValue="my-tasks">
-          <TabsList className="mb-3 md:mb-4 w-full grid grid-cols-4">
+          <TabsList className="mb-3 md:mb-4 w-full grid grid-cols-3">
             <TabsTrigger value="my-tasks" className="text-xs md:text-sm">{t('mm.tasks')}</TabsTrigger>
             <TabsTrigger value="organiser" className="text-xs md:text-sm">Organiser</TabsTrigger>
-            <TabsTrigger value="assets" className="text-xs md:text-sm">Assets</TabsTrigger>
             <TabsTrigger value="live-markets" className="text-xs md:text-sm">Live Markets</TabsTrigger>
           </TabsList>
 
@@ -371,9 +375,6 @@ export default function MarketManagerDashboard() {
             </Card>
           </TabsContent>
 
-          <TabsContent value="assets">
-            <BMSAssetRequestTab />
-          </TabsContent>
 
           <TabsContent value="live-markets">
             <LiveMarketsSection />
@@ -464,6 +465,16 @@ export default function MarketManagerDashboard() {
             <DialogTitle>Advance Requests</DialogTitle>
           </DialogHeader>
           <BMSAdvanceRequestTab />
+        </DialogContent>
+      </Dialog>
+
+      {/* Asset Request Dialog */}
+      <Dialog open={assetRequestDialog} onOpenChange={setAssetRequestDialog}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto w-[95vw] md:w-auto">
+          <DialogHeader>
+            <DialogTitle className="text-sm md:text-lg">Asset Requests</DialogTitle>
+          </DialogHeader>
+          <BMSAssetRequestTab />
         </DialogContent>
       </Dialog>
     </div>
