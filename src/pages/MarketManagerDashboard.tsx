@@ -19,6 +19,7 @@ import { InspectionUpdateForm } from '@/components/market-manager/InspectionUpda
 import { PunchOutForm } from '@/components/market-manager/PunchOutForm';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { useLanguage } from '@/contexts/LanguageContext';
+import LiveMarketsWidget from '@/components/admin/LiveMarketsWidget';
 
 const TASK_KEYS = [
   { id: 1, key: 'mm.employeeAllocation', completed: false },
@@ -264,7 +265,10 @@ export default function MarketManagerDashboard() {
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-4 py-8 space-y-6">
+        {/* Live Markets Widget - always visible for monitoring */}
+        <LiveMarketsWidget />
+
         {!sessionId ? (
           <SessionSelector onSessionCreate={handleSessionCreate} />
         ) : (
@@ -296,7 +300,6 @@ export default function MarketManagerDashboard() {
               </button>
             ))}
 
-            {/* Single Dialog outside the map to prevent re-mounting on re-renders */}
             <Dialog open={openDialog !== null} onOpenChange={(open) => !open && setOpenDialog(null)}>
               <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
