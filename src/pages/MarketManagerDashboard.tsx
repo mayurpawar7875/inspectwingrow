@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, lazy, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/lib/auth';
 import { supabase } from '@/integrations/supabase/client';
@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { LogOut, CheckCircle2, History, CalendarCheck, MapPin } from 'lucide-react';
+import { LogOut, CheckCircle2, History, CalendarCheck, MapPin, Umbrella, Wallet } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { MobileBottomNav } from '@/components/MobileBottomNav';
 import { SessionSelector } from '@/components/market-manager/SessionSelector';
@@ -22,6 +22,9 @@ import { PunchOutForm } from '@/components/market-manager/PunchOutForm';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { useLanguage } from '@/contexts/LanguageContext';
 import LiveMarketsSection from '@/components/LiveMarketsSection';
+
+const MarketLocationVisitForm = lazy(() => import('@/components/MarketLocationVisitForm'));
+import { BMSAdvanceRequestTab } from '@/components/bms/BMSAdvanceRequestTab';
 
 const TASK_KEYS = [
   { id: 1, key: 'mm.employeeAllocation', completed: false },
@@ -43,6 +46,12 @@ export default function MarketManagerDashboard() {
   const [openDialog, setOpenDialog] = useState<number | null>(null);
   const [completedTasks, setCompletedTasks] = useState<number[]>([]);
   const [taskCounts, setTaskCounts] = useState<Record<number, number>>({});
+  const [leaveDialog, setLeaveDialog] = useState(false);
+  const [leaveDate, setLeaveDate] = useState('');
+  const [leaveReason, setLeaveReason] = useState('');
+  const [submittingLeave, setSubmittingLeave] = useState(false);
+  const [locationVisitDialog, setLocationVisitDialog] = useState(false);
+  const [advanceDialog, setAdvanceDialog] = useState(false);
 
   useEffect(() => {
     if (authLoading) return;
@@ -251,6 +260,18 @@ export default function MarketManagerDashboard() {
           </div>
           <div className="flex gap-2">
             <LanguageSwitcher variant="ghost" />
+            <Button variant="outline" size="sm" onClick={() => setLeaveDialog(true)}>
+              <Umbrella className="h-4 w-4 mr-2" />
+              {t('dashboard.requestLeave')}
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => setAdvanceDialog(true)}>
+              <Wallet className="h-4 w-4 mr-2" />
+              Request Advance
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => setLocationVisitDialog(true)}>
+              <MapPin className="h-4 w-4 mr-2" />
+              {t('dashboard.locationVisit')}
+            </Button>
             <Button variant="outline" size="sm" onClick={() => navigate('/my-attendance')}>
               <CalendarCheck className="h-4 w-4 mr-2" />
               {t('dashboard.attendance')}
@@ -346,7 +367,91 @@ export default function MarketManagerDashboard() {
         </Tabs>
       </main>
       <MobileBottomNav />
-      <div className="h-16 md:hidden" /> {/* Spacer for bottom nav */}
+      <div className="h-16 md:hidden" />
+
+      {/* Leave Request Dialog */}
+      <Dialog open={leaveDialog} onOpenChange={setLeaveDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t('dashboard.requestLeave')}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium" htmlFor="mm-leave-date">{t('dashboard.leaveDate')}</label>
+              <input
+                id="mm-leave-date"
+                type="date"
+                className="border rounded-md px-3 py-2 w-full bg-background"
+                value={leaveDate}
+                onChange={(e) => setLeaveDate(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium" htmlFor="mm-leave-reason">{t('dashboard.reason')}</label>
+              <textarea
+                id="mm-leave-reason"
+                className="border rounded-md px-3 py-2 w-full bg-background min-h-[100px]"
+                placeholder={t('dashboard.describeReason')}
+                value={leaveReason}
+                onChange={(e) => setLeaveReason(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">{t('dashboard.leaveApprovalNote')}</p>
+            </div>
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setLeaveDialog(false)} disabled={submittingLeave}>{t('common.cancel')}</Button>
+            <Button
+              onClick={async () => {
+                if (!leaveDate || !leaveReason.trim() || !user) {
+                  toast.error(t('dashboard.selectDateAndReason'));
+                  return;
+                }
+                setSubmittingLeave(true);
+                try {
+                  const { error } = await (supabase as any)
+                    .from('employee_leaves')
+                    .insert({ user_id: user.id, leave_date: leaveDate, reason: leaveReason.trim(), status: 'pending' });
+                  if (error) throw error;
+                  toast.success(t('dashboard.leaveRequestSubmitted'));
+                  setLeaveDialog(false);
+                  setLeaveDate('');
+                  setLeaveReason('');
+                } catch (err) {
+                  console.error('Error submitting leave:', err);
+                  toast.error(t('dashboard.failedSubmitLeave'));
+                } finally {
+                  setSubmittingLeave(false);
+                }
+              }}
+              disabled={submittingLeave}
+            >
+              {submittingLeave ? t('common.submitting') : t('dashboard.applyForApproval')}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Location Visit Dialog */}
+      <Dialog open={locationVisitDialog} onOpenChange={setLocationVisitDialog}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{t('dashboard.locationVisit')}</DialogTitle>
+          </DialogHeader>
+          <Suspense fallback={<div className="p-6 text-center text-muted-foreground">Loading...</div>}>
+            <MarketLocationVisitForm />
+          </Suspense>
+        </DialogContent>
+      </Dialog>
+
+      {/* Advance Request Dialog */}
+      <Dialog open={advanceDialog} onOpenChange={setAdvanceDialog}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Advance Requests</DialogTitle>
+          </DialogHeader>
+          <BMSAdvanceRequestTab />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
