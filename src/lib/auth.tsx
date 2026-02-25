@@ -147,48 +147,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       const trimmedUsername = username.trim();
       
-      // If username looks like an email, try direct auth first (fastest path)
-      if (trimmedUsername.includes('@')) {
-        // Check if Supabase client is configured
-        if (!supabase || !supabase.auth) {
-          return { error: { message: 'Authentication service is not available. Please check configuration.' } };
-        }
+      // Helper: sign in with timeout (30s for slow mobile networks)
+      const signInWithTimeout = async (email: string, pwd: string) => {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 30000);
         
         try {
-          // Call Supabase auth with a timeout wrapper
-          const authResponse = await Promise.race([
-            supabase.auth.signInWithPassword({
-              email: trimmedUsername,
-              password,
-            }),
-            new Promise<{ error: { message: string } }>((_, reject) => {
-              setTimeout(() => {
-                reject({ error: { message: 'Login request timed out. Please check your internet connection and try again.' } });
-              }, 15000);
-            })
-          ]);
+          const result = await supabase.auth.signInWithPassword({ email, password: pwd });
+          clearTimeout(timeoutId);
+          return result;
+        } catch (err: any) {
+          clearTimeout(timeoutId);
+          if (err?.name === 'AbortError' || controller.signal.aborted) {
+            return { data: { user: null, session: null }, error: { message: 'Login request timed out. Please check your internet connection and try again.' } };
+          }
+          throw err;
+        }
+      };
+
+      // If username looks like an email, try direct auth first (fastest path)
+      if (trimmedUsername.includes('@')) {
+        try {
+          const { data, error } = await signInWithTimeout(trimmedUsername, password);
           
-          if (authResponse.error) {
-            return { error: { message: authResponse.error.message || 'Invalid username or password.' } };
+          if (error) {
+            return { error: { message: error.message || 'Invalid username or password.' } };
           }
           
-          const response: any = authResponse;
-          if (!response.data || !response.data.user) {
+          if (!data?.user) {
             return { error: { message: 'Authentication failed. Please try again.' } };
           }
           
           return { error: null };
         } catch (error: any) {
-          // Handle timeout or other errors
-          if (error?.error?.message) {
-            return { error: { message: error.error.message } };
-          }
-          
-          if (error?.message) {
-            return { error: { message: error.message } };
-          }
-          
-          return { error: { message: 'Authentication failed. Please try again.' } };
+          return { error: { message: error?.message || 'Authentication failed. Please try again.' } };
         }
       }
       
@@ -203,7 +195,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           const rpcResult = await Promise.race([
             (supabase as any).rpc('get_employee_by_username', { _username: trimmedUsername }),
             new Promise((_, reject) => 
-              setTimeout(() => reject(new Error('RPC timeout')), 3000)
+              setTimeout(() => reject(new Error('RPC timeout')), 10000)
             )
           ]) as any;
           
@@ -258,17 +250,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           return { error: { message: 'Account is inactive. Please contact administrator.' } };
         }
         
-        // Now sign in with email (stored in employees table)
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email: employee.email,
-          password,
-        });
+        // Now sign in with email (stored in employees table) - using timeout helper
+        const { data, error } = await signInWithTimeout(employee.email, password);
         
         if (error) {
-          if (error.message.includes('Invalid login credentials')) {
+          const msg = typeof error.message === 'string' ? error.message : 'Invalid username or password.';
+          if (msg.includes('Invalid login credentials')) {
             return { error: { message: 'Invalid username or password.' } };
           }
-          return { error: { message: error.message || 'Invalid username or password.' } };
+          return { error: { message: msg } };
         }
         
         return { error: null };
