@@ -19,7 +19,7 @@ import { InspectionUpdateForm } from '@/components/market-manager/InspectionUpda
 import { PunchOutForm } from '@/components/market-manager/PunchOutForm';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { useLanguage } from '@/contexts/LanguageContext';
-import LiveMarketsWidget from '@/components/admin/LiveMarketsWidget';
+import LiveMarketsSection from '@/components/LiveMarketsSection';
 
 const TASK_KEYS = [
   { id: 1, key: 'mm.employeeAllocation', completed: false },
@@ -267,7 +267,7 @@ export default function MarketManagerDashboard() {
 
       <main className="container mx-auto px-4 py-8 space-y-6">
         {/* Live Markets Widget - always visible for monitoring */}
-        <LiveMarketsWidget />
+        <LiveMarketsSection />
 
         {!sessionId ? (
           <SessionSelector onSessionCreate={handleSessionCreate} />
