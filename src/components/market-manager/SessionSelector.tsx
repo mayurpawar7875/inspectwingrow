@@ -28,23 +28,24 @@ export function SessionSelector({ onSessionCreate }: SessionSelectorProps) {
 
   return (
     <Card className="max-w-md mx-auto">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Calendar className="h-5 w-5" />
+      <CardHeader className="p-3 md:p-6">
+        <CardTitle className="flex items-center gap-1.5 md:gap-2 text-sm md:text-lg">
+          <Calendar className="h-4 w-4 md:h-5 md:w-5" />
           Start Market Manager Session
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="space-y-2">
-          <Label htmlFor="session-date">Select Date</Label>
+      <CardContent className="space-y-3 md:space-y-4 p-3 pt-0 md:p-6 md:pt-0">
+        <div className="space-y-1.5 md:space-y-2">
+          <Label htmlFor="session-date" className="text-xs md:text-sm">Select Date</Label>
           <Input
             id="session-date"
             type="date"
+            className="text-xs md:text-sm h-8 md:h-10"
             value={selectedDate}
             onChange={(e) => setSelectedDate(e.target.value)}
           />
         </div>
-        <Button onClick={handleStart} className="w-full">
+        <Button onClick={handleStart} className="w-full text-xs md:text-sm h-8 md:h-10">
           Start Session
         </Button>
       </CardContent>
