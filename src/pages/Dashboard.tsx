@@ -527,12 +527,14 @@ export default function Dashboard() {
           </div>
         ) : (
           <div className="space-y-2 sm:space-y-6">
-            {/* Session Selector - shown when multiple sessions exist */}
-            {todaySessions.length > 1 && (
+            {/* Session Selector - shown when sessions exist */}
+            {todaySessions.length >= 1 && (
               <Card className="bg-info/10 border-info/20">
                 <CardContent className="p-3 sm:p-4">
                   <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-                    <span className="text-sm font-medium text-info">{t('dashboard.multipleSessions')}</span>
+                    {todaySessions.length > 1 && (
+                      <span className="text-sm font-medium text-info">{t('dashboard.multipleSessions')}</span>
+                    )}
                     <div className="flex flex-wrap gap-2">
                       {todaySessions.map((session, index) => (
                         <Button
@@ -549,14 +551,17 @@ export default function Dashboard() {
                         </Button>
                       ))}
                     </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => navigate('/market-selection')}
-                      className="text-xs ml-auto"
-                    >
-                      {t('dashboard.addSession')}
-                    </Button>
+                    {todaySessions.length < 2 && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => navigate('/market-selection')}
+                        className="text-xs ml-auto"
+                      >
+                        <MapPin className="mr-1 h-3 w-3" />
+                        {t('dashboard.addSession')}
+                      </Button>
+                    )}
                   </div>
                 </CardContent>
               </Card>

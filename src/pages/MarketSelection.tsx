@@ -48,7 +48,7 @@ export default function MarketSelection() {
       const today = getISTDateString(new Date());
 
       // Fetch markets and existing sessions in parallel
-      const [byWeekday, scheduleRows, existingSessions] = await Promise.all([
+      const [byWeekday, scheduleRows, existingSessions, allTodaySessions] = await Promise.all([
         supabase
           .from('markets')
           .select('id, name, location')
@@ -65,11 +65,24 @@ export default function MarketSelection() {
           .select('market_id')
           .eq('user_id', user.id)
           .eq('session_date', today),
+        supabase
+          .from('sessions')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('session_date', today),
       ]);
 
       // Track markets that already have sessions today
       const existingMarketIds = (existingSessions.data || []).map((s: any) => s.market_id);
       setExistingSessionMarkets(existingMarketIds);
+
+      // Check if max sessions (2) reached
+      const totalSessionsToday = (allTodaySessions.data || []).length;
+      if (totalSessionsToday >= 2) {
+        setMarkets([]);
+        setExistingSessionMarkets(existingMarketIds);
+        return;
+      }
 
       const scheduleIds = (scheduleRows.data || []).map((r: any) => r.market_id).filter(Boolean);
 
@@ -178,7 +191,13 @@ export default function MarketSelection() {
               </Select>
             </div>
 
-            {markets.length === 0 && existingSessionMarkets.length > 0 ? (
+            {markets.length === 0 && existingSessionMarkets.length >= 2 ? (
+              <div className="bg-muted p-4 rounded-lg">
+                <p className="text-sm text-muted-foreground">
+                  <strong>Note:</strong> You have reached the maximum of 2 sessions per day.
+                </p>
+              </div>
+            ) : markets.length === 0 && existingSessionMarkets.length > 0 ? (
               <div className="bg-muted p-4 rounded-lg">
                 <p className="text-sm text-muted-foreground">
                   <strong>Note:</strong> You have already created sessions for all available markets today.
@@ -187,7 +206,7 @@ export default function MarketSelection() {
             ) : (
               <div className="bg-muted p-4 rounded-lg">
                 <p className="text-sm text-muted-foreground">
-                  <strong>Note:</strong> You can create multiple sessions for different markets on the same day 
+                  <strong>Note:</strong> You can create up to 2 sessions for different markets on the same day 
                   (e.g., morning and evening markets).
                 </p>
               </div>
