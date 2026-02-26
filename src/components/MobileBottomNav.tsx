@@ -14,7 +14,9 @@ import {
   Package,
   Umbrella,
   Wallet,
+  Trash2,
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
 interface NavItem {
@@ -29,6 +31,7 @@ const employeeNavItems: NavItem[] = [
   { icon: CalendarCheck, labelKey: 'nav.attendance', path: '/my-attendance' },
   { icon: History, labelKey: 'nav.sessions', path: '/my-sessions' },
   { icon: Package, labelKey: 'nav.assets', path: '/asset-requests' },
+  { icon: Trash2, labelKey: 'Clear Cache', action: 'clear-cache' },
 ];
 
 const adminNavItems: NavItem[] = [
@@ -37,6 +40,7 @@ const adminNavItems: NavItem[] = [
   { icon: MapPin, labelKey: 'nav.markets', path: '/admin/live-markets' },
   { icon: ClipboardList, labelKey: 'nav.requests', path: '/admin/requests' },
   { icon: Settings, labelKey: 'nav.settings', path: '/admin/settings' },
+  { icon: Trash2, labelKey: 'Clear Cache', action: 'clear-cache' },
 ];
 
 const bdoNavItems: NavItem[] = [
@@ -44,6 +48,7 @@ const bdoNavItems: NavItem[] = [
   { icon: MapPin, labelKey: 'nav.markets', path: '/admin/live-markets' },
   { icon: CalendarCheck, labelKey: 'nav.attendance', path: '/my-attendance' },
   { icon: FileText, labelKey: 'nav.documents', path: '/bdo-dashboard' },
+  { icon: Trash2, labelKey: 'Clear Cache', action: 'clear-cache' },
 ];
 
 const marketManagerNavItems: NavItem[] = [
@@ -54,6 +59,7 @@ const marketManagerNavItems: NavItem[] = [
   { icon: MapPin, labelKey: 'Location', action: 'location' },
   { icon: CalendarCheck, labelKey: 'nav.attendance', path: '/my-attendance' },
   { icon: History, labelKey: 'nav.sessions', path: '/my-manager-sessions' },
+  { icon: Trash2, labelKey: 'Clear Cache', action: 'clear-cache' },
 ];
 
 interface MobileBottomNavProps {
@@ -66,6 +72,20 @@ export function MobileBottomNav({ onAction }: MobileBottomNavProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const { t } = useLanguage();
+
+  const handleClearCache = async () => {
+    try {
+      if ('caches' in window) {
+        const cacheNames = await caches.keys();
+        await Promise.all(cacheNames.map(name => caches.delete(name)));
+        toast.success('Cache cleared successfully');
+      } else {
+        toast.error('Cache API not supported');
+      }
+    } catch {
+      toast.error('Failed to clear cache');
+    }
+  };
 
   if (!isMobile) return null;
 
@@ -103,7 +123,9 @@ export function MobileBottomNav({ onAction }: MobileBottomNavProps) {
             <button
               key={key}
               onClick={() => {
-                if (item.action && onAction) {
+                if (item.action === 'clear-cache') {
+                  handleClearCache();
+                } else if (item.action && onAction) {
                   onAction(item.action);
                 } else if (item.path) {
                   navigate(item.path);
