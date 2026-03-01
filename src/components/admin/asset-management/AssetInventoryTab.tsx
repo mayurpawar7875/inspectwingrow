@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
-import { Plus, Download } from 'lucide-react';
+import { Plus, Download, Pencil } from 'lucide-react';
 import { exportCSV } from '@/lib/utils';
 
 interface AssetInventoryItem {
@@ -25,6 +25,7 @@ export function AssetInventoryTab() {
   const [inventory, setInventory] = useState<AssetInventoryItem[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [editingItem, setEditingItem] = useState<AssetInventoryItem | null>(null);
   const [formData, setFormData] = useState({
     assetName: '',
     totalQuantity: '',
@@ -53,28 +54,59 @@ export function AssetInventoryTab() {
     setInventory((data ?? []) as AssetInventoryItem[]);
   };
 
+  const openEditDialog = (item: AssetInventoryItem) => {
+    setEditingItem(item);
+    setFormData({
+      assetName: item.asset_name,
+      totalQuantity: String(item.total_quantity),
+      unitPrice: item.unit_price ? String(item.unit_price) : '',
+      description: item.description || '',
+    });
+    setIsDialogOpen(true);
+  };
+
+  const handleDialogClose = (open: boolean) => {
+    setIsDialogOpen(open);
+    if (!open) {
+      setEditingItem(null);
+      setFormData({ assetName: '', totalQuantity: '', unitPrice: '', description: '' });
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
       const totalQty = parseInt(formData.totalQuantity);
-      const { error } = await supabase.from('asset_inventory').insert({
-        asset_name: formData.assetName,
-        total_quantity: totalQty,
-        available_quantity: totalQty,
-        unit_price: formData.unitPrice ? parseFloat(formData.unitPrice) : null,
-        description: formData.description || null,
-      });
 
-      if (error) throw error;
+      if (editingItem) {
+        const diff = totalQty - editingItem.total_quantity;
+        const { error } = await supabase.from('asset_inventory').update({
+          asset_name: formData.assetName,
+          total_quantity: totalQty,
+          available_quantity: editingItem.available_quantity + diff,
+          unit_price: formData.unitPrice ? parseFloat(formData.unitPrice) : null,
+          description: formData.description || null,
+        }).eq('id', editingItem.id);
+        if (error) throw error;
+        toast.success('Asset updated successfully');
+      } else {
+        const { error } = await supabase.from('asset_inventory').insert({
+          asset_name: formData.assetName,
+          total_quantity: totalQty,
+          available_quantity: totalQty,
+          unit_price: formData.unitPrice ? parseFloat(formData.unitPrice) : null,
+          description: formData.description || null,
+        });
+        if (error) throw error;
+        toast.success('Asset added to inventory');
+      }
 
-      toast.success('Asset added to inventory');
-      setIsDialogOpen(false);
-      setFormData({ assetName: '', totalQuantity: '', unitPrice: '', description: '' });
+      handleDialogClose(false);
       fetchInventory();
     } catch (error) {
-      toast.error('Failed to add asset');
+      toast.error(editingItem ? 'Failed to update asset' : 'Failed to add asset');
     } finally {
       setLoading(false);
     }
@@ -102,7 +134,7 @@ export function AssetInventoryTab() {
             <Download className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2" />
             Export
           </Button>
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <Dialog open={isDialogOpen} onOpenChange={handleDialogClose}>
           <DialogTrigger asChild>
             <Button size="sm" className="text-[10px] md:text-sm h-7 md:h-9 px-2 md:px-3">
               <Plus className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2" />
@@ -111,7 +143,7 @@ export function AssetInventoryTab() {
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle className="text-sm md:text-lg">Add New Asset</DialogTitle>
+              <DialogTitle className="text-sm md:text-lg">{editingItem ? 'Edit Asset' : 'Add New Asset'}</DialogTitle>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
@@ -162,7 +194,7 @@ export function AssetInventoryTab() {
               </div>
 
               <Button type="submit" disabled={loading} className="w-full text-xs md:text-sm h-8 md:h-10">
-                {loading ? 'Adding...' : 'Add Asset'}
+                {loading ? 'Saving...' : editingItem ? 'Update Asset' : 'Add Asset'}
               </Button>
             </form>
           </DialogContent>
@@ -177,6 +209,7 @@ export function AssetInventoryTab() {
               <TableHead className="text-[10px] md:text-sm">Total Qty</TableHead>
               <TableHead className="text-[10px] md:text-sm">Available</TableHead>
               <TableHead className="text-[10px] md:text-sm">Issued</TableHead>
+              <TableHead className="text-[10px] md:text-sm w-10"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -186,11 +219,16 @@ export function AssetInventoryTab() {
                 <TableCell className="text-[10px] md:text-sm py-2 md:py-4">{item.total_quantity}</TableCell>
                 <TableCell className="text-[10px] md:text-sm py-2 md:py-4">{item.available_quantity}</TableCell>
                 <TableCell className="text-[10px] md:text-sm py-2 md:py-4">{item.issued_quantity}</TableCell>
+                <TableCell className="py-2 md:py-4">
+                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEditDialog(item)}>
+                    <Pencil className="h-3.5 w-3.5" />
+                  </Button>
+                </TableCell>
               </TableRow>
             ))}
             {inventory.length === 0 && (
               <TableRow>
-                <TableCell colSpan={4} className="text-center text-muted-foreground text-[10px] md:text-sm">
+                <TableCell colSpan={5} className="text-center text-muted-foreground text-[10px] md:text-sm">
                   No assets in inventory
                 </TableCell>
               </TableRow>
