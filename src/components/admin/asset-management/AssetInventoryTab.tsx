@@ -8,8 +8,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
-import { Plus, Download, Pencil } from 'lucide-react';
+import { Plus, Download, Pencil, Trash2, Users } from 'lucide-react';
 import { exportCSV } from '@/lib/utils';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { format } from 'date-fns';
 
 interface AssetInventoryItem {
   id: string;
@@ -26,6 +28,9 @@ export function AssetInventoryTab() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [editingItem, setEditingItem] = useState<AssetInventoryItem | null>(null);
+  const [issuedDialogOpen, setIssuedDialogOpen] = useState(false);
+  const [issuedDetails, setIssuedDetails] = useState<any[]>([]);
+  const [issuedAssetName, setIssuedAssetName] = useState('');
   const [formData, setFormData] = useState({
     assetName: '',
     totalQuantity: '',
@@ -125,6 +130,29 @@ export function AssetInventoryTab() {
     exportCSV('asset_inventory', headers, rows);
   };
 
+  const handleDelete = async (item: AssetInventoryItem) => {
+    try {
+      const { error } = await supabase.from('asset_inventory').delete().eq('id', item.id);
+      if (error) throw error;
+      toast.success('Asset deleted successfully');
+      fetchInventory();
+    } catch (error) {
+      toast.error('Failed to delete asset. It may have active requests.');
+    }
+  };
+
+  const handleViewIssued = async (item: AssetInventoryItem) => {
+    setIssuedAssetName(item.asset_name);
+    const { data } = await supabase
+      .from('asset_requests')
+      .select('*, employees(full_name, email), markets(name)')
+      .eq('asset_id', item.id)
+      .eq('status', 'approved')
+      .order('approval_date', { ascending: false });
+    setIssuedDetails(data || []);
+    setIssuedDialogOpen(true);
+  };
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between p-3 md:p-6">
@@ -218,11 +246,38 @@ export function AssetInventoryTab() {
                 <TableCell className="font-medium text-[10px] md:text-sm py-2 md:py-4">{item.asset_name}</TableCell>
                 <TableCell className="text-[10px] md:text-sm py-2 md:py-4">{item.total_quantity}</TableCell>
                 <TableCell className="text-[10px] md:text-sm py-2 md:py-4">{item.available_quantity}</TableCell>
-                <TableCell className="text-[10px] md:text-sm py-2 md:py-4">{item.issued_quantity}</TableCell>
+                <TableCell className="text-[10px] md:text-sm py-2 md:py-4">
+                  {item.issued_quantity > 0 ? (
+                    <Button variant="link" size="sm" className="p-0 h-auto text-[10px] md:text-sm text-primary underline" onClick={() => handleViewIssued(item)}>
+                      {item.issued_quantity}
+                    </Button>
+                  ) : (
+                    item.issued_quantity
+                  )}
+                </TableCell>
                 <TableCell className="py-2 md:py-4">
-                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEditDialog(item)}>
-                    <Pencil className="h-3.5 w-3.5" />
-                  </Button>
+                  <div className="flex items-center gap-1">
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEditDialog(item)}>
+                      <Pencil className="h-3.5 w-3.5" />
+                    </Button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive">
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Delete "{item.asset_name}"?</AlertDialogTitle>
+                          <AlertDialogDescription>This action cannot be undone. Assets with active requests cannot be deleted.</AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => handleDelete(item)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete</AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
                 </TableCell>
               </TableRow>
             ))}
@@ -236,6 +291,41 @@ export function AssetInventoryTab() {
           </TableBody>
         </Table>
       </CardContent>
+
+      {/* Issued Assets Dialog */}
+      <Dialog open={issuedDialogOpen} onOpenChange={setIssuedDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="text-sm md:text-lg flex items-center gap-2">
+              <Users className="h-4 w-4" /> Issued: {issuedAssetName}
+            </DialogTitle>
+          </DialogHeader>
+          {issuedDetails.length === 0 ? (
+            <p className="text-center text-muted-foreground text-sm py-4">No active issued records</p>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="text-[10px] md:text-sm">Employee</TableHead>
+                  <TableHead className="text-[10px] md:text-sm">Qty</TableHead>
+                  <TableHead className="text-[10px] md:text-sm">Market</TableHead>
+                  <TableHead className="text-[10px] md:text-sm">Since</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {issuedDetails.map((r: any) => (
+                  <TableRow key={r.id}>
+                    <TableCell className="text-[10px] md:text-sm py-2">{r.employees?.full_name || r.employees?.email || 'N/A'}</TableCell>
+                    <TableCell className="text-[10px] md:text-sm py-2">{r.quantity}</TableCell>
+                    <TableCell className="text-[10px] md:text-sm py-2">{r.markets?.name || '-'}</TableCell>
+                    <TableCell className="text-[10px] md:text-sm py-2">{r.approval_date ? format(new Date(r.approval_date), 'dd MMM yyyy') : '-'}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
