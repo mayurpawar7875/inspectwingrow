@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
-import { Plus, Download, Pencil, Trash2, Users } from 'lucide-react';
+import { Plus, Download, Pencil, Trash2, Users, RotateCcw } from 'lucide-react';
 import { exportCSV } from '@/lib/utils';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { format } from 'date-fns';
@@ -153,6 +153,40 @@ export function AssetInventoryTab() {
     setIssuedDialogOpen(true);
   };
 
+  const handleResetIssued = async (item: AssetInventoryItem) => {
+    if (item.issued_quantity === 0) {
+      toast.info('No issued items to reset');
+      return;
+    }
+    try {
+      // Mark all approved requests for this asset as returned
+      const { error: reqError } = await supabase
+        .from('asset_requests')
+        .update({
+          status: 'returned',
+          actual_return_date: new Date().toISOString().split('T')[0],
+        })
+        .eq('asset_id', item.id)
+        .eq('status', 'approved');
+      if (reqError) throw reqError;
+
+      // Reset inventory counts
+      const { error: invError } = await supabase
+        .from('asset_inventory')
+        .update({
+          available_quantity: item.total_quantity,
+          issued_quantity: 0,
+        })
+        .eq('id', item.id);
+      if (invError) throw invError;
+
+      toast.success(`Reset all issued "${item.asset_name}" items`);
+      fetchInventory();
+    } catch (error) {
+      toast.error('Failed to reset issued items');
+    }
+  };
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between p-3 md:p-6">
@@ -260,6 +294,25 @@ export function AssetInventoryTab() {
                     <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEditDialog(item)}>
                       <Pencil className="h-3.5 w-3.5" />
                     </Button>
+                    {item.issued_quantity > 0 && (
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-7 w-7 text-orange-600 hover:text-orange-700">
+                            <RotateCcw className="h-3.5 w-3.5" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Reset issued "{item.asset_name}"?</AlertDialogTitle>
+                            <AlertDialogDescription>This will mark all {item.issued_quantity} issued items as returned and reset the available quantity.</AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => handleResetIssued(item)}>Reset</AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    )}
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
                         <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive">
