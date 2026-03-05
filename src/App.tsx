@@ -6,17 +6,19 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, ProtectedRoute } from "./lib/auth";
 import { AdminLayout } from "./components/AdminLayout";
-import { UpdateBanner } from "./components/UpdateBanner";
-import { WhatsNewDialog } from "./components/WhatsNewDialog";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { LanguageProvider } from "./contexts/LanguageContext";
 
-// Eager load entry point pages
-import Auth from "./pages/Auth";
-import Index from "./pages/Index";
-import Install from "./pages/Install";
+// Lazy load non-critical UI components
+const UpdateBanner = lazy(() => import("./components/UpdateBanner").then(m => ({ default: m.UpdateBanner })));
+const WhatsNewDialog = lazy(() => import("./components/WhatsNewDialog").then(m => ({ default: m.WhatsNewDialog })));
 
-// Lazy load all other pages
+// Eager load only the landing page
+import Index from "./pages/Index";
+
+// Lazy load all other pages (including Auth & Install for faster initial paint)
+const Auth = lazy(() => import("./pages/Auth"));
+const Install = lazy(() => import("./pages/Install"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const MarketSelection = lazy(() => import("./pages/MarketSelection"));
 const Punch = lazy(() => import("./pages/Punch"));
@@ -78,8 +80,8 @@ const App = () => (
     <QueryClientProvider client={queryClient}>
       <LanguageProvider>
       <TooltipProvider>
-        <UpdateBanner />
-        <WhatsNewDialog />
+        <Suspense fallback={null}><UpdateBanner /></Suspense>
+        <Suspense fallback={null}><WhatsNewDialog /></Suspense>
         <Toaster />
         <Sonner />
         <BrowserRouter>
@@ -140,24 +142,17 @@ const App = () => (
 
 export default App;
 
-// Prefetch common routes after idle time to reduce perceived loading
+// Prefetch auth route after idle (most likely next navigation)
 if (typeof window !== "undefined") {
-  const prefetch = () => {
-    import("./pages/admin/AdminDashboard");
-    import("./pages/admin/Settings");
-    import("./pages/admin/LiveMarkets");
-    import("./pages/admin/MarketDetail");
-    import("./pages/admin/Users");
-    import("./pages/admin/Collections");
+  const prefetchAuth = () => {
+    import("./pages/Auth");
+    import("./pages/Dashboard");
   };
-  // Use requestIdleCallback if available, otherwise a short timeout
-  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-  // @ts-ignore
-  const ric = window.requestIdleCallback as undefined | ((cb: () => void) => void);
+  // Delay prefetch to avoid competing with initial render
+  const ric = (window as any).requestIdleCallback as undefined | ((cb: () => void, opts?: { timeout: number }) => void);
   if (ric) {
-    // @ts-ignore
-    ric(prefetch);
+    ric(prefetchAuth, { timeout: 3000 });
   } else {
-    setTimeout(prefetch, 1200);
+    setTimeout(prefetchAuth, 2500);
   }
 }
