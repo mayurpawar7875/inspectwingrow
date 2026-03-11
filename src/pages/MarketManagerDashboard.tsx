@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { LogOut, CheckCircle2, History, CalendarCheck, MapPin, Umbrella, Wallet, Package } from 'lucide-react';
+import { LogOut, CheckCircle2, History, CalendarCheck, MapPin, Umbrella, Wallet, Package, Trash2 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { MobileBottomNav } from '@/components/MobileBottomNav';
 import { SessionSelector } from '@/components/market-manager/SessionSelector';
