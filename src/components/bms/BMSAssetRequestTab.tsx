@@ -160,74 +160,79 @@ export function BMSAssetRequestTab() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {/* Request Form */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base md:text-lg flex items-center gap-2">
-            <Package className="h-4 w-4 md:h-5 md:w-5" />
+      <Card className="shadow-none border">
+        <CardHeader className="pb-2 pt-3 px-3 md:px-6">
+          <CardTitle className="text-sm md:text-lg flex items-center gap-1.5">
+            <Package className="h-3.5 w-3.5 md:h-5 md:w-5" />
             Request Asset
           </CardTitle>
-          <CardDescription className="text-xs md:text-sm">
+          <CardDescription className="text-[11px] md:text-sm">
             Submit a request for assets you need
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label className="text-xs md:text-sm">Select Asset *</Label>
+        <CardContent className="px-3 pb-3 md:px-6 md:pb-6">
+          <form onSubmit={handleSubmit} className="space-y-2.5">
+            <div className="space-y-1">
+              <Label className="text-[11px] md:text-sm">Select Asset *</Label>
               <Select value={selectedAssetId} onValueChange={setSelectedAssetId} disabled={submitting}>
-                <SelectTrigger>
+                <SelectTrigger className="h-8 text-xs md:text-sm">
                   <SelectValue placeholder="Choose an asset" />
                 </SelectTrigger>
                 <SelectContent className="bg-background">
                   {assets.map((asset) => (
-                    <SelectItem key={asset.id} value={asset.id}>
-                      {asset.asset_name} ({asset.available_quantity} available)
+                    <SelectItem key={asset.id} value={asset.id} className="text-xs">
+                      {asset.asset_name} ({asset.available_quantity} avail.)
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
 
-            <div className="space-y-2">
-              <Label className="text-xs md:text-sm">Quantity *</Label>
-              <Input
-                type="number"
-                min="1"
-                max={selectedAsset?.available_quantity || 100}
-                value={quantity}
-                onChange={(e) => setQuantity(e.target.value)}
-                disabled={submitting}
-                className="h-9"
-              />
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1">
+                <Label className="text-[11px] md:text-sm">Quantity *</Label>
+                <Input
+                  type="number"
+                  min="1"
+                  max={selectedAsset?.available_quantity || 100}
+                  value={quantity}
+                  onChange={(e) => setQuantity(e.target.value)}
+                  disabled={submitting}
+                  className="h-8 text-xs"
+                />
+              </div>
               {selectedAsset && (
-                <p className="text-xs text-muted-foreground">
-                  Max available: {selectedAsset.available_quantity}
-                </p>
+                <div className="flex items-end pb-1">
+                  <p className="text-[10px] text-muted-foreground">
+                    Max: {selectedAsset.available_quantity}
+                  </p>
+                </div>
               )}
             </div>
 
-            <div className="space-y-2">
-              <Label className="text-xs md:text-sm">Purpose *</Label>
+            <div className="space-y-1">
+              <Label className="text-[11px] md:text-sm">Purpose *</Label>
               <Textarea
                 placeholder="Describe why you need this asset..."
                 value={purpose}
                 onChange={(e) => setPurpose(e.target.value)}
                 disabled={submitting}
-                rows={3}
+                rows={2}
+                className="text-xs min-h-[52px]"
               />
             </div>
 
             <Button 
               type="submit" 
               disabled={submitting || !selectedAssetId || !purpose.trim()} 
-              className="w-full"
+              className="w-full h-8 text-xs md:text-sm"
             >
               {submitting ? (
-                <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Submitting...</>
+                <><Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />Submitting...</>
               ) : (
-                <><Plus className="h-4 w-4 mr-2" />Submit Request</>
+                <><Plus className="h-3.5 w-3.5 mr-1.5" />Submit Request</>
               )}
             </Button>
           </form>
@@ -235,31 +240,30 @@ export function BMSAssetRequestTab() {
       </Card>
 
       {/* Request History */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base md:text-lg">My Requests</CardTitle>
+      <Card className="shadow-none border">
+        <CardHeader className="pb-2 pt-3 px-3 md:px-6">
+          <CardTitle className="text-sm md:text-lg">My Requests</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-3 pb-3 md:px-6 md:pb-6">
           {requests.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-4">No requests yet</p>
+            <p className="text-xs text-muted-foreground text-center py-3">No requests yet</p>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-2">
               {requests.map((request) => (
-                <div key={request.id} className="p-3 border rounded-lg space-y-2">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <p className="font-medium text-sm">
+                <div key={request.id} className="p-2 border rounded-md space-y-1">
+                  <div className="flex justify-between items-center">
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium text-xs truncate">
                         {request.asset_inventory?.asset_name || 'Unknown Asset'}
                       </p>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-[10px] text-muted-foreground">
                         Qty: {request.quantity} • {format(new Date(request.created_at), 'MMM d, yyyy')}
                       </p>
                     </div>
                     {getStatusBadge(request.status)}
                   </div>
-                  <p className="text-xs text-muted-foreground">{request.purpose}</p>
                   {request.rejection_reason && (
-                    <p className="text-xs text-destructive">
+                    <p className="text-[10px] text-destructive">
                       Reason: {request.rejection_reason}
                     </p>
                   )}
