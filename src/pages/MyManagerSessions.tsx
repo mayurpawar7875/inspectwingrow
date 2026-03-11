@@ -159,15 +159,31 @@ export default function MyManagerSessions() {
     setSelectedMarket('all');
   };
 
-  const getStatusBadge = (status: string) => {
-    if (status === 'active') {
-      return <Badge className="bg-green-500">Active</Badge>;
-    }
-    return <Badge variant="secondary">Completed</Badge>;
+  const TOTAL_TASK_TYPES = 9; // Total number of task categories
+
+  const getCompletedTaskTypes = (counts: Session['task_counts']) => {
+    return Object.values(counts).filter(count => count > 0).length;
   };
 
-  const getTotalTasks = (counts: Session['task_counts']) => {
-    return Object.values(counts).reduce((sum, count) => sum + count, 0);
+  const getComputedStatus = (session: Session) => {
+    const completedTypes = getCompletedTaskTypes(session.task_counts);
+    if (completedTypes === TOTAL_TASK_TYPES) return 'completed';
+    
+    const today = new Date().toISOString().split('T')[0];
+    if (session.session_date < today) return 'expired';
+    return 'incomplete';
+  };
+
+  const getStatusBadge = (session: Session) => {
+    const computedStatus = getComputedStatus(session);
+    switch (computedStatus) {
+      case 'completed':
+        return <Badge className="bg-success text-success-foreground">Completed</Badge>;
+      case 'expired':
+        return <Badge variant="destructive">Expired</Badge>;
+      default:
+        return <Badge className="bg-warning text-warning-foreground">Incomplete</Badge>;
+    }
   };
 
   const taskTypeMap: Record<string, { table: string; label: string }> = {
@@ -672,7 +688,7 @@ export default function MyManagerSessions() {
           ) : (
             filteredSessions.map((session) => {
               const isExpanded = expandedSession === session.id;
-              const totalTasks = getTotalTasks(session.task_counts);
+              const completedTypes = getCompletedTaskTypes(session.task_counts);
               const taskEntries: [string, string, number][] = [
                 ['employee_allocations', 'Allocations', session.task_counts.employee_allocations],
                 ['punch_in', 'Punch-In', session.task_counts.punch_in],
@@ -702,12 +718,12 @@ export default function MyManagerSessions() {
                           </span>
                         </div>
                         <div className="flex items-center gap-2 mt-0.5">
-                          <span className="text-[10px] text-muted-foreground">Tasks: {totalTasks}</span>
+                          <span className="text-[10px] text-muted-foreground">Tasks: {completedTypes}/{TOTAL_TASK_TYPES}</span>
                         </div>
                       </div>
                     </div>
                     <div className="flex items-center gap-1.5 shrink-0">
-                      {getStatusBadge(session.status)}
+                      {getStatusBadge(session)}
                       {isExpanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
                     </div>
                   </button>
