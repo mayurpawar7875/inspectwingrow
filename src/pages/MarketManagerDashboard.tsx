@@ -386,36 +386,38 @@ export default function MarketManagerDashboard() {
 
       {/* Leave Request Dialog */}
       <Dialog open={leaveDialog} onOpenChange={setLeaveDialog}>
-        <DialogContent>
+        <DialogContent className="w-[95vw] md:w-auto max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{t('dashboard.requestLeave')}</DialogTitle>
+            <DialogTitle className="text-sm md:text-lg">{t('dashboard.requestLeave')}</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium" htmlFor="mm-leave-date">{t('dashboard.leaveDate')}</label>
+          <div className="space-y-2.5">
+            <div className="space-y-1">
+              <label className="text-[11px] md:text-sm font-medium" htmlFor="mm-leave-date">{t('dashboard.leaveDate')}</label>
               <input
                 id="mm-leave-date"
                 type="date"
-                className="border rounded-md px-3 py-2 w-full bg-background"
+                className="border rounded-md px-2 py-1.5 w-full bg-background text-xs md:text-sm h-8"
                 value={leaveDate}
                 onChange={(e) => setLeaveDate(e.target.value)}
               />
             </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium" htmlFor="mm-leave-reason">{t('dashboard.reason')}</label>
+            <div className="space-y-1">
+              <label className="text-[11px] md:text-sm font-medium" htmlFor="mm-leave-reason">{t('dashboard.reason')}</label>
               <textarea
                 id="mm-leave-reason"
-                className="border rounded-md px-3 py-2 w-full bg-background min-h-[100px]"
+                className="border rounded-md px-2 py-1.5 w-full bg-background min-h-[60px] text-xs md:text-sm"
                 placeholder={t('dashboard.describeReason')}
                 value={leaveReason}
                 onChange={(e) => setLeaveReason(e.target.value)}
               />
-              <p className="text-xs text-muted-foreground">{t('dashboard.leaveApprovalNote')}</p>
+              <p className="text-[10px] text-muted-foreground">{t('dashboard.leaveApprovalNote')}</p>
             </div>
           </div>
           <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setLeaveDialog(false)} disabled={submittingLeave}>{t('common.cancel')}</Button>
+            <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => setLeaveDialog(false)} disabled={submittingLeave}>{t('common.cancel')}</Button>
             <Button
+              size="sm"
+              className="h-8 text-xs"
               onClick={async () => {
                 if (!leaveDate || !leaveReason.trim() || !user) {
                   toast.error(t('dashboard.selectDateAndReason'));
@@ -448,11 +450,11 @@ export default function MarketManagerDashboard() {
 
       {/* Location Visit Dialog */}
       <Dialog open={locationVisitDialog} onOpenChange={setLocationVisitDialog}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="w-[95vw] md:w-auto max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{t('dashboard.locationVisit')}</DialogTitle>
+            <DialogTitle className="text-sm md:text-lg">{t('dashboard.locationVisit')}</DialogTitle>
           </DialogHeader>
-          <Suspense fallback={<div className="p-6 text-center text-muted-foreground">Loading...</div>}>
+          <Suspense fallback={<div className="p-4 text-center text-muted-foreground text-xs">Loading...</div>}>
             <MarketLocationVisitForm />
           </Suspense>
         </DialogContent>
@@ -460,9 +462,9 @@ export default function MarketManagerDashboard() {
 
       {/* Advance Request Dialog */}
       <Dialog open={advanceDialog} onOpenChange={setAdvanceDialog}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="w-[95vw] md:w-auto max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Advance Requests</DialogTitle>
+            <DialogTitle className="text-sm md:text-lg">Advance Requests</DialogTitle>
           </DialogHeader>
           <BMSAdvanceRequestTab />
         </DialogContent>

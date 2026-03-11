@@ -204,48 +204,37 @@ export function BMSAttendanceTab() {
   // Already checked in today
   if (todayAttendance) {
     return (
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="flex items-center gap-2 text-base md:text-lg">
-            <CheckCircle2 className="h-4 w-4 md:h-5 md:w-5 text-green-500" />
+      <Card className="shadow-none border">
+        <CardHeader className="pb-1.5 pt-3 px-3 md:px-6">
+          <CardTitle className="flex items-center gap-1.5 text-sm md:text-lg">
+            <CheckCircle2 className="h-3.5 w-3.5 md:h-5 md:w-5 text-green-500" />
             Attendance Recorded
           </CardTitle>
-          <CardDescription className="text-xs md:text-sm">
-            {format(new Date(), 'EEEE, MMMM d, yyyy')}
+          <CardDescription className="text-[10px] md:text-sm">
+            {format(new Date(), 'EEE, MMM d, yyyy')}
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center gap-2">
-            <Badge variant="default" className="bg-green-500">Present</Badge>
-            <span className="text-sm text-muted-foreground">
-              Checked in at {todayAttendance.punch_in_time ? format(new Date(todayAttendance.punch_in_time), 'h:mm a') : '-'}
+        <CardContent className="px-3 pb-3 md:px-6 md:pb-6 space-y-2">
+          <div className="flex items-center gap-1.5">
+            <Badge variant="default" className="bg-green-500 text-[10px] h-5">Present</Badge>
+            <span className="text-[11px] text-muted-foreground">
+              {todayAttendance.punch_in_time ? format(new Date(todayAttendance.punch_in_time), 'h:mm a') : '-'}
             </span>
           </div>
           
           {signedSelfieUrl && (
-            <div className="mt-4">
-              <p className="text-sm text-muted-foreground mb-2">Check-in Selfie</p>
-              <img 
-                src={signedSelfieUrl} 
-                alt="Check-in selfie" 
-                className="w-32 h-32 rounded-lg object-cover"
-              />
-            </div>
+            <img src={signedSelfieUrl} alt="Check-in selfie" className="w-20 h-20 rounded-md object-cover" />
           )}
 
           {todayAttendance.punch_in_lat && todayAttendance.punch_in_lng && (
-            <div className="mt-4">
-              <p className="text-sm text-muted-foreground mb-2">Location</p>
-              <a
-                href={`https://www.google.com/maps?q=${todayAttendance.punch_in_lat},${todayAttendance.punch_in_lng}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-primary text-sm hover:underline flex items-center gap-1"
-              >
-                <MapPin className="h-4 w-4" />
-                View on Map
-              </a>
-            </div>
+            <a
+              href={`https://www.google.com/maps?q=${todayAttendance.punch_in_lat},${todayAttendance.punch_in_lng}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary text-[11px] hover:underline flex items-center gap-1"
+            >
+              <MapPin className="h-3 w-3" />View on Map
+            </a>
           )}
         </CardContent>
       </Card>
@@ -253,96 +242,72 @@ export function BMSAttendanceTab() {
   }
 
   return (
-    <Card>
-      <CardHeader className="pb-2">
-        <CardTitle className="flex items-center gap-2 text-base md:text-lg">
-          <Clock className="h-4 w-4 md:h-5 md:w-5" />
+    <Card className="shadow-none border">
+      <CardHeader className="pb-1.5 pt-3 px-3 md:px-6">
+        <CardTitle className="flex items-center gap-1.5 text-sm md:text-lg">
+          <Clock className="h-3.5 w-3.5 md:h-5 md:w-5" />
           Daily Check-In
         </CardTitle>
-        <CardDescription className="text-xs md:text-sm">
-          {format(new Date(), 'EEEE, MMMM d, yyyy')}
+        <CardDescription className="text-[10px] md:text-sm">
+          {format(new Date(), 'EEE, MMM d, yyyy')}
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4 pt-2">
+      <CardContent className="px-3 pb-3 md:px-6 md:pb-6 space-y-2.5 pt-1">
         {/* Camera Section */}
-        <div className="space-y-2">
-          <label className="text-xs md:text-sm font-medium">Take Selfie with Location</label>
+        <div className="space-y-1.5">
+          <label className="text-[11px] md:text-sm font-medium">Take Selfie with Location</label>
           
           {showCamera ? (
-            <div className="space-y-3">
-              <video
-                ref={videoRef}
-                autoPlay
-                playsInline
-                muted
-                className="w-full max-w-sm rounded-lg bg-black"
-              />
-              <div className="flex gap-2">
-                <Button onClick={capturePhoto} disabled={capturing} className="flex-1">
+            <div className="space-y-2">
+              <video ref={videoRef} autoPlay playsInline muted className="w-full max-w-[200px] rounded-md bg-black" />
+              <div className="flex gap-1.5">
+                <Button onClick={capturePhoto} disabled={capturing} size="sm" className="flex-1 h-7 text-xs">
                   {capturing ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Capturing...
-                    </>
+                    <><Loader2 className="h-3 w-3 mr-1 animate-spin" />Capturing...</>
                   ) : (
-                    <>
-                      <Camera className="h-4 w-4 mr-2" />
-                      Capture
-                    </>
+                    <><Camera className="h-3 w-3 mr-1" />Capture</>
                   )}
                 </Button>
-                <Button variant="outline" onClick={stopCamera} disabled={capturing}>
-                  Cancel
-                </Button>
+                <Button variant="outline" size="sm" className="h-7 text-xs" onClick={stopCamera} disabled={capturing}>Cancel</Button>
               </div>
             </div>
           ) : selfieUrl && location && captureTime ? (
-            <div className="space-y-3">
-              <img src={selfieUrl} alt="Captured selfie" className="w-32 h-32 rounded-lg object-cover" />
-              <div className="text-xs text-muted-foreground space-y-1">
+            <div className="space-y-1.5">
+              <img src={selfieUrl} alt="Captured selfie" className="w-20 h-20 rounded-md object-cover" />
+              <div className="text-[10px] text-muted-foreground space-y-0.5">
                 <div className="flex items-center gap-1">
-                  <MapPin className="h-3 w-3" />
-                  <span>GPS: {location.lat.toFixed(6)}, {location.lng.toFixed(6)}</span>
+                  <MapPin className="h-2.5 w-2.5" />
+                  <span>{location.lat.toFixed(6)}, {location.lng.toFixed(6)}</span>
                 </div>
                 <div className="flex items-center gap-1">
-                  <Clock className="h-3 w-3" />
-                  <span>{format(captureTime, 'dd MMM yyyy, h:mm:ss a')}</span>
+                  <Clock className="h-2.5 w-2.5" />
+                  <span>{format(captureTime, 'dd MMM, h:mm a')}</span>
                 </div>
               </div>
-              <Button variant="outline" size="sm" onClick={() => {
+              <Button variant="outline" size="sm" className="h-6 text-[10px]" onClick={() => {
                 setSelfieUrl(null);
                 setCapturedBlob(null);
                 setLocation(null);
                 setCaptureTime(null);
-              }}>
-                Retake
-              </Button>
+              }}>Retake</Button>
             </div>
           ) : (
-            <Button variant="outline" onClick={startCamera} className="w-full">
-              <Camera className="h-4 w-4 mr-2" />
-              Take Selfie
+            <Button variant="outline" onClick={startCamera} className="w-full h-8 text-xs">
+              <Camera className="h-3.5 w-3.5 mr-1.5" />Take Selfie
             </Button>
           )}
         </div>
 
-        {/* Submit Button */}
+        {/* Submit */}
         <Button
           onClick={handleCheckIn}
           disabled={!capturedBlob || !location || submitting}
-          className="w-full"
-          size="lg"
+          className="w-full h-8 text-xs"
         >
           {submitting ? (
-            <>
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              Checking In...
-            </>
+            <><Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />Checking In...</>
           ) : (
-            <>
-              <CheckCircle2 className="h-4 w-4 mr-2" />
-              Check In
-            </>
+            <><CheckCircle2 className="h-3.5 w-3.5 mr-1.5" />Check In</>
           )}
         </Button>
       </CardContent>
