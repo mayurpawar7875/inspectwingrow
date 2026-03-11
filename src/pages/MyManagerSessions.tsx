@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/lib/auth';
 import { supabase } from '@/integrations/supabase/client';
@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { ArrowLeft, X, Eye, Filter } from 'lucide-react';
+import { ArrowLeft, X, Eye, Filter, ChevronDown, ChevronUp } from 'lucide-react';
 import { format } from 'date-fns';
 
 interface Session {
@@ -50,6 +50,7 @@ export default function MyManagerSessions() {
   const [taskDetails, setTaskDetails] = useState<any[]>([]);
   const [loadingDetails, setLoadingDetails] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
+  const [expandedSession, setExpandedSession] = useState<string | null>(null);
 
   useEffect(() => {
     if (user) {
@@ -659,183 +660,88 @@ export default function MyManagerSessions() {
           </Card>
         )}
 
-        <div className="space-y-4">
+        <div className="space-y-2">
           {filteredSessions.length === 0 ? (
             <Card>
-              <CardContent className="py-8 text-center">
-                <p className="text-muted-foreground">
+              <CardContent className="py-6 text-center">
+                <p className="text-sm text-muted-foreground">
                   {sessions.length === 0 ? 'No sessions found' : 'No sessions match the selected filters'}
                 </p>
               </CardContent>
             </Card>
           ) : (
-            filteredSessions.map((session) => (
-              <Card key={session.id}>
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <CardTitle className="text-lg">
-                        {format(new Date(session.session_date), 'dd MMMM yyyy')}
-                      </CardTitle>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        {DAY_NAMES[session.day_of_week]}
-                      </p>
-                    </div>
-                    {getStatusBadge(session.status)}
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">Total Tasks Completed:</span>
-                      <span className="font-semibold">{getTotalTasks(session.task_counts)}</span>
-                    </div>
-                    
-                    <div className="grid grid-cols-2 gap-2 text-xs">
-                      <button
-                        onClick={() => handleTaskClick(session.id, 'employee_allocations')}
-                        className={`flex justify-between p-2 rounded transition-colors ${
-                          session.task_counts.employee_allocations > 0
-                            ? 'bg-muted hover:bg-muted/80 cursor-pointer'
-                            : 'bg-muted/50 cursor-not-allowed opacity-50'
-                        }`}
-                        disabled={session.task_counts.employee_allocations === 0}
-                      >
-                        <span>Employee Allocations:</span>
-                        <span className="font-medium flex items-center gap-1">
-                          {session.task_counts.employee_allocations}
-                          {session.task_counts.employee_allocations > 0 && <Eye className="h-3 w-3" />}
-                        </span>
-                      </button>
-                      <button
-                        onClick={() => handleTaskClick(session.id, 'punch_in')}
-                        className={`flex justify-between p-2 rounded transition-colors ${
-                          session.task_counts.punch_in > 0
-                            ? 'bg-muted hover:bg-muted/80 cursor-pointer'
-                            : 'bg-muted/50 cursor-not-allowed opacity-50'
-                        }`}
-                        disabled={session.task_counts.punch_in === 0}
-                      >
-                        <span>Punch-In:</span>
-                        <span className="font-medium flex items-center gap-1">
-                          {session.task_counts.punch_in}
-                          {session.task_counts.punch_in > 0 && <Eye className="h-3 w-3" />}
-                        </span>
-                      </button>
-                      <button
-                        onClick={() => handleTaskClick(session.id, 'land_search')}
-                        className={`flex justify-between p-2 rounded transition-colors ${
-                          session.task_counts.land_search > 0
-                            ? 'bg-muted hover:bg-muted/80 cursor-pointer'
-                            : 'bg-muted/50 cursor-not-allowed opacity-50'
-                        }`}
-                        disabled={session.task_counts.land_search === 0}
-                      >
-                        <span>Land Search:</span>
-                        <span className="font-medium flex items-center gap-1">
-                          {session.task_counts.land_search}
-                          {session.task_counts.land_search > 0 && <Eye className="h-3 w-3" />}
-                        </span>
-                      </button>
-                      <button
-                        onClick={() => handleTaskClick(session.id, 'stall_search')}
-                        className={`flex justify-between p-2 rounded transition-colors ${
-                          session.task_counts.stall_search > 0
-                            ? 'bg-muted hover:bg-muted/80 cursor-pointer'
-                            : 'bg-muted/50 cursor-not-allowed opacity-50'
-                        }`}
-                        disabled={session.task_counts.stall_search === 0}
-                      >
-                        <span>Stall Search:</span>
-                        <span className="font-medium flex items-center gap-1">
-                          {session.task_counts.stall_search}
-                          {session.task_counts.stall_search > 0 && <Eye className="h-3 w-3" />}
-                        </span>
-                      </button>
-                      <button
-                        onClick={() => handleTaskClick(session.id, 'money_recovery')}
-                        className={`flex justify-between p-2 rounded transition-colors ${
-                          session.task_counts.money_recovery > 0
-                            ? 'bg-muted hover:bg-muted/80 cursor-pointer'
-                            : 'bg-muted/50 cursor-not-allowed opacity-50'
-                        }`}
-                        disabled={session.task_counts.money_recovery === 0}
-                      >
-                        <span>Money Recovery:</span>
-                        <span className="font-medium flex items-center gap-1">
-                          {session.task_counts.money_recovery}
-                          {session.task_counts.money_recovery > 0 && <Eye className="h-3 w-3" />}
-                        </span>
-                      </button>
-                      <button
-                        onClick={() => handleTaskClick(session.id, 'assets_usage')}
-                        className={`flex justify-between p-2 rounded transition-colors ${
-                          session.task_counts.assets_usage > 0
-                            ? 'bg-muted hover:bg-muted/80 cursor-pointer'
-                            : 'bg-muted/50 cursor-not-allowed opacity-50'
-                        }`}
-                        disabled={session.task_counts.assets_usage === 0}
-                      >
-                        <span>Assets Usage:</span>
-                        <span className="font-medium flex items-center gap-1">
-                          {session.task_counts.assets_usage}
-                          {session.task_counts.assets_usage > 0 && <Eye className="h-3 w-3" />}
-                        </span>
-                      </button>
-                      <button
-                        onClick={() => handleTaskClick(session.id, 'feedbacks')}
-                        className={`flex justify-between p-2 rounded transition-colors ${
-                          session.task_counts.feedbacks > 0
-                            ? 'bg-muted hover:bg-muted/80 cursor-pointer'
-                            : 'bg-muted/50 cursor-not-allowed opacity-50'
-                        }`}
-                        disabled={session.task_counts.feedbacks === 0}
-                      >
-                        <span>Feedbacks:</span>
-                        <span className="font-medium flex items-center gap-1">
-                          {session.task_counts.feedbacks}
-                          {session.task_counts.feedbacks > 0 && <Eye className="h-3 w-3" />}
-                        </span>
-                      </button>
-                      <button
-                        onClick={() => handleTaskClick(session.id, 'inspections')}
-                        className={`flex justify-between p-2 rounded transition-colors ${
-                          session.task_counts.inspections > 0
-                            ? 'bg-muted hover:bg-muted/80 cursor-pointer'
-                            : 'bg-muted/50 cursor-not-allowed opacity-50'
-                        }`}
-                        disabled={session.task_counts.inspections === 0}
-                      >
-                        <span>Inspections:</span>
-                        <span className="font-medium flex items-center gap-1">
-                          {session.task_counts.inspections}
-                          {session.task_counts.inspections > 0 && <Eye className="h-3 w-3" />}
-                        </span>
-                      </button>
-                      <button
-                        onClick={() => handleTaskClick(session.id, 'punch_out')}
-                        className={`flex justify-between p-2 rounded transition-colors ${
-                          session.task_counts.punch_out > 0
-                            ? 'bg-muted hover:bg-muted/80 cursor-pointer'
-                            : 'bg-muted/50 cursor-not-allowed opacity-50'
-                        }`}
-                        disabled={session.task_counts.punch_out === 0}
-                      >
-                        <span>Punch-Out:</span>
-                        <span className="font-medium flex items-center gap-1">
-                          {session.task_counts.punch_out}
-                          {session.task_counts.punch_out > 0 && <Eye className="h-3 w-3" />}
-                        </span>
-                      </button>
-                    </div>
+            filteredSessions.map((session) => {
+              const isExpanded = expandedSession === session.id;
+              const totalTasks = getTotalTasks(session.task_counts);
+              const taskEntries: [string, string, number][] = [
+                ['employee_allocations', 'Allocations', session.task_counts.employee_allocations],
+                ['punch_in', 'Punch-In', session.task_counts.punch_in],
+                ['land_search', 'Land Search', session.task_counts.land_search],
+                ['stall_search', 'Stall Search', session.task_counts.stall_search],
+                ['money_recovery', 'Recovery', session.task_counts.money_recovery],
+                ['assets_usage', 'Assets', session.task_counts.assets_usage],
+                ['feedbacks', 'Feedbacks', session.task_counts.feedbacks],
+                ['inspections', 'Inspections', session.task_counts.inspections],
+                ['punch_out', 'Punch-Out', session.task_counts.punch_out],
+              ];
 
-                    <div className="pt-2 border-t text-xs text-muted-foreground">
-                      Created: {format(new Date(session.created_at), 'dd/MM/yyyy HH:mm')}
+              return (
+                <Card key={session.id} className="overflow-hidden">
+                  <button
+                    className="w-full text-left px-3 py-2.5 md:px-4 md:py-3 flex items-center justify-between"
+                    onClick={() => setExpandedSession(isExpanded ? null : session.id)}
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-semibold">
+                            {format(new Date(session.session_date), 'dd MMM yyyy')}
+                          </span>
+                          <span className="text-[10px] text-muted-foreground">
+                            {DAY_NAMES[session.day_of_week].slice(0, 3)}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <span className="text-[10px] text-muted-foreground">Tasks: {totalTasks}</span>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      {getStatusBadge(session.status)}
+                      {isExpanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+                    </div>
+                  </button>
+
+                  {isExpanded && (
+                    <div className="px-3 pb-2.5 md:px-4 md:pb-3 border-t">
+                      <div className="grid grid-cols-3 gap-1.5 mt-2">
+                        {taskEntries.map(([key, label, count]) => (
+                          <button
+                            key={key}
+                            onClick={() => count > 0 && handleTaskClick(session.id, key)}
+                            disabled={count === 0}
+                            className={`text-left p-1.5 rounded text-[10px] transition-colors ${
+                              count > 0
+                                ? 'bg-muted hover:bg-muted/80 cursor-pointer'
+                                : 'bg-muted/30 cursor-not-allowed opacity-50'
+                            }`}
+                          >
+                            <div className="text-muted-foreground truncate">{label}</div>
+                            <div className="font-semibold flex items-center gap-0.5">
+                              {count}
+                              {count > 0 && <Eye className="h-2.5 w-2.5" />}
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                      <div className="mt-2 text-[10px] text-muted-foreground">
+                        Created: {format(new Date(session.created_at), 'dd/MM/yyyy HH:mm')}
+                      </div>
+                    </div>
+                  )}
+                </Card>
+              );
+            })
           )}
         </div>
       </main>
