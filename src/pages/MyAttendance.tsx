@@ -713,80 +713,80 @@ export default function MyAttendance() {
   const summary = getStatusSummary();
 
   return (
-    <div className="min-h-screen bg-background p-4 md:p-6">
-      <div className="max-w-4xl mx-auto space-y-6">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
-            <ArrowLeft className="h-5 w-5" />
+    <div className="min-h-screen bg-background p-3 md:p-6">
+      <div className="max-w-4xl mx-auto space-y-3 md:space-y-6">
+        <div className="flex items-center gap-2 md:gap-4">
+          <Button variant="ghost" size="icon" className="h-8 w-8 md:h-10 md:w-10" onClick={() => navigate(-1)}>
+            <ArrowLeft className="h-4 w-4 md:h-5 md:w-5" />
           </Button>
           <div>
-            <h1 className="text-2xl md:text-3xl font-bold">My Attendance</h1>
-            <p className="text-sm text-muted-foreground">View your attendance calendar</p>
+            <h1 className="text-lg md:text-3xl font-bold">My Attendance</h1>
+            <p className="text-[10px] md:text-sm text-muted-foreground">View your attendance calendar</p>
           </div>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+        <div className="grid grid-cols-3 md:grid-cols-5 gap-2 md:gap-3">
           <Card className="bg-green-50/50 border-green-100">
-            <CardContent className="pt-4 pb-4">
-              <div className="text-center space-y-1">
-                <CheckCircle className="w-6 h-6 mx-auto text-green-600" />
-                <div className="text-2xl font-bold text-green-600">{summary.fullDays}</div>
-                <div className="text-xs text-green-700/70">Full Days</div>
+            <CardContent className="pt-2.5 pb-2.5 px-2 md:pt-4 md:pb-4">
+              <div className="text-center space-y-0.5">
+                <CheckCircle className="w-4 h-4 md:w-6 md:h-6 mx-auto text-green-600" />
+                <div className="text-lg md:text-2xl font-bold text-green-600">{summary.fullDays}</div>
+                <div className="text-[9px] md:text-xs text-green-700/70">Full Days</div>
               </div>
             </CardContent>
           </Card>
 
           <Card className="bg-amber-50/50 border-amber-100">
-            <CardContent className="pt-4 pb-4">
-              <div className="text-center space-y-1">
-                <AlertCircle className="w-6 h-6 mx-auto text-amber-600" />
-                <div className="text-2xl font-bold text-amber-600">{summary.halfDays}</div>
-                <div className="text-xs text-amber-700/70">Half Days</div>
+            <CardContent className="pt-2.5 pb-2.5 px-2 md:pt-4 md:pb-4">
+              <div className="text-center space-y-0.5">
+                <AlertCircle className="w-4 h-4 md:w-6 md:h-6 mx-auto text-amber-600" />
+                <div className="text-lg md:text-2xl font-bold text-amber-600">{summary.halfDays}</div>
+                <div className="text-[9px] md:text-xs text-amber-700/70">Half Days</div>
               </div>
             </CardContent>
           </Card>
 
           <Card className="bg-red-50/50 border-red-100">
-            <CardContent className="pt-4 pb-4">
-              <div className="text-center space-y-1">
-                <XCircle className="w-6 h-6 mx-auto text-red-600" />
-                <div className="text-2xl font-bold text-red-600">{summary.absent}</div>
-                <div className="text-xs text-red-700/70">Absences</div>
+            <CardContent className="pt-2.5 pb-2.5 px-2 md:pt-4 md:pb-4">
+              <div className="text-center space-y-0.5">
+                <XCircle className="w-4 h-4 md:w-6 md:h-6 mx-auto text-red-600" />
+                <div className="text-lg md:text-2xl font-bold text-red-600">{summary.absent}</div>
+                <div className="text-[9px] md:text-xs text-red-700/70">Absences</div>
               </div>
             </CardContent>
           </Card>
 
           <Card className="bg-blue-50/50 border-blue-100">
-            <CardContent className="pt-4 pb-4">
-              <div className="text-center space-y-1">
-                <Calendar className="w-6 h-6 mx-auto text-blue-600" />
-                <div className="text-2xl font-bold text-blue-600">{summary.weeklyOffs}</div>
-                <div className="text-xs text-blue-700/70">Weekly Offs</div>
+            <CardContent className="pt-2.5 pb-2.5 px-2 md:pt-4 md:pb-4">
+              <div className="text-center space-y-0.5">
+                <Calendar className="w-4 h-4 md:w-6 md:h-6 mx-auto text-blue-600" />
+                <div className="text-lg md:text-2xl font-bold text-blue-600">{summary.weeklyOffs}</div>
+                <div className="text-[9px] md:text-xs text-blue-700/70">Weekly Offs</div>
               </div>
             </CardContent>
           </Card>
 
           <Card className="bg-slate-50/50 border-slate-100 col-span-2 md:col-span-1">
-            <CardContent className="pt-4 pb-4">
-              <div className="text-center space-y-1">
-                <CalendarCheck className="w-6 h-6 mx-auto text-slate-600" />
-                <div className="text-2xl font-bold text-slate-600">{summary.fullDays + summary.halfDays + summary.weeklyOffs}</div>
-                <div className="text-xs text-slate-700/70">Total Days</div>
+            <CardContent className="pt-2.5 pb-2.5 px-2 md:pt-4 md:pb-4">
+              <div className="text-center space-y-0.5">
+                <CalendarCheck className="w-4 h-4 md:w-6 md:h-6 mx-auto text-slate-600" />
+                <div className="text-lg md:text-2xl font-bold text-slate-600">{summary.fullDays + summary.halfDays + summary.weeklyOffs}</div>
+                <div className="text-[9px] md:text-xs text-slate-700/70">Total Days</div>
               </div>
             </CardContent>
           </Card>
         </div>
 
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Calendar className="h-5 w-5" />
+          <CardHeader className="pb-2 pt-3 px-3 md:px-6 md:pt-6">
+            <CardTitle className="flex items-center gap-1.5 text-sm md:text-2xl">
+              <Calendar className="h-4 w-4 md:h-5 md:w-5" />
               Attendance Calendar
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-3 pb-3 md:px-6 md:pb-6">
             {loading ? (
-              <div className="text-center py-8 text-muted-foreground">Loading...</div>
+              <div className="text-center py-6 text-muted-foreground text-xs">Loading...</div>
             ) : (
               <>
                 {renderCalendar()}
