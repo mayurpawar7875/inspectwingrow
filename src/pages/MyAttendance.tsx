@@ -500,7 +500,7 @@ export default function MyAttendance() {
     const isToday = isSameDay(date, new Date());
     const isSelected = selectedDate && isSameDay(date, selectedDate);
     
-    let baseClasses = 'h-10 w-10 rounded-full flex items-center justify-center text-sm font-medium transition-all cursor-pointer';
+    let baseClasses = 'h-8 w-8 md:h-10 md:w-10 rounded-full flex items-center justify-center text-[11px] md:text-sm font-medium transition-all cursor-pointer';
     
     if (!isCurrentMonth) {
       baseClasses += ' opacity-30';
