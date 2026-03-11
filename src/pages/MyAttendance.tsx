@@ -663,44 +663,44 @@ export default function MyAttendance() {
         : `${completedTasks}/${totalTasks} (${taskPercent}%)`;
 
     return (
-      <Card className="mt-4">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base">{format(selectedDate, 'EEEE, MMMM d, yyyy')}</CardTitle>
+      <Card className="mt-3 md:mt-4">
+        <CardHeader className="pb-2 pt-3 px-3 md:px-6">
+          <CardTitle className="text-xs md:text-base">{format(selectedDate, 'EEE, MMM d, yyyy')}</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-3">
+        <CardContent className="px-3 pb-3 md:px-6 md:pb-6 space-y-2">
           <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground">Status:</span>
-            {status === 'full_day' && <Badge className="bg-green-500/10 text-green-600 border-green-500/20">Full Day</Badge>}
-            {status === 'half_day' && <Badge className="bg-amber-500/10 text-amber-600 border-amber-500/20">Half Day</Badge>}
-            {status === 'absent' && <Badge className="bg-red-500/10 text-red-600 border-red-500/20">Absent</Badge>}
-            {status === 'weekly_off' && <Badge className="bg-blue-500/10 text-blue-600 border-blue-500/20">Weekly Off</Badge>}
-            {status === 'future' && <Badge variant="outline">Future</Badge>}
+            <span className="text-[11px] md:text-sm text-muted-foreground">Status:</span>
+            {status === 'full_day' && <Badge className="bg-green-500/10 text-green-600 border-green-500/20 text-[10px] h-5">Full Day</Badge>}
+            {status === 'half_day' && <Badge className="bg-amber-500/10 text-amber-600 border-amber-500/20 text-[10px] h-5">Half Day</Badge>}
+            {status === 'absent' && <Badge className="bg-red-500/10 text-red-600 border-red-500/20 text-[10px] h-5">Absent</Badge>}
+            {status === 'weekly_off' && <Badge className="bg-blue-500/10 text-blue-600 border-blue-500/20 text-[10px] h-5">Weekly Off</Badge>}
+            {status === 'future' && <Badge variant="outline" className="text-[10px] h-5">Future</Badge>}
           </div>
           
           {record && (
             <>
               <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">Market:</span>
-                <span className="text-sm font-medium">{record.market_name || 'N/A'}</span>
+                <span className="text-[11px] md:text-sm text-muted-foreground">Market:</span>
+                <span className="text-[11px] md:text-sm font-medium">{record.market_name || 'N/A'}</span>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-2 md:gap-4">
                 <div>
-                  <span className="text-sm text-muted-foreground">Punch In:</span>
-                  <p className="text-sm font-medium">
+                  <span className="text-[11px] md:text-sm text-muted-foreground">Punch In:</span>
+                  <p className="text-[11px] md:text-sm font-medium">
                     {record.punch_in_time ? format(new Date(record.punch_in_time), 'hh:mm a') : '-'}
                   </p>
                 </div>
                 <div>
-                  <span className="text-sm text-muted-foreground">Punch Out:</span>
-                  <p className="text-sm font-medium">
+                  <span className="text-[11px] md:text-sm text-muted-foreground">Punch Out:</span>
+                  <p className="text-[11px] md:text-sm font-medium">
                     {record.punch_out_time ? format(new Date(record.punch_out_time), 'hh:mm a') : '-'}
                   </p>
                 </div>
               </div>
               {showTasks && (
                 <div className="flex items-center gap-2">
-                  <span className="text-sm text-muted-foreground">Tasks:</span>
-                  <span className="text-sm font-medium">{tasksLabel}</span>
+                  <span className="text-[11px] md:text-sm text-muted-foreground">Tasks:</span>
+                  <span className="text-[11px] md:text-sm font-medium">{tasksLabel}</span>
                 </div>
               )}
             </>
