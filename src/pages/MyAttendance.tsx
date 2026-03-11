@@ -500,14 +500,14 @@ export default function MyAttendance() {
     const isToday = isSameDay(date, new Date());
     const isSelected = selectedDate && isSameDay(date, selectedDate);
     
-    let baseClasses = 'h-10 w-10 rounded-full flex items-center justify-center text-sm font-medium transition-all cursor-pointer';
+    let baseClasses = 'h-8 w-8 md:h-10 md:w-10 rounded-full flex items-center justify-center text-[11px] md:text-sm font-medium transition-all cursor-pointer';
     
     if (!isCurrentMonth) {
       baseClasses += ' opacity-30';
     }
     
     if (isSelected) {
-      baseClasses += ' ring-2 ring-primary ring-offset-2';
+      baseClasses += ' ring-2 ring-primary ring-offset-1 md:ring-offset-2';
     }
     
     if (isToday) {
@@ -574,31 +574,31 @@ export default function MyAttendance() {
     const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     
     return (
-      <div className="space-y-4">
+      <div className="space-y-2 md:space-y-4">
         {/* Month Navigation */}
         <div className="flex items-center justify-between">
-          <Button variant="ghost" size="icon" onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}>
-            <ChevronLeft className="h-5 w-5" />
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}>
+            <ChevronLeft className="h-4 w-4 md:h-5 md:w-5" />
           </Button>
-          <h3 className="text-lg font-semibold">{format(currentMonth, 'MMMM yyyy')}</h3>
-          <Button variant="ghost" size="icon" onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}>
-            <ChevronRight className="h-5 w-5" />
+          <h3 className="text-sm md:text-lg font-semibold">{format(currentMonth, 'MMMM yyyy')}</h3>
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}>
+            <ChevronRight className="h-4 w-4 md:h-5 md:w-5" />
           </Button>
         </div>
         
         {/* Week day headers */}
-        <div className="grid grid-cols-7 gap-1">
+        <div className="grid grid-cols-7 gap-0.5 md:gap-1">
           {weekDays.map(day => (
-            <div key={day} className="h-10 flex items-center justify-center text-xs font-medium text-muted-foreground">
+            <div key={day} className="h-7 md:h-10 flex items-center justify-center text-[10px] md:text-xs font-medium text-muted-foreground">
               {day}
             </div>
           ))}
         </div>
         
         {/* Calendar days */}
-        <div className="grid grid-cols-7 gap-1">
+        <div className="grid grid-cols-7 gap-0.5 md:gap-1">
           {emptyCells.map((_, i) => (
-            <div key={`empty-${i}`} className="h-10" />
+            <div key={`empty-${i}`} className="h-8 md:h-10" />
           ))}
           {days.map(day => (
             <div
@@ -614,26 +614,26 @@ export default function MyAttendance() {
         </div>
         
         {/* Legend */}
-        <div className="flex flex-wrap gap-3 pt-4 border-t">
-          <div className="flex items-center gap-2">
-            <div className="h-4 w-4 rounded-full bg-green-500" />
-            <span className="text-xs text-muted-foreground">Full Day</span>
+        <div className="flex flex-wrap gap-2 md:gap-3 pt-2 md:pt-4 border-t">
+          <div className="flex items-center gap-1">
+            <div className="h-2.5 w-2.5 md:h-4 md:w-4 rounded-full bg-green-500" />
+            <span className="text-[9px] md:text-xs text-muted-foreground">Full Day</span>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="h-4 w-4 rounded-full bg-amber-500" />
-            <span className="text-xs text-muted-foreground">Half Day</span>
+          <div className="flex items-center gap-1">
+            <div className="h-2.5 w-2.5 md:h-4 md:w-4 rounded-full bg-amber-500" />
+            <span className="text-[9px] md:text-xs text-muted-foreground">Half Day</span>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="h-4 w-4 rounded-full bg-red-500" />
-            <span className="text-xs text-muted-foreground">Absent</span>
+          <div className="flex items-center gap-1">
+            <div className="h-2.5 w-2.5 md:h-4 md:w-4 rounded-full bg-red-500" />
+            <span className="text-[9px] md:text-xs text-muted-foreground">Absent</span>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="h-4 w-4 rounded-full bg-purple-500" />
-            <span className="text-xs text-muted-foreground">Active</span>
+          <div className="flex items-center gap-1">
+            <div className="h-2.5 w-2.5 md:h-4 md:w-4 rounded-full bg-purple-500" />
+            <span className="text-[9px] md:text-xs text-muted-foreground">Active</span>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="h-4 w-4 rounded-full bg-blue-100 border border-blue-300" />
-            <span className="text-xs text-muted-foreground">Weekly Off</span>
+          <div className="flex items-center gap-1">
+            <div className="h-2.5 w-2.5 md:h-4 md:w-4 rounded-full bg-blue-100 border border-blue-300" />
+            <span className="text-[9px] md:text-xs text-muted-foreground">Weekly Off</span>
           </div>
         </div>
       </div>
@@ -663,44 +663,44 @@ export default function MyAttendance() {
         : `${completedTasks}/${totalTasks} (${taskPercent}%)`;
 
     return (
-      <Card className="mt-4">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base">{format(selectedDate, 'EEEE, MMMM d, yyyy')}</CardTitle>
+      <Card className="mt-3 md:mt-4">
+        <CardHeader className="pb-2 pt-3 px-3 md:px-6">
+          <CardTitle className="text-xs md:text-base">{format(selectedDate, 'EEE, MMM d, yyyy')}</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-3">
+        <CardContent className="px-3 pb-3 md:px-6 md:pb-6 space-y-2">
           <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground">Status:</span>
-            {status === 'full_day' && <Badge className="bg-green-500/10 text-green-600 border-green-500/20">Full Day</Badge>}
-            {status === 'half_day' && <Badge className="bg-amber-500/10 text-amber-600 border-amber-500/20">Half Day</Badge>}
-            {status === 'absent' && <Badge className="bg-red-500/10 text-red-600 border-red-500/20">Absent</Badge>}
-            {status === 'weekly_off' && <Badge className="bg-blue-500/10 text-blue-600 border-blue-500/20">Weekly Off</Badge>}
-            {status === 'future' && <Badge variant="outline">Future</Badge>}
+            <span className="text-[11px] md:text-sm text-muted-foreground">Status:</span>
+            {status === 'full_day' && <Badge className="bg-green-500/10 text-green-600 border-green-500/20 text-[10px] h-5">Full Day</Badge>}
+            {status === 'half_day' && <Badge className="bg-amber-500/10 text-amber-600 border-amber-500/20 text-[10px] h-5">Half Day</Badge>}
+            {status === 'absent' && <Badge className="bg-red-500/10 text-red-600 border-red-500/20 text-[10px] h-5">Absent</Badge>}
+            {status === 'weekly_off' && <Badge className="bg-blue-500/10 text-blue-600 border-blue-500/20 text-[10px] h-5">Weekly Off</Badge>}
+            {status === 'future' && <Badge variant="outline" className="text-[10px] h-5">Future</Badge>}
           </div>
           
           {record && (
             <>
               <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">Market:</span>
-                <span className="text-sm font-medium">{record.market_name || 'N/A'}</span>
+                <span className="text-[11px] md:text-sm text-muted-foreground">Market:</span>
+                <span className="text-[11px] md:text-sm font-medium">{record.market_name || 'N/A'}</span>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-2 md:gap-4">
                 <div>
-                  <span className="text-sm text-muted-foreground">Punch In:</span>
-                  <p className="text-sm font-medium">
+                  <span className="text-[11px] md:text-sm text-muted-foreground">Punch In:</span>
+                  <p className="text-[11px] md:text-sm font-medium">
                     {record.punch_in_time ? format(new Date(record.punch_in_time), 'hh:mm a') : '-'}
                   </p>
                 </div>
                 <div>
-                  <span className="text-sm text-muted-foreground">Punch Out:</span>
-                  <p className="text-sm font-medium">
+                  <span className="text-[11px] md:text-sm text-muted-foreground">Punch Out:</span>
+                  <p className="text-[11px] md:text-sm font-medium">
                     {record.punch_out_time ? format(new Date(record.punch_out_time), 'hh:mm a') : '-'}
                   </p>
                 </div>
               </div>
               {showTasks && (
                 <div className="flex items-center gap-2">
-                  <span className="text-sm text-muted-foreground">Tasks:</span>
-                  <span className="text-sm font-medium">{tasksLabel}</span>
+                  <span className="text-[11px] md:text-sm text-muted-foreground">Tasks:</span>
+                  <span className="text-[11px] md:text-sm font-medium">{tasksLabel}</span>
                 </div>
               )}
             </>
@@ -713,80 +713,80 @@ export default function MyAttendance() {
   const summary = getStatusSummary();
 
   return (
-    <div className="min-h-screen bg-background p-4 md:p-6">
-      <div className="max-w-4xl mx-auto space-y-6">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
-            <ArrowLeft className="h-5 w-5" />
+    <div className="min-h-screen bg-background p-3 md:p-6">
+      <div className="max-w-4xl mx-auto space-y-3 md:space-y-6">
+        <div className="flex items-center gap-2 md:gap-4">
+          <Button variant="ghost" size="icon" className="h-8 w-8 md:h-10 md:w-10" onClick={() => navigate(-1)}>
+            <ArrowLeft className="h-4 w-4 md:h-5 md:w-5" />
           </Button>
           <div>
-            <h1 className="text-2xl md:text-3xl font-bold">My Attendance</h1>
-            <p className="text-sm text-muted-foreground">View your attendance calendar</p>
+            <h1 className="text-lg md:text-3xl font-bold">My Attendance</h1>
+            <p className="text-[10px] md:text-sm text-muted-foreground">View your attendance calendar</p>
           </div>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+        <div className="grid grid-cols-3 md:grid-cols-5 gap-2 md:gap-3">
           <Card className="bg-green-50/50 border-green-100">
-            <CardContent className="pt-4 pb-4">
-              <div className="text-center space-y-1">
-                <CheckCircle className="w-6 h-6 mx-auto text-green-600" />
-                <div className="text-2xl font-bold text-green-600">{summary.fullDays}</div>
-                <div className="text-xs text-green-700/70">Full Days</div>
+            <CardContent className="pt-2.5 pb-2.5 px-2 md:pt-4 md:pb-4">
+              <div className="text-center space-y-0.5">
+                <CheckCircle className="w-4 h-4 md:w-6 md:h-6 mx-auto text-green-600" />
+                <div className="text-lg md:text-2xl font-bold text-green-600">{summary.fullDays}</div>
+                <div className="text-[9px] md:text-xs text-green-700/70">Full Days</div>
               </div>
             </CardContent>
           </Card>
 
           <Card className="bg-amber-50/50 border-amber-100">
-            <CardContent className="pt-4 pb-4">
-              <div className="text-center space-y-1">
-                <AlertCircle className="w-6 h-6 mx-auto text-amber-600" />
-                <div className="text-2xl font-bold text-amber-600">{summary.halfDays}</div>
-                <div className="text-xs text-amber-700/70">Half Days</div>
+            <CardContent className="pt-2.5 pb-2.5 px-2 md:pt-4 md:pb-4">
+              <div className="text-center space-y-0.5">
+                <AlertCircle className="w-4 h-4 md:w-6 md:h-6 mx-auto text-amber-600" />
+                <div className="text-lg md:text-2xl font-bold text-amber-600">{summary.halfDays}</div>
+                <div className="text-[9px] md:text-xs text-amber-700/70">Half Days</div>
               </div>
             </CardContent>
           </Card>
 
           <Card className="bg-red-50/50 border-red-100">
-            <CardContent className="pt-4 pb-4">
-              <div className="text-center space-y-1">
-                <XCircle className="w-6 h-6 mx-auto text-red-600" />
-                <div className="text-2xl font-bold text-red-600">{summary.absent}</div>
-                <div className="text-xs text-red-700/70">Absences</div>
+            <CardContent className="pt-2.5 pb-2.5 px-2 md:pt-4 md:pb-4">
+              <div className="text-center space-y-0.5">
+                <XCircle className="w-4 h-4 md:w-6 md:h-6 mx-auto text-red-600" />
+                <div className="text-lg md:text-2xl font-bold text-red-600">{summary.absent}</div>
+                <div className="text-[9px] md:text-xs text-red-700/70">Absences</div>
               </div>
             </CardContent>
           </Card>
 
           <Card className="bg-blue-50/50 border-blue-100">
-            <CardContent className="pt-4 pb-4">
-              <div className="text-center space-y-1">
-                <Calendar className="w-6 h-6 mx-auto text-blue-600" />
-                <div className="text-2xl font-bold text-blue-600">{summary.weeklyOffs}</div>
-                <div className="text-xs text-blue-700/70">Weekly Offs</div>
+            <CardContent className="pt-2.5 pb-2.5 px-2 md:pt-4 md:pb-4">
+              <div className="text-center space-y-0.5">
+                <Calendar className="w-4 h-4 md:w-6 md:h-6 mx-auto text-blue-600" />
+                <div className="text-lg md:text-2xl font-bold text-blue-600">{summary.weeklyOffs}</div>
+                <div className="text-[9px] md:text-xs text-blue-700/70">Weekly Offs</div>
               </div>
             </CardContent>
           </Card>
 
           <Card className="bg-slate-50/50 border-slate-100 col-span-2 md:col-span-1">
-            <CardContent className="pt-4 pb-4">
-              <div className="text-center space-y-1">
-                <CalendarCheck className="w-6 h-6 mx-auto text-slate-600" />
-                <div className="text-2xl font-bold text-slate-600">{summary.fullDays + summary.halfDays + summary.weeklyOffs}</div>
-                <div className="text-xs text-slate-700/70">Total Days</div>
+            <CardContent className="pt-2.5 pb-2.5 px-2 md:pt-4 md:pb-4">
+              <div className="text-center space-y-0.5">
+                <CalendarCheck className="w-4 h-4 md:w-6 md:h-6 mx-auto text-slate-600" />
+                <div className="text-lg md:text-2xl font-bold text-slate-600">{summary.fullDays + summary.halfDays + summary.weeklyOffs}</div>
+                <div className="text-[9px] md:text-xs text-slate-700/70">Total Days</div>
               </div>
             </CardContent>
           </Card>
         </div>
 
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Calendar className="h-5 w-5" />
+          <CardHeader className="pb-2 pt-3 px-3 md:px-6 md:pt-6">
+            <CardTitle className="flex items-center gap-1.5 text-sm md:text-2xl">
+              <Calendar className="h-4 w-4 md:h-5 md:w-5" />
               Attendance Calendar
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-3 pb-3 md:px-6 md:pb-6">
             {loading ? (
-              <div className="text-center py-8 text-muted-foreground">Loading...</div>
+              <div className="text-center py-6 text-muted-foreground text-xs">Loading...</div>
             ) : (
               <>
                 {renderCalendar()}
