@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { ArrowLeft, X, Eye } from 'lucide-react';
+import { ArrowLeft, X, Eye, Filter } from 'lucide-react';
 import { format } from 'date-fns';
 
 interface Session {
@@ -49,6 +49,7 @@ export default function MyManagerSessions() {
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
   const [taskDetails, setTaskDetails] = useState<any[]>([]);
   const [loadingDetails, setLoadingDetails] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -577,74 +578,86 @@ export default function MyManagerSessions() {
     <div className="min-h-screen bg-background">
       <header className="border-b bg-card">
         <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" onClick={() => navigate('/manager-dashboard')}>
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-            <div>
-              <h1 className="text-2xl font-bold">My Sessions</h1>
-              <p className="text-sm text-muted-foreground">View your session history and status</p>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Button variant="ghost" size="icon" onClick={() => navigate('/manager-dashboard')}>
+                <ArrowLeft className="h-5 w-5" />
+              </Button>
+              <div>
+                <h1 className="text-lg md:text-2xl font-bold">My Sessions</h1>
+                <p className="text-xs md:text-sm text-muted-foreground">View your session history and status</p>
+              </div>
             </div>
+            <Button
+              variant={showFilters ? 'default' : 'outline'}
+              size="icon"
+              onClick={() => setShowFilters(!showFilters)}
+              className="relative"
+            >
+              <Filter className="h-4 w-4" />
+              {(startDate || endDate || selectedMarket !== 'all') && (
+                <span className="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-destructive" />
+              )}
+            </Button>
           </div>
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-8">
-        {/* Filters */}
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle className="text-lg">Filters</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="start-date">Start Date</Label>
-                <Input
-                  id="start-date"
-                  type="date"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                />
+      <main className="container mx-auto px-4 py-4 md:py-8">
+        {/* Collapsible Filters */}
+        {showFilters && (
+          <Card className="mb-4">
+            <CardContent className="pt-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div className="space-y-1.5">
+                  <Label htmlFor="start-date" className="text-xs md:text-sm">Start Date</Label>
+                  <Input
+                    id="start-date"
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="end-date" className="text-xs md:text-sm">End Date</Label>
+                  <Input
+                    id="end-date"
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="market" className="text-xs md:text-sm">Market</Label>
+                  <Select value={selectedMarket} onValueChange={setSelectedMarket}>
+                    <SelectTrigger id="market">
+                      <SelectValue placeholder="All markets" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Markets</SelectItem>
+                      {markets.map((market) => (
+                        <SelectItem key={market.id} value={market.id}>
+                          {market.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="end-date">End Date</Label>
-                <Input
-                  id="end-date"
-                  type="date"
-                  value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="market">Market</Label>
-                <Select value={selectedMarket} onValueChange={setSelectedMarket}>
-                  <SelectTrigger id="market">
-                    <SelectValue placeholder="All markets" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Markets</SelectItem>
-                    {markets.map((market) => (
-                      <SelectItem key={market.id} value={market.id}>
-                        {market.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            {(startDate || endDate || selectedMarket !== 'all') && (
-              <div className="mt-4">
-                <Button variant="outline" size="sm" onClick={clearFilters}>
-                  <X className="h-4 w-4 mr-2" />
-                  Clear Filters
-                </Button>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+              {(startDate || endDate || selectedMarket !== 'all') && (
+                <div className="mt-3">
+                  <Button variant="outline" size="sm" onClick={clearFilters}>
+                    <X className="h-4 w-4 mr-2" />
+                    Clear Filters
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         <div className="space-y-4">
           {filteredSessions.length === 0 ? (
