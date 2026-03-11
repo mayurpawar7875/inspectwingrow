@@ -574,22 +574,22 @@ export default function MyAttendance() {
     const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     
     return (
-      <div className="space-y-4">
+      <div className="space-y-2 md:space-y-4">
         {/* Month Navigation */}
         <div className="flex items-center justify-between">
-          <Button variant="ghost" size="icon" onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}>
-            <ChevronLeft className="h-5 w-5" />
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}>
+            <ChevronLeft className="h-4 w-4 md:h-5 md:w-5" />
           </Button>
-          <h3 className="text-lg font-semibold">{format(currentMonth, 'MMMM yyyy')}</h3>
-          <Button variant="ghost" size="icon" onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}>
-            <ChevronRight className="h-5 w-5" />
+          <h3 className="text-sm md:text-lg font-semibold">{format(currentMonth, 'MMMM yyyy')}</h3>
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}>
+            <ChevronRight className="h-4 w-4 md:h-5 md:w-5" />
           </Button>
         </div>
         
         {/* Week day headers */}
-        <div className="grid grid-cols-7 gap-1">
+        <div className="grid grid-cols-7 gap-0.5 md:gap-1">
           {weekDays.map(day => (
-            <div key={day} className="h-10 flex items-center justify-center text-xs font-medium text-muted-foreground">
+            <div key={day} className="h-7 md:h-10 flex items-center justify-center text-[10px] md:text-xs font-medium text-muted-foreground">
               {day}
             </div>
           ))}
