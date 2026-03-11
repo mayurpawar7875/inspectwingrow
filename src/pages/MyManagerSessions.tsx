@@ -688,7 +688,7 @@ export default function MyManagerSessions() {
           ) : (
             filteredSessions.map((session) => {
               const isExpanded = expandedSession === session.id;
-              const totalTasks = getTotalTasks(session.task_counts);
+              const completedTypes = getCompletedTaskTypes(session.task_counts);
               const taskEntries: [string, string, number][] = [
                 ['employee_allocations', 'Allocations', session.task_counts.employee_allocations],
                 ['punch_in', 'Punch-In', session.task_counts.punch_in],
