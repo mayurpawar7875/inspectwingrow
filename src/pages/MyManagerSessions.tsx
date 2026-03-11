@@ -723,7 +723,7 @@ export default function MyManagerSessions() {
                       </div>
                     </div>
                     <div className="flex items-center gap-1.5 shrink-0">
-                      {getStatusBadge(session.status)}
+                      {getStatusBadge(session)}
                       {isExpanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
                     </div>
                   </button>
