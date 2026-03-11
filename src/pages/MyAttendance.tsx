@@ -507,7 +507,7 @@ export default function MyAttendance() {
     }
     
     if (isSelected) {
-      baseClasses += ' ring-2 ring-primary ring-offset-2';
+      baseClasses += ' ring-2 ring-primary ring-offset-1 md:ring-offset-2';
     }
     
     if (isToday) {
