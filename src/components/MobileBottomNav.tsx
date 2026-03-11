@@ -59,7 +59,6 @@ const marketManagerNavItems: NavItem[] = [
   { icon: MapPin, labelKey: 'Location', action: 'location' },
   { icon: CalendarCheck, labelKey: 'nav.attendance', path: '/my-attendance' },
   { icon: History, labelKey: 'nav.sessions', path: '/my-manager-sessions' },
-  { icon: Trash2, labelKey: 'Clear Cache', action: 'clear-cache' },
 ];
 
 interface MobileBottomNavProps {

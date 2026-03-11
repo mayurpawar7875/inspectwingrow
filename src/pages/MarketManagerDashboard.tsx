@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { LogOut, CheckCircle2, History, CalendarCheck, MapPin, Umbrella, Wallet, Package } from 'lucide-react';
+import { LogOut, CheckCircle2, History, CalendarCheck, MapPin, Umbrella, Wallet, Package, Trash2 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { MobileBottomNav } from '@/components/MobileBottomNav';
 import { SessionSelector } from '@/components/market-manager/SessionSelector';
@@ -258,10 +258,25 @@ export default function MarketManagerDashboard() {
         <div className="container mx-auto px-3 py-3 md:px-4 md:py-4">
           <div className="flex justify-between items-center">
             <div className="min-w-0">
-              <h1 className="text-lg md:text-2xl font-bold truncate">{t('mm.title')}</h1>
-              <p className="text-xs md:text-sm text-muted-foreground truncate">{user?.email}</p>
+              <h1 className="text-base md:text-2xl font-bold truncate">{t('mm.title')}</h1>
+              <p className="text-[10px] md:text-sm text-muted-foreground truncate">{user?.email}</p>
             </div>
             <div className="flex items-center gap-1 md:gap-2 shrink-0">
+              <Button variant="ghost" size="icon" className="h-8 w-8 md:hidden" onClick={async () => {
+                try {
+                  if ('caches' in window) {
+                    const cacheNames = await caches.keys();
+                    await Promise.all(cacheNames.map(name => caches.delete(name)));
+                    toast.success('Cache cleared successfully');
+                  } else {
+                    toast.error('Cache API not supported');
+                  }
+                } catch {
+                  toast.error('Failed to clear cache');
+                }
+              }}>
+                <Trash2 className="h-4 w-4" />
+              </Button>
               <LanguageSwitcher variant="ghost" />
               <Button variant="outline" size="icon" className="h-8 w-8 md:hidden" onClick={handleSignOut}>
                 <LogOut className="h-4 w-4" />
