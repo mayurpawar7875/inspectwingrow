@@ -178,11 +178,11 @@ export default function MyManagerSessions() {
     const computedStatus = getComputedStatus(session);
     switch (computedStatus) {
       case 'completed':
-        return <Badge className="bg-green-500 text-white">Completed</Badge>;
+        return <Badge className="bg-success text-success-foreground">Completed</Badge>;
       case 'expired':
         return <Badge variant="destructive">Expired</Badge>;
       default:
-        return <Badge className="bg-yellow-500 text-white">Incomplete</Badge>;
+        return <Badge className="bg-warning text-warning-foreground">Incomplete</Badge>;
     }
   };
 
