@@ -598,7 +598,7 @@ export default function MyAttendance() {
         {/* Calendar days */}
         <div className="grid grid-cols-7 gap-0.5 md:gap-1">
           {emptyCells.map((_, i) => (
-            <div key={`empty-${i}`} className="h-10" />
+            <div key={`empty-${i}`} className="h-8 md:h-10" />
           ))}
           {days.map(day => (
             <div
