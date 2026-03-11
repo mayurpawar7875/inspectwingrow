@@ -50,6 +50,7 @@ export default function MyManagerSessions() {
   const [taskDetails, setTaskDetails] = useState<any[]>([]);
   const [loadingDetails, setLoadingDetails] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
+  const [expandedSession, setExpandedSession] = useState<string | null>(null);
 
   useEffect(() => {
     if (user) {
