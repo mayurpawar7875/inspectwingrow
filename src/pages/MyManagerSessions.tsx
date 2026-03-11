@@ -718,7 +718,7 @@ export default function MyManagerSessions() {
                           </span>
                         </div>
                         <div className="flex items-center gap-2 mt-0.5">
-                          <span className="text-[10px] text-muted-foreground">Tasks: {totalTasks}</span>
+                          <span className="text-[10px] text-muted-foreground">Tasks: {completedTypes}/{TOTAL_TASK_TYPES}</span>
                         </div>
                       </div>
                     </div>
