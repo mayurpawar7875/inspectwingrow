@@ -183,198 +183,129 @@ export default function MarketLocationVisitForm() {
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Market Location Visit</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Selfie Upload */}
-          <div className="space-y-2">
-            <Label>Selfie *</Label>
-            {previewUrl ? (
-              <div className="space-y-2">
-                <img 
-                  src={previewUrl} 
-                  alt="Selfie preview" 
-                  className="w-full max-w-xs rounded-lg border"
-                />
-                <Button type="button" variant="outline" onClick={clearPhoto}>
-                  Clear Photo
+    <div className="space-y-3">
+      <Card className="shadow-none border">
+        <CardHeader className="pb-2 pt-3 px-3 md:px-6">
+          <CardTitle className="text-sm md:text-lg">Market Location Visit</CardTitle>
+        </CardHeader>
+        <CardContent className="px-3 pb-3 md:px-6 md:pb-6">
+          <form onSubmit={handleSubmit} className="space-y-2.5">
+            {/* Selfie Upload */}
+            <div className="space-y-1">
+              <Label className="text-[11px] md:text-sm">Selfie *</Label>
+              {previewUrl ? (
+                <div className="flex items-center gap-2">
+                  <img src={previewUrl} alt="Selfie" className="w-16 h-16 rounded-md border object-cover" />
+                  <Button type="button" variant="outline" size="sm" className="h-7 text-xs" onClick={clearPhoto}>Clear</Button>
+                </div>
+              ) : (
+                <Button type="button" variant="outline" className="w-full h-8 text-xs" onClick={() => cameraInputRef.current?.click()}>
+                  <Camera className="w-3.5 h-3.5 mr-1.5" />Take Selfie
                 </Button>
+              )}
+              <input ref={cameraInputRef} type="file" accept="image/*" capture="user" onChange={handleFileChange} className="hidden" />
+            </div>
+
+            {/* GPS */}
+            <div className="space-y-1">
+              <Label className="text-[11px] md:text-sm flex items-center gap-1">
+                <MapPin className="w-3 h-3" />GPS
+              </Label>
+              <div className="grid grid-cols-2 gap-1.5">
+                <Input value={latitude !== null ? latitude.toFixed(6) : 'Loading...'} disabled className="h-7 text-[10px]" />
+                <Input value={longitude !== null ? longitude.toFixed(6) : 'Loading...'} disabled className="h-7 text-[10px]" />
               </div>
-            ) : (
-              <Button
-                type="button"
-                variant="outline"
-                className="w-full"
-                onClick={() => cameraInputRef.current?.click()}
-              >
-                <Camera className="w-4 h-4 mr-2" />
-                Take Selfie
-              </Button>
+              <Button type="button" variant="outline" size="sm" className="h-6 text-[10px] px-2" onClick={captureGPS}>Refresh GPS</Button>
+            </div>
+
+            {/* Location Name */}
+            <div className="space-y-1">
+              <Label className="text-[11px] md:text-sm">Location Name *</Label>
+              <Input value={locationName} onChange={(e) => setLocationName(e.target.value)} placeholder="Enter location name" required className="h-8 text-xs" />
+            </div>
+
+            {/* Location Type */}
+            <div className="space-y-1">
+              <Label className="text-[11px] md:text-sm">Location Type *</Label>
+              <Select value={locationType} onValueChange={(value: any) => setLocationType(value)}>
+                <SelectTrigger className="h-8 text-xs">
+                  <SelectValue placeholder="Select type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="residential_complex" className="text-xs">Residential Complex</SelectItem>
+                  <SelectItem value="open_space" className="text-xs">Open Space</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Conditional Fields */}
+            {locationType === 'residential_complex' && (
+              <div className="space-y-1">
+                <Label className="text-[11px] md:text-sm">Occupied Flats *</Label>
+                <Input type="number" value={occupiedFlats} onChange={(e) => setOccupiedFlats(e.target.value)} placeholder="No. of flats" required className="h-8 text-xs" />
+              </div>
             )}
-            <input
-              ref={cameraInputRef}
-              type="file"
-              accept="image/*"
-              capture="user"
-              onChange={handleFileChange}
-              className="hidden"
-            />
-          </div>
 
-          {/* GPS Coordinates */}
-          <div className="space-y-2">
-            <Label className="flex items-center gap-2">
-              <MapPin className="w-4 h-4" />
-              GPS Coordinates
-            </Label>
-            <div className="grid grid-cols-2 gap-2">
-              <Input
-                value={latitude !== null ? latitude.toFixed(6) : 'Loading...'}
-                disabled
-                placeholder="Latitude"
-              />
-              <Input
-                value={longitude !== null ? longitude.toFixed(6) : 'Loading...'}
-                disabled
-                placeholder="Longitude"
-              />
-            </div>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={captureGPS}
-            >
-              Refresh GPS
+            {locationType === 'open_space' && (
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <Label className="text-[11px] md:text-sm">Population *</Label>
+                  <Input value={nearbyPopulation} onChange={(e) => setNearbyPopulation(e.target.value)} placeholder="Estimate" required className="h-8 text-xs" />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[11px] md:text-sm">Nearest Mandi *</Label>
+                  <Input value={nearestLocalMandi} onChange={(e) => setNearestLocalMandi(e.target.value)} placeholder="Mandi name" required className="h-8 text-xs" />
+                </div>
+              </div>
+            )}
+
+            <Button type="submit" disabled={loading} className="w-full h-8 text-xs">
+              {loading ? 'Submitting...' : 'Submit Location Visit'}
             </Button>
-          </div>
+          </form>
+        </CardContent>
+      </Card>
 
-          {/* Location Name */}
-          <div className="space-y-2">
-            <Label htmlFor="locationName">Location Name *</Label>
-            <Input
-              id="locationName"
-              value={locationName}
-              onChange={(e) => setLocationName(e.target.value)}
-              placeholder="Enter location name"
-              required
-            />
-          </div>
-
-          {/* Location Type */}
-          <div className="space-y-2">
-            <Label htmlFor="locationType">Location Type *</Label>
-            <Select value={locationType} onValueChange={(value: any) => setLocationType(value)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select location type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="residential_complex">Residential Complex</SelectItem>
-                <SelectItem value="open_space">Open Space</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Conditional Fields */}
-          {locationType === 'residential_complex' && (
-            <div className="space-y-2">
-              <Label htmlFor="occupiedFlats">Occupied Flats *</Label>
-              <Input
-                id="occupiedFlats"
-                type="number"
-                value={occupiedFlats}
-                onChange={(e) => setOccupiedFlats(e.target.value)}
-                placeholder="Enter number of occupied flats"
-                required
-              />
+      {/* My Submissions */}
+      {myVisits.length > 0 && (
+        <Card className="shadow-none border">
+          <CardHeader className="pb-2 pt-3 px-3 md:px-6">
+            <CardTitle className="text-sm md:text-lg">My Submissions</CardTitle>
+          </CardHeader>
+          <CardContent className="px-3 pb-3 md:px-6 md:pb-6">
+            <div className="space-y-1.5">
+              {myVisits.map((visit) => (
+                <div key={visit.id} className="p-2 border rounded-md flex justify-between items-center">
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium text-xs truncate">{visit.location_name}</p>
+                    <p className="text-[10px] text-muted-foreground capitalize">
+                      {visit.location_type.replace('_', ' ')} • {new Date(visit.created_at).toLocaleDateString('en-IN')}
+                    </p>
+                    {visit.review_notes && (
+                      <p className="text-[10px] text-muted-foreground mt-0.5">Note: {visit.review_notes}</p>
+                    )}
+                  </div>
+                  {visit.status === 'pending' && (
+                    <Badge variant="outline" className="text-[10px] h-5 bg-yellow-50 text-yellow-700 border-yellow-300">
+                      <Clock className="w-2.5 h-2.5 mr-0.5" />Pending
+                    </Badge>
+                  )}
+                  {visit.status === 'approved' && (
+                    <Badge variant="outline" className="text-[10px] h-5 bg-green-50 text-green-700 border-green-300">
+                      <CheckCircle className="w-2.5 h-2.5 mr-0.5" />Approved
+                    </Badge>
+                  )}
+                  {visit.status === 'rejected' && (
+                    <Badge variant="outline" className="text-[10px] h-5 bg-red-50 text-red-700 border-red-300">
+                      <XCircle className="w-2.5 h-2.5 mr-0.5" />Rejected
+                    </Badge>
+                  )}
+                </div>
+              ))}
             </div>
-          )}
-
-          {locationType === 'open_space' && (
-            <>
-              <div className="space-y-2">
-                <Label htmlFor="nearbyPopulation">Nearby Population *</Label>
-                <Input
-                  id="nearbyPopulation"
-                  value={nearbyPopulation}
-                  onChange={(e) => setNearbyPopulation(e.target.value)}
-                  placeholder="Enter nearby population estimate"
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="nearestLocalMandi">Nearest Local Mandi *</Label>
-                <Input
-                  id="nearestLocalMandi"
-                  value={nearestLocalMandi}
-                  onChange={(e) => setNearestLocalMandi(e.target.value)}
-                  placeholder="Enter nearest local mandi"
-                  required
-                />
-              </div>
-            </>
-          )}
-
-          <Button type="submit" disabled={loading} className="w-full">
-            {loading ? 'Submitting...' : 'Submit Location Visit'}
-          </Button>
-        </form>
-
-        {/* My Submissions Section */}
-        {myVisits.length > 0 && (
-          <>
-            <Separator className="my-6" />
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold">My Submitted Requests</h3>
-              <div className="space-y-3">
-                {myVisits.map((visit) => (
-                  <Card key={visit.id} className="p-4">
-                    <div className="flex justify-between items-start gap-3">
-                      <div className="flex-1 space-y-1">
-                        <p className="font-medium">{visit.location_name}</p>
-                        <p className="text-sm text-muted-foreground capitalize">
-                          {visit.location_type.replace('_', ' ')}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          Submitted: {new Date(visit.created_at).toLocaleDateString('en-IN')}
-                        </p>
-                        {visit.review_notes && (
-                          <p className="text-sm text-muted-foreground mt-2">
-                            <span className="font-medium">Notes:</span> {visit.review_notes}
-                          </p>
-                        )}
-                      </div>
-                      <div>
-                        {visit.status === 'pending' && (
-                          <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-300">
-                            <Clock className="w-3 h-3 mr-1" />
-                            Pending
-                          </Badge>
-                        )}
-                        {visit.status === 'approved' && (
-                          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-300">
-                            <CheckCircle className="w-3 h-3 mr-1" />
-                            Approved
-                          </Badge>
-                        )}
-                        {visit.status === 'rejected' && (
-                          <Badge variant="outline" className="bg-red-50 text-red-700 border-red-300">
-                            <XCircle className="w-3 h-3 mr-1" />
-                            Rejected
-                          </Badge>
-                        )}
-                      </div>
-                    </div>
-                  </Card>
-                ))}
-              </div>
-            </div>
-          </>
-        )}
-      </CardContent>
-    </Card>
+          </CardContent>
+        </Card>
+      )}
+    </div>
   );
 }

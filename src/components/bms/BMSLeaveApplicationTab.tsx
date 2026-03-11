@@ -173,83 +173,83 @@ export function BMSLeaveApplicationTab() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {/* Header with Add Button */}
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold flex items-center gap-2">
-          <Calendar className="h-5 w-5" />
+        <h2 className="text-sm md:text-lg font-semibold flex items-center gap-1.5">
+          <Calendar className="h-3.5 w-3.5 md:h-5 md:w-5" />
           Leave Applications
         </h2>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
-            <Button size="sm">
-              <Plus className="h-4 w-4 mr-1" />
+            <Button size="sm" className="h-7 text-xs px-2">
+              <Plus className="h-3.5 w-3.5 mr-1" />
               Apply Leave
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-md">
+          <DialogContent className="w-[95vw] md:w-auto max-w-md">
             <DialogHeader>
-              <DialogTitle>Apply for Leave</DialogTitle>
+              <DialogTitle className="text-sm md:text-lg">Apply for Leave</DialogTitle>
             </DialogHeader>
-            <div className="space-y-4 pt-4">
-              <div className="space-y-2">
-                <Label htmlFor="leave-type">Leave Type</Label>
+            <div className="space-y-2.5 pt-2">
+              <div className="space-y-1">
+                <Label htmlFor="leave-type" className="text-[11px] md:text-sm">Leave Type</Label>
                 <Select value={leaveType} onValueChange={setLeaveType}>
-                  <SelectTrigger>
+                  <SelectTrigger className="h-8 text-xs">
                     <SelectValue placeholder="Select leave type" />
                   </SelectTrigger>
                   <SelectContent>
                     {LEAVE_TYPES.map((type) => (
-                      <SelectItem key={type} value={type}>{type}</SelectItem>
+                      <SelectItem key={type} value={type} className="text-xs">{type}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="from-date">From Date</Label>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <Label htmlFor="from-date" className="text-[11px] md:text-sm">From</Label>
                   <Input
                     id="from-date"
                     type="date"
                     min={format(new Date(), 'yyyy-MM-dd')}
                     value={fromDate}
                     onChange={(e) => setFromDate(e.target.value)}
+                    className="h-8 text-xs"
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="to-date">To Date</Label>
+                <div className="space-y-1">
+                  <Label htmlFor="to-date" className="text-[11px] md:text-sm">To</Label>
                   <Input
                     id="to-date"
                     type="date"
                     min={fromDate || format(new Date(), 'yyyy-MM-dd')}
                     value={toDate}
                     onChange={(e) => setToDate(e.target.value)}
+                    className="h-8 text-xs"
                   />
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="reason">Reason</Label>
+              <div className="space-y-1">
+                <Label htmlFor="reason" className="text-[11px] md:text-sm">Reason</Label>
                 <Textarea
                   id="reason"
                   placeholder="Explain the reason for leave"
                   value={reason}
                   onChange={(e) => setReason(e.target.value)}
-                  rows={3}
+                  rows={2}
+                  className="text-xs min-h-[48px]"
                 />
               </div>
 
               <Button
                 onClick={handleSubmit}
                 disabled={!leaveType || !fromDate || !toDate || !reason || submitting}
-                className="w-full"
+                className="w-full h-8 text-xs"
               >
                 {submitting ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Submitting...
-                  </>
+                  <><Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />Submitting...</>
                 ) : (
                   'Submit Application'
                 )}
@@ -261,32 +261,31 @@ export function BMSLeaveApplicationTab() {
 
       {/* Leaves List */}
       {leaves.length === 0 ? (
-        <Card>
-          <CardContent className="py-12 text-center">
-            <Calendar className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-            <p className="text-muted-foreground">No leave applications yet</p>
-            <p className="text-sm text-muted-foreground mt-1">Click "Apply Leave" to submit one</p>
+        <Card className="shadow-none border">
+          <CardContent className="py-6 text-center">
+            <Calendar className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+            <p className="text-xs text-muted-foreground">No leave applications yet</p>
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-6">
+        <div className="space-y-3">
           {Object.entries(groupedLeaves).map(([month, monthLeaves]) => (
             <div key={month}>
-              <h3 className="text-sm font-medium text-muted-foreground mb-2">{month}</h3>
-              <div className="space-y-2">
+              <h3 className="text-[11px] font-medium text-muted-foreground mb-1.5">{month}</h3>
+              <div className="space-y-1.5">
                 {monthLeaves.map((leave) => (
-                  <Card key={leave.id}>
-                    <CardContent className="p-4">
-                      <div className="flex items-start justify-between">
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2">
-                            <span className="font-medium">
-                              {format(new Date(leave.leave_date), 'EEEE, MMMM d')}
+                  <Card key={leave.id} className="shadow-none border">
+                    <CardContent className="p-2 md:p-4">
+                      <div className="flex items-center justify-between">
+                        <div className="min-w-0 flex-1 space-y-0.5">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="font-medium text-xs md:text-sm">
+                              {format(new Date(leave.leave_date), 'EEE, MMM d')}
                             </span>
                             {getStatusBadge(leave.status)}
                           </div>
                           {leave.reason && (
-                            <p className="text-sm text-muted-foreground line-clamp-2">{leave.reason}</p>
+                            <p className="text-[10px] text-muted-foreground line-clamp-1">{leave.reason}</p>
                           )}
                         </div>
                       </div>

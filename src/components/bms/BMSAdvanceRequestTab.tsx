@@ -119,29 +119,29 @@ export function BMSAdvanceRequestTab() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {/* Header with Add Button */}
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold flex items-center gap-2">
-          <Wallet className="h-5 w-5" />
+        <h2 className="text-sm md:text-lg font-semibold flex items-center gap-1.5">
+          <Wallet className="h-3.5 w-3.5 md:h-5 md:w-5" />
           Advance Requests
         </h2>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
-            <Button size="sm">
-              <Plus className="h-4 w-4 mr-1" />
+            <Button size="sm" className="h-7 text-xs px-2">
+              <Plus className="h-3.5 w-3.5 mr-1" />
               New Request
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-md">
+          <DialogContent className="w-[95vw] md:w-auto max-w-md">
             <DialogHeader>
-              <DialogTitle>New Advance Request</DialogTitle>
+              <DialogTitle className="text-sm md:text-lg">New Advance Request</DialogTitle>
             </DialogHeader>
-            <div className="space-y-4 pt-4">
-              <div className="space-y-2">
-                <Label htmlFor="amount">Amount (₹)</Label>
+            <div className="space-y-2.5 pt-2">
+              <div className="space-y-1">
+                <Label htmlFor="amount" className="text-[11px] md:text-sm">Amount (₹)</Label>
                 <div className="relative">
-                  <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <IndianRupee className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
                   <Input
                     id="amount"
                     type="number"
@@ -149,43 +149,42 @@ export function BMSAdvanceRequestTab() {
                     placeholder="Enter amount"
                     value={amount}
                     onChange={(e) => setAmount(e.target.value)}
-                    className="pl-9"
+                    className="pl-8 h-8 text-xs"
                   />
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="reason">Reason</Label>
+              <div className="space-y-1">
+                <Label htmlFor="reason" className="text-[11px] md:text-sm">Reason</Label>
                 <Textarea
                   id="reason"
                   placeholder="Explain why you need this advance"
                   value={reason}
                   onChange={(e) => setReason(e.target.value)}
-                  rows={3}
+                  rows={2}
+                  className="text-xs min-h-[48px]"
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="required-date">Required By</Label>
+              <div className="space-y-1">
+                <Label htmlFor="required-date" className="text-[11px] md:text-sm">Required By</Label>
                 <Input
                   id="required-date"
                   type="date"
                   min={format(new Date(), 'yyyy-MM-dd')}
                   value={requiredDate}
                   onChange={(e) => setRequiredDate(e.target.value)}
+                  className="h-8 text-xs"
                 />
               </div>
 
               <Button
                 onClick={handleSubmit}
                 disabled={!amount || !reason || !requiredDate || submitting}
-                className="w-full"
+                className="w-full h-8 text-xs"
               >
                 {submitting ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Submitting...
-                  </>
+                  <><Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />Submitting...</>
                 ) : (
                   'Submit Request'
                 )}
@@ -197,36 +196,32 @@ export function BMSAdvanceRequestTab() {
 
       {/* Requests List */}
       {requests.length === 0 ? (
-        <Card>
-          <CardContent className="py-12 text-center">
-            <Wallet className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-            <p className="text-muted-foreground">No advance requests yet</p>
-            <p className="text-sm text-muted-foreground mt-1">Click "New Request" to create one</p>
+        <Card className="shadow-none border">
+          <CardContent className="py-6 text-center">
+            <Wallet className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+            <p className="text-xs text-muted-foreground">No advance requests yet</p>
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-2">
           {requests.map((request) => (
-            <Card key={request.id}>
-              <CardContent className="p-4">
-                <div className="flex items-start justify-between">
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold text-lg">₹{request.amount.toLocaleString('en-IN')}</span>
+            <Card key={request.id} className="shadow-none border">
+              <CardContent className="p-2.5 md:p-4">
+                <div className="flex items-center justify-between">
+                  <div className="min-w-0 flex-1 space-y-0.5">
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-semibold text-sm md:text-lg">₹{request.amount.toLocaleString('en-IN')}</span>
                       {getStatusBadge(request.status)}
                     </div>
-                    <p className="text-sm text-muted-foreground line-clamp-2">{request.reason}</p>
-                    <div className="flex items-center gap-4 text-xs text-muted-foreground mt-2">
-                      <span>Required by: {format(new Date(request.required_date), 'MMM d, yyyy')}</span>
-                      <span>•</span>
-                      <span>Submitted: {format(new Date(request.created_at), 'MMM d, yyyy')}</span>
-                    </div>
+                    <p className="text-[11px] text-muted-foreground line-clamp-1">{request.reason}</p>
+                    <p className="text-[10px] text-muted-foreground">
+                      By: {format(new Date(request.required_date), 'MMM d')} • {format(new Date(request.created_at), 'MMM d')}
+                    </p>
                   </div>
                 </div>
                 {request.review_notes && (
-                  <div className="mt-3 p-2 bg-muted rounded text-sm">
-                    <span className="font-medium">Note: </span>
-                    {request.review_notes}
+                  <div className="mt-1.5 p-1.5 bg-muted rounded text-[11px]">
+                    <span className="font-medium">Note: </span>{request.review_notes}
                   </div>
                 )}
               </CardContent>
