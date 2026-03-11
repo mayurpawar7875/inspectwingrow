@@ -614,26 +614,26 @@ export default function MyAttendance() {
         </div>
         
         {/* Legend */}
-        <div className="flex flex-wrap gap-3 pt-4 border-t">
-          <div className="flex items-center gap-2">
-            <div className="h-4 w-4 rounded-full bg-green-500" />
-            <span className="text-xs text-muted-foreground">Full Day</span>
+        <div className="flex flex-wrap gap-2 md:gap-3 pt-2 md:pt-4 border-t">
+          <div className="flex items-center gap-1">
+            <div className="h-2.5 w-2.5 md:h-4 md:w-4 rounded-full bg-green-500" />
+            <span className="text-[9px] md:text-xs text-muted-foreground">Full Day</span>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="h-4 w-4 rounded-full bg-amber-500" />
-            <span className="text-xs text-muted-foreground">Half Day</span>
+          <div className="flex items-center gap-1">
+            <div className="h-2.5 w-2.5 md:h-4 md:w-4 rounded-full bg-amber-500" />
+            <span className="text-[9px] md:text-xs text-muted-foreground">Half Day</span>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="h-4 w-4 rounded-full bg-red-500" />
-            <span className="text-xs text-muted-foreground">Absent</span>
+          <div className="flex items-center gap-1">
+            <div className="h-2.5 w-2.5 md:h-4 md:w-4 rounded-full bg-red-500" />
+            <span className="text-[9px] md:text-xs text-muted-foreground">Absent</span>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="h-4 w-4 rounded-full bg-purple-500" />
-            <span className="text-xs text-muted-foreground">Active</span>
+          <div className="flex items-center gap-1">
+            <div className="h-2.5 w-2.5 md:h-4 md:w-4 rounded-full bg-purple-500" />
+            <span className="text-[9px] md:text-xs text-muted-foreground">Active</span>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="h-4 w-4 rounded-full bg-blue-100 border border-blue-300" />
-            <span className="text-xs text-muted-foreground">Weekly Off</span>
+          <div className="flex items-center gap-1">
+            <div className="h-2.5 w-2.5 md:h-4 md:w-4 rounded-full bg-blue-100 border border-blue-300" />
+            <span className="text-[9px] md:text-xs text-muted-foreground">Weekly Off</span>
           </div>
         </div>
       </div>
