@@ -725,53 +725,53 @@ export default function MyAttendance() {
           </div>
         </div>
 
-        <div className="grid grid-cols-3 md:grid-cols-5 gap-2 md:gap-3">
+        <div className="grid grid-cols-3 md:grid-cols-5 gap-1.5 md:gap-3">
           <Card className="bg-green-50/50 border-green-100">
-            <CardContent className="pt-2.5 pb-2.5 px-2 md:pt-4 md:pb-4">
-              <div className="text-center space-y-0.5">
-                <CheckCircle className="w-4 h-4 md:w-6 md:h-6 mx-auto text-green-600" />
-                <div className="text-lg md:text-2xl font-bold text-green-600">{summary.fullDays}</div>
-                <div className="text-[9px] md:text-xs text-green-700/70">Full Days</div>
+            <CardContent className="py-1.5 px-1 md:pt-4 md:pb-4 md:px-4">
+              <div className="text-center">
+                <CheckCircle className="w-3.5 h-3.5 md:w-6 md:h-6 mx-auto text-green-600" />
+                <div className="text-base md:text-2xl font-bold text-green-600 leading-tight">{summary.fullDays}</div>
+                <div className="text-[8px] md:text-xs text-green-700/70">Full Days</div>
               </div>
             </CardContent>
           </Card>
 
           <Card className="bg-amber-50/50 border-amber-100">
-            <CardContent className="pt-2.5 pb-2.5 px-2 md:pt-4 md:pb-4">
-              <div className="text-center space-y-0.5">
-                <AlertCircle className="w-4 h-4 md:w-6 md:h-6 mx-auto text-amber-600" />
-                <div className="text-lg md:text-2xl font-bold text-amber-600">{summary.halfDays}</div>
-                <div className="text-[9px] md:text-xs text-amber-700/70">Half Days</div>
+            <CardContent className="py-1.5 px-1 md:pt-4 md:pb-4 md:px-4">
+              <div className="text-center">
+                <AlertCircle className="w-3.5 h-3.5 md:w-6 md:h-6 mx-auto text-amber-600" />
+                <div className="text-base md:text-2xl font-bold text-amber-600 leading-tight">{summary.halfDays}</div>
+                <div className="text-[8px] md:text-xs text-amber-700/70">Half Days</div>
               </div>
             </CardContent>
           </Card>
 
           <Card className="bg-red-50/50 border-red-100">
-            <CardContent className="pt-2.5 pb-2.5 px-2 md:pt-4 md:pb-4">
-              <div className="text-center space-y-0.5">
-                <XCircle className="w-4 h-4 md:w-6 md:h-6 mx-auto text-red-600" />
-                <div className="text-lg md:text-2xl font-bold text-red-600">{summary.absent}</div>
-                <div className="text-[9px] md:text-xs text-red-700/70">Absences</div>
+            <CardContent className="py-1.5 px-1 md:pt-4 md:pb-4 md:px-4">
+              <div className="text-center">
+                <XCircle className="w-3.5 h-3.5 md:w-6 md:h-6 mx-auto text-red-600" />
+                <div className="text-base md:text-2xl font-bold text-red-600 leading-tight">{summary.absent}</div>
+                <div className="text-[8px] md:text-xs text-red-700/70">Absences</div>
               </div>
             </CardContent>
           </Card>
 
           <Card className="bg-blue-50/50 border-blue-100">
-            <CardContent className="pt-2.5 pb-2.5 px-2 md:pt-4 md:pb-4">
-              <div className="text-center space-y-0.5">
-                <Calendar className="w-4 h-4 md:w-6 md:h-6 mx-auto text-blue-600" />
-                <div className="text-lg md:text-2xl font-bold text-blue-600">{summary.weeklyOffs}</div>
-                <div className="text-[9px] md:text-xs text-blue-700/70">Weekly Offs</div>
+            <CardContent className="py-1.5 px-1 md:pt-4 md:pb-4 md:px-4">
+              <div className="text-center">
+                <Calendar className="w-3.5 h-3.5 md:w-6 md:h-6 mx-auto text-blue-600" />
+                <div className="text-base md:text-2xl font-bold text-blue-600 leading-tight">{summary.weeklyOffs}</div>
+                <div className="text-[8px] md:text-xs text-blue-700/70">Weekly Offs</div>
               </div>
             </CardContent>
           </Card>
 
           <Card className="bg-slate-50/50 border-slate-100 col-span-2 md:col-span-1">
-            <CardContent className="pt-2.5 pb-2.5 px-2 md:pt-4 md:pb-4">
-              <div className="text-center space-y-0.5">
-                <CalendarCheck className="w-4 h-4 md:w-6 md:h-6 mx-auto text-slate-600" />
-                <div className="text-lg md:text-2xl font-bold text-slate-600">{summary.fullDays + summary.halfDays + summary.weeklyOffs}</div>
-                <div className="text-[9px] md:text-xs text-slate-700/70">Total Days</div>
+            <CardContent className="py-1.5 px-1 md:pt-4 md:pb-4 md:px-4">
+              <div className="text-center">
+                <CalendarCheck className="w-3.5 h-3.5 md:w-6 md:h-6 mx-auto text-slate-600" />
+                <div className="text-base md:text-2xl font-bold text-slate-600 leading-tight">{summary.fullDays + summary.halfDays + summary.weeklyOffs}</div>
+                <div className="text-[8px] md:text-xs text-slate-700/70">Total Days</div>
               </div>
             </CardContent>
           </Card>
