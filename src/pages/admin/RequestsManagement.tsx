@@ -25,7 +25,8 @@ export default function RequestsManagement() {
         .select(`
           *,
           asset_inventory(asset_name),
-          markets(name)
+          markets(name),
+          employees:requester_id(full_name)
         `)
         .order("request_date", { ascending: false });
 
@@ -149,7 +150,7 @@ export default function RequestsManagement() {
                       <div className="flex justify-between items-start">
                         <div className="space-y-1">
                           <p className="font-medium">
-                            {request.requester_role} - {request.requester_id.slice(0, 8)}
+                            {request.employees?.full_name || request.requester_id.slice(0, 8)}
                           </p>
                           <p className="text-sm text-muted-foreground">
                             {request.asset_inventory?.asset_name || "Unknown Asset"} - Qty: {request.quantity}
