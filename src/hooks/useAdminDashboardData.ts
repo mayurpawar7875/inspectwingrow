@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -509,10 +509,23 @@ export function useAdminDashboardData() {
   });
 
   const refetchAll = useCallback(() => {
+    // Debounced internally via ref to prevent rapid-fire refetches
     liveMarketsQuery.refetch();
     bdoStatsQuery.refetch();
     mmSessionsQuery.refetch();
   }, [liveMarketsQuery, bdoStatsQuery, mmSessionsQuery]);
+
+  // Debounced version for real-time subscriptions to prevent UI freezing
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const debouncedRefetchAll = useCallback(() => {
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+    debounceTimerRef.current = setTimeout(() => {
+      refetchAll();
+      debounceTimerRef.current = null;
+    }, 2000);
+  }, [refetchAll]);
 
   return {
     liveMarkets: liveMarketsQuery.data ?? EMPTY_LIVE_MARKETS,
@@ -520,5 +533,6 @@ export function useAdminDashboardData() {
     mmSessions: mmSessionsQuery.data ?? EMPTY_MM_SESSIONS,
     isLoading: liveMarketsQuery.isLoading || bdoStatsQuery.isLoading || mmSessionsQuery.isLoading,
     refetchAll,
+    debouncedRefetchAll,
   };
 }

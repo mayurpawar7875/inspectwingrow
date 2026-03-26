@@ -75,7 +75,7 @@ export default function AdminDashboard() {
   const navigate = useNavigate();
   
   // Use optimized React Query hook for dashboard data
-  const { liveMarkets, bdoStats, mmSessions, isLoading: loading, refetchAll } = useAdminDashboardData();
+  const { liveMarkets, bdoStats, mmSessions, isLoading: loading, refetchAll, debouncedRefetchAll } = useAdminDashboardData();
   
   const [marketStats, setMarketStats] = useState({
     live: 0,
@@ -106,22 +106,22 @@ export default function AdminDashboard() {
     const statsChannel = supabase
       .channel('dashboard-overview')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'bdo_market_submissions' }, refetchAll)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'bdo_stall_submissions' }, refetchAll)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'sessions' }, refetchAll)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'media' }, refetchAll)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'collections' }, refetchAll)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'bdo_stall_submissions' }, debouncedRefetchAll)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'sessions' }, debouncedRefetchAll)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'media' }, debouncedRefetchAll)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'collections' }, debouncedRefetchAll)
       .subscribe();
 
     const stallsChannel = supabase
       .channel('live-markets-stalls')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'stall_confirmations' }, refetchAll)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'stall_confirmations' }, debouncedRefetchAll)
       .subscribe();
 
     const marketManagerChannel = supabase
       .channel('market-manager-realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'market_manager_sessions' }, refetchAll)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'market_manager_punchin' }, refetchAll)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'market_manager_punchout' }, refetchAll)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'market_manager_sessions' }, debouncedRefetchAll)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'market_manager_punchin' }, debouncedRefetchAll)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'market_manager_punchout' }, debouncedRefetchAll)
       .subscribe();
 
     return () => {
@@ -129,7 +129,7 @@ export default function AdminDashboard() {
       supabase.removeChannel(stallsChannel);
       supabase.removeChannel(marketManagerChannel);
     };
-  }, [isAdmin, navigate, refetchAll]);
+  }, [isAdmin, navigate, debouncedRefetchAll]);
 
   // Old fetch functions removed - now using useAdminDashboardData hook
 
