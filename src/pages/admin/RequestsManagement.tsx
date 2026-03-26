@@ -25,13 +25,37 @@ export default function RequestsManagement() {
         .select(`
           *,
           asset_inventory(asset_name),
-          markets(name),
-          employees:requester_id(full_name)
+          markets(name)
         `)
         .order("request_date", { ascending: false });
 
       if (error) throw error;
-      setAssetRequests(data || []);
+
+      const requests = data || [];
+      const requesterIds = [...new Set(requests.map((request) => request.requester_id).filter(Boolean))];
+
+      if (requesterIds.length === 0) {
+        setAssetRequests(requests);
+        return;
+      }
+
+      const { data: employeesData, error: employeesError } = await supabase
+        .from("employees")
+        .select("id, full_name")
+        .in("id", requesterIds);
+
+      if (employeesError) throw employeesError;
+
+      const employeeNameMap = new Map(
+        (employeesData || []).map((employee) => [employee.id, employee.full_name])
+      );
+
+      const requestsWithNames = requests.map((request) => ({
+        ...request,
+        requester_name: employeeNameMap.get(request.requester_id) || null,
+      }));
+
+      setAssetRequests(requestsWithNames);
     } catch (error: any) {
       console.error("Error fetching asset requests:", error);
       toast.error("Failed to load asset requests");
@@ -150,7 +174,7 @@ export default function RequestsManagement() {
                       <div className="flex justify-between items-start">
                         <div className="space-y-1">
                           <p className="font-medium">
-                            {request.employees?.full_name || request.requester_id.slice(0, 8)}
+                            {request.requester_name || request.requester_id.slice(0, 8)}
                           </p>
                           <p className="text-sm text-muted-foreground">
                             {request.asset_inventory?.asset_name || "Unknown Asset"} - Qty: {request.quantity}
