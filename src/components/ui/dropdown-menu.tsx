@@ -3,8 +3,22 @@ import * as DropdownMenuPrimitive from "@radix-ui/react-dropdown-menu";
 import { Check, ChevronRight, Circle } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import { scheduleOverlayRecovery } from "@/lib/overlayRecovery";
 
-const DropdownMenu = DropdownMenuPrimitive.Root;
+const DropdownMenu = ({ modal = false, onOpenChange, ...props }: React.ComponentProps<typeof DropdownMenuPrimitive.Root>) => {
+  const handleOpenChange = React.useCallback(
+    (open: boolean) => {
+      onOpenChange?.(open);
+
+      if (!open) {
+        scheduleOverlayRecovery();
+      }
+    },
+    [onOpenChange],
+  );
+
+  return <DropdownMenuPrimitive.Root modal={modal} onOpenChange={handleOpenChange} {...props} />;
+};
 
 const DropdownMenuTrigger = DropdownMenuPrimitive.Trigger;
 
