@@ -15,6 +15,12 @@ interface Market {
   location: string;
 }
 
+interface ExistingSession {
+  id: string;
+  market_id: string;
+  market: Market | null;
+}
+
 export default function MarketSelection() {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -24,6 +30,7 @@ export default function MarketSelection() {
   const [selectedMarket, setSelectedMarket] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [existingSessionMarkets, setExistingSessionMarkets] = useState<string[]>([]);
+  const [existingSessions, setExistingSessions] = useState<ExistingSession[]>([]);
 
   useEffect(() => {
     if (user) {
@@ -46,11 +53,10 @@ export default function MarketSelection() {
       const istNow = new Date(
         new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' })
       );
-      const dow = istNow.getDay(); // 0=Sun..6=Sat
+      const dow = istNow.getDay();
       const today = getISTDateString(new Date());
 
-      // Fetch markets and existing sessions in parallel
-      const [byWeekday, scheduleRows, existingSessions, allTodaySessions] = await Promise.all([
+      const [byWeekday, scheduleRows, existingSessionsResult, allTodaySessions] = await Promise.all([
         supabase
           .from('markets')
           .select('id, name, location')
@@ -64,9 +70,10 @@ export default function MarketSelection() {
           .eq('is_active', true),
         supabase
           .from('sessions')
-          .select('market_id')
+          .select('id, market_id, created_at, market:markets(id, name, location)')
           .eq('user_id', user.id)
-          .eq('session_date', today),
+          .eq('session_date', today)
+          .order('created_at', { ascending: true }),
         supabase
           .from('sessions')
           .select('id')
@@ -74,41 +81,45 @@ export default function MarketSelection() {
           .eq('session_date', today),
       ]);
 
-      // Track markets that already have sessions today
-      const existingMarketIds = (existingSessions.data || []).map((s: any) => s.market_id);
+      const sessionRows = ((existingSessionsResult.data || []) as ExistingSession[]);
+      const existingMarketIds = sessionRows.map((session) => session.market_id);
+
+      setExistingSessions(sessionRows);
       setExistingSessionMarkets(existingMarketIds);
 
-      // Check if max sessions (2) reached
       const totalSessionsToday = (allTodaySessions.data || []).length;
       if (totalSessionsToday >= 2) {
         setMarkets([]);
-        setExistingSessionMarkets(existingMarketIds);
+        setSelectedMarket('');
         return;
       }
 
-      const scheduleIds = (scheduleRows.data || []).map((r: any) => r.market_id).filter(Boolean);
+      const scheduleIds = (scheduleRows.data || []).map((row: any) => row.market_id).filter(Boolean);
 
-      let scheduledMarkets: any[] = [];
+      let scheduledMarkets: Market[] = [];
       if (scheduleIds.length > 0) {
         const res = await supabase
           .from('markets')
           .select('id, name, location')
           .in('id', scheduleIds)
           .order('name');
-        scheduledMarkets = res.data || [];
+        scheduledMarkets = (res.data || []) as Market[];
       }
 
-      const map = new Map<string, Market>();
-      (byWeekday.data || []).forEach((m: any) => map.set(m.id, m));
-      scheduledMarkets.forEach((m: any) => map.set(m.id, m));
+      const mergedMarkets = new Map<string, Market>();
+      ((byWeekday.data || []) as Market[]).forEach((market) => mergedMarkets.set(market.id, market));
+      scheduledMarkets.forEach((market) => mergedMarkets.set(market.id, market));
 
-      // Filter out markets that already have sessions
-      const availableMarkets = Array.from(map.values()).filter(
-        (m) => !existingMarketIds.includes(m.id)
+      const availableMarkets = Array.from(mergedMarkets.values()).filter(
+        (market) => !existingMarketIds.includes(market.id)
       );
-      
+
       setMarkets(availableMarkets);
-      if (availableMarkets.length > 0) setSelectedMarket(availableMarkets[0].id);
+      setSelectedMarket((current) =>
+        availableMarkets.some((market) => market.id === current)
+          ? current
+          : availableMarkets[0]?.id || ''
+      );
     } catch (error: any) {
       toast.error('Failed to load markets');
       console.error(error);
@@ -125,7 +136,7 @@ export default function MarketSelection() {
     try {
       const today = getISTDateString(new Date());
 
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('sessions')
         .insert({
           user_id: user!.id,
@@ -172,26 +183,67 @@ export default function MarketSelection() {
               </div>
               <div>
                 <CardTitle>Select Market</CardTitle>
-                <CardDescription>Choose the market you'll be reporting from today</CardDescription>
+                <CardDescription>
+                  {existingSessions.length > 0 && isOrganiserMode
+                    ? 'Resume your started market or choose another market for today'
+                    : "Choose the market you'll be reporting from today"}
+                </CardDescription>
               </div>
             </div>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="space-y-2">
-              <Label htmlFor="market">Market</Label>
-              <Select value={selectedMarket} onValueChange={setSelectedMarket}>
-                <SelectTrigger id="market">
-                  <SelectValue placeholder="Select a market" />
-                </SelectTrigger>
-                <SelectContent>
-                  {markets.map((market) => (
-                    <SelectItem key={market.id} value={market.id}>
-                      {market.name}
-                    </SelectItem>
+            {isOrganiserMode && existingSessions.length > 0 && (
+              <div className="space-y-3 rounded-lg border bg-muted/40 p-4">
+                <div>
+                  <p className="text-sm font-medium">Started organiser sessions</p>
+                  <p className="text-sm text-muted-foreground">
+                    These markets were already started earlier and can be continued after login.
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  {existingSessions.map((session) => (
+                    <div
+                      key={session.id}
+                      className="flex flex-col gap-3 rounded-lg border bg-card p-3 sm:flex-row sm:items-center sm:justify-between"
+                    >
+                      <div className="min-w-0">
+                        <p className="font-medium">{session.market?.name || 'Started market'}</p>
+                        {session.market?.location && (
+                          <p className="text-xs text-muted-foreground break-all">{session.market.location}</p>
+                        )}
+                      </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="shrink-0"
+                        onClick={() => navigate('/dashboard?as=organiser')}
+                      >
+                        Continue Session
+                      </Button>
+                    </div>
                   ))}
-                </SelectContent>
-              </Select>
-            </div>
+                </div>
+              </div>
+            )}
+
+            {markets.length > 0 && (
+              <div className="space-y-2">
+                <Label htmlFor="market">{existingSessions.length > 0 ? 'Start Another Market' : 'Market'}</Label>
+                <Select value={selectedMarket} onValueChange={setSelectedMarket}>
+                  <SelectTrigger id="market">
+                    <SelectValue placeholder="Select a market" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {markets.map((market) => (
+                      <SelectItem key={market.id} value={market.id}>
+                        {market.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
             {markets.length === 0 && existingSessionMarkets.length >= 2 ? (
               <div className="bg-muted p-4 rounded-lg">
@@ -208,15 +260,17 @@ export default function MarketSelection() {
             ) : (
               <div className="bg-muted p-4 rounded-lg">
                 <p className="text-sm text-muted-foreground">
-                  <strong>Note:</strong> You can create up to 2 sessions for different markets on the same day 
+                  <strong>Note:</strong> You can create up to 2 sessions for different markets on the same day
                   (e.g., morning and evening markets).
                 </p>
               </div>
             )}
 
-            <Button onClick={handleSubmit} disabled={loading || !selectedMarket} className="w-full" size="lg">
-              {loading ? 'Creating Session...' : 'Start Session'}
-            </Button>
+            {markets.length > 0 && (
+              <Button onClick={handleSubmit} disabled={loading || !selectedMarket} className="w-full" size="lg">
+                {loading ? 'Creating Session...' : 'Start Session'}
+              </Button>
+            )}
           </CardContent>
         </Card>
       </main>
