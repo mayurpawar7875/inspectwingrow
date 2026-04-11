@@ -70,7 +70,7 @@ export default function MarketManagerDashboard() {
       // Check for active session when component mounts
       checkActiveSession();
     }
-  }, [currentRole, navigate, authLoading]);
+  }, [currentRole, navigate, authLoading, user]);
 
   const checkActiveSession = async () => {
     if (!user) return;
