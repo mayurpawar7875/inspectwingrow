@@ -377,21 +377,51 @@ export default function MarketManagerDashboard() {
 
           <TabsContent value="organiser">
             <Card>
-              <CardContent className="pt-4 md:pt-6">
-                <div className="text-center space-y-3 md:space-y-4">
-                  <div className="p-2.5 md:p-3 bg-accent/10 rounded-full w-fit mx-auto">
-                    <MapPin className="h-6 w-6 md:h-8 md:w-8 text-primary" />
+              <CardContent className="pt-4 md:pt-6 space-y-4">
+                {organiserSessions.length > 0 && (
+                  <div className="space-y-2">
+                    <h4 className="text-xs md:text-sm font-semibold">Active Organiser Sessions</h4>
+                    {organiserSessions.map((session) => (
+                      <div
+                        key={session.id}
+                        className="flex flex-col gap-2 rounded-lg border bg-muted/40 p-3 sm:flex-row sm:items-center sm:justify-between"
+                      >
+                        <div className="min-w-0">
+                          <p className="text-xs md:text-sm font-medium">{session.market?.name || 'Market'}</p>
+                          {session.market?.location && (
+                            <p className="text-[10px] md:text-xs text-muted-foreground break-all">{session.market.location}</p>
+                          )}
+                        </div>
+                        <Button
+                          size="sm"
+                          className="shrink-0 text-xs"
+                          onClick={() => navigate('/dashboard?as=organiser')}
+                        >
+                          Continue Session
+                        </Button>
+                      </div>
+                    ))}
                   </div>
-                  <div>
-                    <h3 className="text-sm md:text-lg font-semibold">Start Organiser Session</h3>
-                    <p className="text-xs md:text-sm text-muted-foreground mt-1">
-                      Select a market and complete organiser tasks like stall confirmations, media uploads, and more.
-                    </p>
+                )}
+
+                {organiserSessions.length < 2 && (
+                  <div className="text-center space-y-3 md:space-y-4">
+                    <div className="p-2.5 md:p-3 bg-accent/10 rounded-full w-fit mx-auto">
+                      <MapPin className="h-6 w-6 md:h-8 md:w-8 text-primary" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm md:text-lg font-semibold">
+                        {organiserSessions.length > 0 ? 'Start Another Organiser Session' : 'Start Organiser Session'}
+                      </h3>
+                      <p className="text-xs md:text-sm text-muted-foreground mt-1">
+                        Select a market and complete organiser tasks like stall confirmations, media uploads, and more.
+                      </p>
+                    </div>
+                    <Button onClick={() => navigate('/market-selection?as=organiser')} className="w-full max-w-xs text-xs md:text-sm">
+                      Select Market & Start
+                    </Button>
                   </div>
-                  <Button onClick={() => navigate('/market-selection?as=organiser')} className="w-full max-w-xs text-xs md:text-sm">
-                    Select Market & Start
-                  </Button>
-                </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
