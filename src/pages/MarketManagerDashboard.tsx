@@ -54,6 +54,33 @@ export default function MarketManagerDashboard() {
   const [locationVisitDialog, setLocationVisitDialog] = useState(false);
   const [advanceDialog, setAdvanceDialog] = useState(false);
   const [assetRequestDialog, setAssetRequestDialog] = useState(false);
+  const [organiserSessions, setOrganiserSessions] = useState<Array<{ id: string; market_id: string; market: { id: string; name: string; location: string } | null }>>([]);
+
+  const getISTDateString = () => {
+    const ist = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
+    const y = ist.getFullYear();
+    const m = String(ist.getMonth() + 1).padStart(2, '0');
+    const d = String(ist.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  };
+
+  const fetchOrganiserSessions = async () => {
+    if (!user) return;
+    const today = getISTDateString();
+    const { data } = await supabase
+      .from('sessions')
+      .select('id, market_id, market:markets(id, name, location)')
+      .eq('user_id', user.id)
+      .eq('session_date', today)
+      .order('created_at', { ascending: true });
+    setOrganiserSessions((data || []) as any);
+  };
+
+  useEffect(() => {
+    if (authLoading) return;
+    if (!user) return;
+    fetchOrganiserSessions();
+  }, [authLoading, user]);
 
   useEffect(() => {
     if (authLoading) return;
