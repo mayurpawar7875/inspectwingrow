@@ -123,14 +123,13 @@ export default function Collections() {
       try {
         const todayIST = getISTDateString(new Date());
         
-        // Check if user is admin
-        const { data: userRole } = await supabase
+        // Check if user is admin (use maybeSingle + array check to avoid throws)
+        const { data: userRoles } = await supabase
           .from('user_roles')
           .select('role')
-          .eq('user_id', user.id)
-          .single();
+          .eq('user_id', user.id);
 
-        const adminUser = userRole?.role === 'admin';
+        const adminUser = (userRoles || []).some((r: any) => r.role === 'admin');
         setIsAdmin(adminUser);
 
         if (adminUser) {
