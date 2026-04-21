@@ -457,10 +457,14 @@ export default function Collections() {
     );
   }
 
-  if (!sessionDate) {
+  if (!sessionDate && !isAdmin) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-muted-foreground">No data available</div>
+      <div className="min-h-screen flex flex-col items-center justify-center bg-background gap-3 p-6 text-center">
+        <div className="text-sm font-medium">No active session for today</div>
+        <div className="text-xs text-muted-foreground max-w-sm">
+          You need an active market session before you can record rent collections. Start a session from your dashboard first.
+        </div>
+        <Button size="sm" onClick={() => navigate('/dashboard')}>Go to Dashboard</Button>
       </div>
     );
   }
