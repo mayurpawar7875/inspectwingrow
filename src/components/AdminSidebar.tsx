@@ -10,7 +10,7 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { LayoutDashboard, FileText, Settings, Package, ClipboardList, Users, MapPin, Building2 } from "lucide-react";
+import { LayoutDashboard, FileText, Settings, Package, ClipboardList, Users, MapPin, Building2, UserCircle } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useLanguage } from "@/contexts/LanguageContext";
 
@@ -22,6 +22,7 @@ const menuItems = [
   { titleKey: "admin.requests", url: "/admin/requests", icon: ClipboardList },
   { titleKey: "admin.sessions", url: "/admin/sessions", icon: FileText },
   { titleKey: "admin.assets", url: "/admin/asset-management", icon: Package },
+  { titleKey: "My Profile", url: "/my-profile", icon: UserCircle },
   { titleKey: "admin.settings", url: "/admin/settings", icon: Settings },
 ];
 

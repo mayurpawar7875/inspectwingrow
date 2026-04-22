@@ -54,6 +54,7 @@ const AssetManagement = lazy(() => import("./components/admin/AssetManagement").
 const BMSExecutiveDashboard = lazy(() => import("./pages/BMSExecutiveDashboard"));
 const RequestsManagement = lazy(() => import("./pages/admin/RequestsManagement"));
 const BMSMonitoring = lazy(() => import("./pages/admin/BMSMonitoring"));
+const MyProfile = lazy(() => import("./pages/MyProfile"));
 
 const LoadingFallback = () => (
   <div className="flex items-center justify-center min-h-screen">
@@ -119,6 +120,7 @@ const App = () => (
                 <Route path="/admin/market-reporting" element={<ProtectedRoute><AdminLayout><MarketManagerReporting /></AdminLayout></ProtectedRoute>} />
                 <Route path="/admin/attendance" element={<ProtectedRoute><AdminLayout><AttendanceReporting /></AdminLayout></ProtectedRoute>} />
                 <Route path="/my-attendance" element={<ProtectedRoute><MyAttendance /></ProtectedRoute>} />
+                <Route path="/my-profile" element={<ProtectedRoute><MyProfile /></ProtectedRoute>} />
                 <Route path="/admin/live-market" element={<ProtectedRoute><AdminLayout><LiveMarket /></AdminLayout></ProtectedRoute>} />
                 <Route path="/admin/live-markets" element={<ProtectedRoute><AdminLayout><LiveMarkets /></AdminLayout></ProtectedRoute>} />
                 <Route path="/bdo/live-markets" element={<ProtectedRoute><LiveMarkets /></ProtectedRoute>} />
