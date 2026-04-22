@@ -697,13 +697,23 @@ export default function MyAttendance() {
           <CardTitle className="text-xs md:text-base">{format(selectedDate, 'EEE, MMM d, yyyy')}</CardTitle>
         </CardHeader>
         <CardContent className="px-3 pb-3 md:px-6 md:pb-6 space-y-2">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <span className="text-[11px] md:text-sm text-muted-foreground">Status:</span>
             {status === 'full_day' && <Badge className="bg-green-500/10 text-green-600 border-green-500/20 text-[10px] h-5">Full Day</Badge>}
             {status === 'half_day' && <Badge className="bg-amber-500/10 text-amber-600 border-amber-500/20 text-[10px] h-5">Half Day</Badge>}
             {status === 'absent' && <Badge className="bg-red-500/10 text-red-600 border-red-500/20 text-[10px] h-5">Absent</Badge>}
             {status === 'weekly_off' && <Badge className="bg-blue-500/10 text-blue-600 border-blue-500/20 text-[10px] h-5">Weekly Off</Badge>}
+            {status === 'active' && <Badge className="bg-purple-500/10 text-purple-600 border-purple-500/20 text-[10px] h-5">Active</Badge>}
             {status === 'future' && <Badge variant="outline" className="text-[10px] h-5">Future</Badge>}
+            {(() => {
+              const dayRecs = getRecordsForDate(selectedDate);
+              const hasMM = dayRecs.some(r => (r.role || '') === 'market_manager');
+              const hasOrg = dayRecs.some(r => (r.role || 'employee') === 'employee');
+              if (hasMM && hasOrg) {
+                return <Badge variant="outline" className="text-[10px] h-5">MM + Organiser</Badge>;
+              }
+              return null;
+            })()}
           </div>
           
           {record && (
