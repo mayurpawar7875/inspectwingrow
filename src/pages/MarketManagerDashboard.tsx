@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { LogOut, CheckCircle2, History, CalendarCheck, MapPin, Umbrella, Wallet, Package, Trash2 } from 'lucide-react';
+import { LogOut, CheckCircle2, History, CalendarCheck, MapPin, Umbrella, Wallet, Package, Trash2, UserCircle } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { MobileBottomNav } from '@/components/MobileBottomNav';
 import { SessionSelector } from '@/components/market-manager/SessionSelector';
@@ -284,6 +284,9 @@ export default function MarketManagerDashboard() {
                 <Trash2 className="h-4 w-4" />
               </Button>
               <LanguageSwitcher variant="ghost" />
+              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate('/my-profile')} aria-label="My Profile">
+                <UserCircle className="h-4 w-4" />
+              </Button>
               <Button variant="outline" size="icon" className="h-8 w-8 md:hidden" onClick={handleSignOut}>
                 <LogOut className="h-4 w-4" />
               </Button>

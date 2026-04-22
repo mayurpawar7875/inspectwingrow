@@ -34,6 +34,7 @@ import {
   Package,
   CalendarCheck,
   DollarSign,
+  UserCircle,
 } from 'lucide-react';
 
 const TodaysOffersForm = lazy(() => import('@/components/TodaysOffersForm'));
@@ -360,6 +361,9 @@ export default function Dashboard() {
             <div className="flex gap-1 sm:gap-2 flex-shrink-0">
               <LanguageSwitcher variant="ghost" />
               <NotificationBell />
+              <Button variant="ghost" size="icon" className="h-7 w-7 sm:h-9 sm:w-9" onClick={() => navigate('/my-profile')} aria-label="My Profile">
+                <UserCircle className="h-4 w-4 sm:h-5 sm:w-5" />
+              </Button>
               <Button variant="outline" size="sm" className="h-7 px-2 sm:h-9 sm:px-3" onClick={handleSignOut}>
                 <LogOut className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-2" />
                 <span className="hidden sm:inline">{t('common.signOut')}</span>
