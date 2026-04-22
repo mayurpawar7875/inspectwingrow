@@ -38,6 +38,7 @@ import {
   CheckCircle,
   X,
   RefreshCw,
+  UserCircle,
 } from 'lucide-react';
 import { MobileBottomNav } from '@/components/MobileBottomNav';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
@@ -868,6 +869,10 @@ export default function BDODashboard() {
               <Button variant="outline" size="sm" onClick={() => navigate('/bdo/live-markets')}>
                 <MapPin className="h-4 w-4 mr-2" />
                 {t('bdo.liveMarkets')}
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => navigate('/my-profile')}>
+                <UserCircle className="h-4 w-4 mr-2" />
+                My Profile
               </Button>
               <Button variant="outline" size="sm" onClick={() => signOut()}>
                 <LogOut className="h-4 w-4 mr-2" />

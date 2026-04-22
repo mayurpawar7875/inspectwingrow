@@ -1026,29 +1026,44 @@ export type Database = {
       }
       employees: {
         Row: {
+          address: string | null
+          alternate_phone: string | null
           created_at: string
           email: string
+          emergency_contact: string | null
           full_name: string | null
           id: string
+          joining_date: string | null
           phone: string | null
+          profile_photo: string | null
           status: string
           username: string | null
         }
         Insert: {
+          address?: string | null
+          alternate_phone?: string | null
           created_at?: string
           email: string
+          emergency_contact?: string | null
           full_name?: string | null
           id: string
+          joining_date?: string | null
           phone?: string | null
+          profile_photo?: string | null
           status?: string
           username?: string | null
         }
         Update: {
+          address?: string | null
+          alternate_phone?: string | null
           created_at?: string
           email?: string
+          emergency_contact?: string | null
           full_name?: string | null
           id?: string
+          joining_date?: string | null
           phone?: string | null
+          profile_photo?: string | null
           status?: string
           username?: string | null
         }

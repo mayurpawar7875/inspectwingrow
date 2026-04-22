@@ -15,6 +15,7 @@ import {
   Umbrella,
   Wallet,
   Trash2,
+  UserCircle,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -31,7 +32,7 @@ const employeeNavItems: NavItem[] = [
   { icon: CalendarCheck, labelKey: 'nav.attendance', path: '/my-attendance' },
   { icon: History, labelKey: 'nav.sessions', path: '/my-sessions' },
   { icon: Package, labelKey: 'nav.assets', path: '/asset-requests' },
-  { icon: Trash2, labelKey: 'Clear Cache', action: 'clear-cache' },
+  { icon: UserCircle, labelKey: 'Profile', path: '/my-profile' },
 ];
 
 const adminNavItems: NavItem[] = [
@@ -39,8 +40,7 @@ const adminNavItems: NavItem[] = [
   { icon: Users, labelKey: 'nav.users', path: '/admin/users' },
   { icon: MapPin, labelKey: 'nav.markets', path: '/admin/live-markets' },
   { icon: ClipboardList, labelKey: 'nav.requests', path: '/admin/requests' },
-  { icon: Settings, labelKey: 'nav.settings', path: '/admin/settings' },
-  { icon: Trash2, labelKey: 'Clear Cache', action: 'clear-cache' },
+  { icon: UserCircle, labelKey: 'Profile', path: '/my-profile' },
 ];
 
 const bdoNavItems: NavItem[] = [
@@ -48,17 +48,15 @@ const bdoNavItems: NavItem[] = [
   { icon: MapPin, labelKey: 'nav.markets', path: '/admin/live-markets' },
   { icon: CalendarCheck, labelKey: 'nav.attendance', path: '/my-attendance' },
   { icon: FileText, labelKey: 'nav.documents', path: '/bdo-dashboard' },
-  { icon: Trash2, labelKey: 'Clear Cache', action: 'clear-cache' },
+  { icon: UserCircle, labelKey: 'Profile', path: '/my-profile' },
 ];
 
 const marketManagerNavItems: NavItem[] = [
   { icon: Home, labelKey: 'nav.home', path: '/manager-dashboard' },
-  { icon: Umbrella, labelKey: 'Leave', action: 'leave' },
   { icon: Package, labelKey: 'Assets', action: 'assets' },
   { icon: Wallet, labelKey: 'Advance', action: 'advance' },
-  { icon: MapPin, labelKey: 'Location', action: 'location' },
   { icon: CalendarCheck, labelKey: 'nav.attendance', path: '/my-attendance' },
-  { icon: History, labelKey: 'nav.sessions', path: '/my-manager-sessions' },
+  { icon: UserCircle, labelKey: 'Profile', path: '/my-profile' },
 ];
 
 interface MobileBottomNavProps {
