@@ -457,27 +457,36 @@ export default function MyAttendance() {
   };
 
   const getRecordForDate = (date: Date): AttendanceRecord | undefined => {
-    const dateStr = format(date, 'yyyy-MM-dd');
-    return records.find(r => r.attendance_date === dateStr);
+    // Returns the BEST record for that day. When a Market Manager has both an
+    // MM session and an Organiser session for the same date, the higher-status
+    // record wins (so dual-mode work gets fair credit).
+    const dayRecords = getRecordsForDate(date);
+    if (dayRecords.length === 0) return undefined;
+    if (dayRecords.length === 1) return dayRecords[0];
+
+    return [...dayRecords].sort((a, b) => {
+      const sa = STATUS_RANK[computeRecordStatus(a)] ?? 0;
+      const sb = STATUS_RANK[computeRecordStatus(b)] ?? 0;
+      return sb - sa;
+    })[0];
   };
 
   useEffect(() => {
     if (!selectedDate) return;
 
-    const record = getRecordForDate(selectedDate);
-    if (!record) return;
-
-    const roleToUse = record.role || currentRole || 'employee';
-    if (roleToUse !== 'employee' || !record.session_id) return;
-
-    const sessionId = record.session_id;
-    if (taskProgressBySession[sessionId]) return;
-
-    void loadTaskProgressForSession(
-      sessionId,
-      record.market_id ?? null,
-      record.session_date ?? record.attendance_date
-    );
+    // Load task progress for ALL organiser-mode sessions on the selected date
+    // (a Market Manager may have one MM record + one Organiser record).
+    const dayRecords = getRecordsForDate(selectedDate);
+    dayRecords.forEach((record) => {
+      const roleToUse = record.role || currentRole || 'employee';
+      if (roleToUse !== 'employee' || !record.session_id) return;
+      if (taskProgressBySession[record.session_id]) return;
+      void loadTaskProgressForSession(
+        record.session_id,
+        record.market_id ?? null,
+        record.session_date ?? record.attendance_date
+      );
+    });
   }, [selectedDate, records, currentRole, taskProgressBySession, loadTaskProgressForSession]);
 
 
@@ -496,33 +505,23 @@ export default function MyAttendance() {
       return 'future';
     }
 
-    const record = getRecordForDate(date);
-    if (record) {
-      // Check if session is ongoing (punched in but not punched out today)
-      const today = new Date();
-      const isToday = date.toDateString() === today.toDateString();
-      if (isToday && record.punch_in_time && !record.punch_out_time) {
-        return 'active';
-      }
-      
-      const roleToUse = record.role || currentRole || 'employee';
-
-      // For organisers, prefer task-based status once task progress is computed.
-      if (roleToUse === 'employee' && record.session_id) {
-        const progress = taskProgressBySession[record.session_id];
-        if (progress && !progress.loading && progress.total > 0) {
-          const completionPercentage = (progress.completed / progress.total) * 100;
-          if (completionPercentage >= 95) return 'full_day';
-          if (completionPercentage >= 55) return 'half_day';
-          return 'absent';
-        }
-      }
-
-      return record.status;
+    // Pick the BEST status across all records for the day (MM + Organiser dual mode).
+    const dayRecords = getRecordsForDate(date);
+    if (dayRecords.length === 0) {
+      return 'absent';
     }
 
-    // Past working day with no record => Absent
-    return 'absent';
+    let best: 'full_day' | 'half_day' | 'absent' | 'weekly_off' | 'active' = 'absent';
+    let bestRank = -1;
+    for (const record of dayRecords) {
+      const s = computeRecordStatus(record);
+      const rank = STATUS_RANK[s] ?? 0;
+      if (rank > bestRank) {
+        bestRank = rank;
+        best = s;
+      }
+    }
+    return best;
   };
 
   const getDayClasses = (date: Date, isCurrentMonth: boolean): string => {
