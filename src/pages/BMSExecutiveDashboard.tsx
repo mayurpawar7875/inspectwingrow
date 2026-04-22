@@ -4,7 +4,7 @@ import { useAuth } from '@/lib/auth';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { ClipboardCheck, Package, Wallet, Calendar, BoxSelect } from 'lucide-react';
+import { ClipboardCheck, Package, Wallet, Calendar, BoxSelect, UserCircle } from 'lucide-react';
 import { BMSAttendanceTab } from '@/components/bms/BMSAttendanceTab';
 import { BMSAssetInspectionTab } from '@/components/bms/BMSAssetInspectionTab';
 import { BMSAdvanceRequestTab } from '@/components/bms/BMSAdvanceRequestTab';
@@ -41,6 +41,9 @@ export default function BMSExecutiveDashboard() {
           </div>
           <div className="flex items-center gap-2">
             <LanguageSwitcher variant="ghost" />
+            <Button variant="ghost" size="icon" onClick={() => navigate('/my-profile')} aria-label="My Profile">
+              <UserCircle className="h-5 w-5" />
+            </Button>
             <Button variant="ghost" size="sm" onClick={handleLogout}>
               {t('common.logout')}
             </Button>
