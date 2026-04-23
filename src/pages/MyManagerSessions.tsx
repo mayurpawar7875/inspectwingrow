@@ -20,6 +20,9 @@ interface Session {
   status: string;
   created_at: string;
   updated_at: string;
+  source: 'manager' | 'employee';
+  market_id?: string | null;
+  market_name?: string | null;
   task_counts: {
     employee_allocations: number;
     punch_in: number;
@@ -76,59 +79,128 @@ export default function MyManagerSessions() {
     if (!user) return;
 
     setLoading(true);
-    const { data: sessionData } = await supabase
-      .from('market_manager_sessions')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('session_date', { ascending: false });
 
-    if (sessionData) {
-      // Fetch task counts for each session
-      const sessionsWithCounts = await Promise.all(
-        sessionData.map(async (session) => {
-          const [
-            employeeAllocations,
-            punchIn,
-            landSearch,
-            stallSearch,
-            moneyRecovery,
-            assetsUsage,
-            feedbacks,
-            inspections,
-            punchOut,
-          ] = await Promise.all([
-            supabase.from('employee_allocations').select('*', { count: 'exact', head: true }).eq('session_id', session.id),
-            supabase.from('market_manager_punchin').select('*', { count: 'exact', head: true }).eq('session_id', session.id),
-            supabase.from('market_land_search').select('*', { count: 'exact', head: true }).eq('session_id', session.id),
-            supabase.from('stall_searching_updates').select('*', { count: 'exact', head: true }).eq('session_id', session.id),
-            supabase.from('assets_money_recovery').select('*', { count: 'exact', head: true }).eq('session_id', session.id),
-            supabase.from('assets_usage').select('*', { count: 'exact', head: true }).eq('session_id', session.id),
-            supabase.from('bms_stall_feedbacks').select('*', { count: 'exact', head: true }).eq('session_id', session.id),
-            supabase.from('market_inspection_updates').select('*', { count: 'exact', head: true }).eq('session_id', session.id),
-            supabase.from('market_manager_punchout').select('*', { count: 'exact', head: true }).eq('session_id', session.id),
-          ]);
+    // Fetch BOTH manager sessions and employee sessions for this user
+    const [{ data: managerSessionData }, { data: employeeSessionData }] = await Promise.all([
+      supabase
+        .from('market_manager_sessions')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('session_date', { ascending: false }),
+      supabase
+        .from('sessions')
+        .select('id, session_date, status, created_at, updated_at, market_id, punch_in_time, punch_out_time, market:markets(name)')
+        .eq('user_id', user.id)
+        .order('session_date', { ascending: false }),
+    ]);
 
-          return {
-            ...session,
-            task_counts: {
-              employee_allocations: employeeAllocations.count || 0,
-              punch_in: punchIn.count || 0,
-              land_search: landSearch.count || 0,
-              stall_search: stallSearch.count || 0,
-              money_recovery: moneyRecovery.count || 0,
-              assets_usage: assetsUsage.count || 0,
-              feedbacks: feedbacks.count || 0,
-              inspections: inspections.count || 0,
-              punch_out: punchOut.count || 0,
-            },
-          };
-        })
-      );
+    const managerList = managerSessionData || [];
+    const employeeList = employeeSessionData || [];
 
-      setSessions(sessionsWithCounts);
-      setFilteredSessions(sessionsWithCounts);
-    }
+    // Manager sessions: count from manager-specific tables
+    const managerWithCounts: Session[] = await Promise.all(
+      managerList.map(async (session: any) => {
+        const [
+          employeeAllocations,
+          punchIn,
+          landSearch,
+          stallSearch,
+          moneyRecovery,
+          assetsUsage,
+          feedbacks,
+          inspections,
+          punchOut,
+        ] = await Promise.all([
+          supabase.from('employee_allocations').select('*', { count: 'exact', head: true }).eq('session_id', session.id),
+          supabase.from('market_manager_punchin').select('*', { count: 'exact', head: true }).eq('session_id', session.id),
+          supabase.from('market_land_search').select('*', { count: 'exact', head: true }).eq('session_id', session.id),
+          supabase.from('stall_searching_updates').select('*', { count: 'exact', head: true }).eq('session_id', session.id),
+          supabase.from('assets_money_recovery').select('*', { count: 'exact', head: true }).eq('session_id', session.id),
+          supabase.from('assets_usage').select('*', { count: 'exact', head: true }).eq('session_id', session.id),
+          supabase.from('bms_stall_feedbacks').select('*', { count: 'exact', head: true }).eq('session_id', session.id),
+          supabase.from('market_inspection_updates').select('*', { count: 'exact', head: true }).eq('session_id', session.id),
+          supabase.from('market_manager_punchout').select('*', { count: 'exact', head: true }).eq('session_id', session.id),
+        ]);
 
+        return {
+          ...session,
+          source: 'manager' as const,
+          task_counts: {
+            employee_allocations: employeeAllocations.count || 0,
+            punch_in: punchIn.count || 0,
+            land_search: landSearch.count || 0,
+            stall_search: stallSearch.count || 0,
+            money_recovery: moneyRecovery.count || 0,
+            assets_usage: assetsUsage.count || 0,
+            feedbacks: feedbacks.count || 0,
+            inspections: inspections.count || 0,
+            punch_out: punchOut.count || 0,
+          },
+        };
+      })
+    );
+
+    // Employee sessions: counts from employee/organiser tables
+    const employeeWithCounts: Session[] = await Promise.all(
+      employeeList.map(async (session: any) => {
+        const [
+          stallConfs,
+          mediaSelfie,
+          inspections,
+          offers,
+          nonAvail,
+          feedback,
+          planning,
+          mediaMarketVid,
+          mediaCleanVid,
+        ] = await Promise.all([
+          supabase.from('stall_confirmations').select('*', { count: 'exact', head: true }).eq('market_id', session.market_id).eq('market_date', session.session_date),
+          supabase.from('media').select('*', { count: 'exact', head: true }).eq('session_id', session.id).eq('media_type', 'selfie_gps'),
+          supabase.from('stall_inspections').select('*', { count: 'exact', head: true }).eq('session_id', session.id),
+          supabase.from('offers').select('*', { count: 'exact', head: true }).eq('session_id', session.id),
+          supabase.from('non_available_commodities').select('*', { count: 'exact', head: true }).eq('session_id', session.id),
+          supabase.from('organiser_feedback').select('*', { count: 'exact', head: true }).eq('session_id', session.id),
+          supabase.from('next_day_planning').select('*', { count: 'exact', head: true }).eq('session_id', session.id),
+          supabase.from('media').select('*', { count: 'exact', head: true }).eq('session_id', session.id).eq('media_type', 'market_video'),
+          supabase.from('media').select('*', { count: 'exact', head: true }).eq('session_id', session.id).eq('media_type', 'cleaning_video'),
+        ]);
+
+        const dow = new Date(session.session_date + 'T00:00:00').getDay();
+
+        return {
+          id: session.id,
+          session_date: session.session_date,
+          day_of_week: dow,
+          status: session.status,
+          created_at: session.created_at,
+          updated_at: session.updated_at,
+          source: 'employee' as const,
+          market_id: session.market_id,
+          market_name: session.market?.name || null,
+          task_counts: {
+            // Reuse the same 9 slots — relabeled in the UI when source=employee
+            employee_allocations: stallConfs.count || 0,        // -> Stalls
+            punch_in: session.punch_in_time ? 1 : 0,             // -> Punch-In
+            land_search: offers.count || 0,                      // -> Offers
+            stall_search: nonAvail.count || 0,                   // -> Non-Avail
+            money_recovery: inspections.count || 0,              // -> Inspections
+            assets_usage: mediaSelfie.count || 0,                // -> Selfie GPS
+            feedbacks: (feedback.count || 0) + (planning.count || 0), // -> Feedback/Planning
+            inspections: mediaMarketVid.count || 0,              // -> Market Video
+            punch_out: (session.punch_out_time ? 1 : 0) + (mediaCleanVid.count || 0 > 0 ? 0 : 0), // -> Punch-Out
+          },
+        };
+      })
+    );
+
+    // Merge & sort by date desc, then created_at desc
+    const merged = [...managerWithCounts, ...employeeWithCounts].sort((a, b) => {
+      if (a.session_date !== b.session_date) return a.session_date < b.session_date ? 1 : -1;
+      return (a.created_at < b.created_at ? 1 : -1);
+    });
+
+    setSessions(merged);
+    setFilteredSessions(merged);
     setLoading(false);
   };
 
