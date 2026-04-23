@@ -379,8 +379,10 @@ export default function AllSessions() {
     filteredSessions.forEach(s => {
       if (!s.tasks) return;
       REQUIRED_TASKS.forEach(t => {
+        const state = s.tasks![t];
+        if (state === 'not_required') return; // skip role-irrelevant tasks
         totalRequired++;
-        if (s.tasks![t] === 'completed') totalDone++;
+        if (state === 'completed') totalDone++;
       });
     });
     const pct = totalRequired > 0 ? Math.round((totalDone / totalRequired) * 100) : 0;
