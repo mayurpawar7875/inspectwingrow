@@ -82,6 +82,7 @@ export default function AllSessions() {
   });
   const [markets, setMarkets] = useState<any[]>([]);
   const [employees, setEmployees] = useState<any[]>([]);
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   const resolveStorageRef = (input: string): { bucket: string; path: string } | null => {
     if (!input) return null;
