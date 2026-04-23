@@ -502,13 +502,21 @@ export default function AllSessions() {
 
       {/* Filters */}
       <Card>
-        <CardHeader className="p-3 sm:p-6">
-          <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
-            <Filter className="h-4 w-4" />
-            Filters
+        <CardHeader
+          className="p-3 sm:p-6 cursor-pointer sm:cursor-default select-none"
+          onClick={() => setFiltersOpen(o => !o)}
+        >
+          <CardTitle className="flex items-center justify-between gap-2 text-sm sm:text-base">
+            <span className="flex items-center gap-2">
+              <Filter className="h-4 w-4" />
+              Filters
+            </span>
+            <span className="sm:hidden text-muted-foreground">
+              {filtersOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            </span>
           </CardTitle>
         </CardHeader>
-        <CardContent className="p-3 sm:p-6 pt-0">
+        <CardContent className={`p-3 sm:p-6 pt-0 ${filtersOpen ? 'block' : 'hidden sm:block'}`}>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
             <div className="space-y-1">
               <Label className="text-xs">Date From</Label>
