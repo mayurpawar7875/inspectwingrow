@@ -31,7 +31,7 @@ export default function Auth() {
         bdo: '/bdo-dashboard',
         bms_executive: '/bms-dashboard',
       };
-      navigate(routes[currentRole] || '/dashboard');
+      navigate(routes[currentRole] || '/dashboard', { replace: true });
       setWaitingForRole(false);
     } else if (user && !currentRole) {
       setWaitingForRole(true);

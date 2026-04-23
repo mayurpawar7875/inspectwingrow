@@ -362,7 +362,7 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!loading && !user) {
-      navigate('/auth');
+      navigate('/auth', { replace: true });
     }
   }, [user, loading, navigate]);
 
