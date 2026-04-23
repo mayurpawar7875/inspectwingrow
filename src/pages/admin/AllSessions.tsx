@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useLocation } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -16,8 +16,22 @@ import {
 } from '@/components/ui/dialog';
 import { SessionComments } from '@/components/SessionComments';
 import { toast } from 'sonner';
-import { Download, Eye, Filter, MapPin, Calendar, Clock, User } from 'lucide-react';
+import { Download, Eye, Filter, MapPin, Calendar, Clock, Check, X, Minus } from 'lucide-react';
 import { getSignedUrl } from '@/lib/storageHelpers';
+
+type TaskKey = 'attendance' | 'stalls' | 'assetInspection' | 'locationVisit' | 'marketVideo' | 'cleaningVideo' | 'advanceRequest' | 'leaveApplication';
+type TaskState = 'completed' | 'pending' | 'not_required';
+
+interface SessionTasks {
+  attendance: TaskState;
+  stalls: TaskState;
+  assetInspection: TaskState;
+  locationVisit: TaskState;
+  marketVideo: TaskState;
+  cleaningVideo: TaskState;
+  advanceRequest: TaskState;
+  leaveApplication: TaskState;
+}
 
 interface Session {
   id: string;
@@ -28,18 +42,33 @@ interface Session {
   punch_in_time: string | null;
   punch_out_time: string | null;
   status: string;
-  statuses?: string[]; // Array of all statuses (for expired + incomplete)
+  statuses?: string[];
   finalized_at: string | null;
   employees: { full_name: string; phone: string | null } | null;
   markets: { name: string; location: string } | null;
+  role?: string | null;
   stalls?: any[];
   media?: any[];
+  tasks?: SessionTasks;
+  taskDetails?: Record<string, any>;
 }
+
+const TASK_LABELS: Record<TaskKey, string> = {
+  attendance: 'Attendance',
+  stalls: 'Stall Confirmation',
+  assetInspection: 'Asset Inspection',
+  locationVisit: 'Location Visit',
+  marketVideo: 'Market Video',
+  cleaningVideo: 'Cleaning Video',
+  advanceRequest: 'Advance Request',
+  leaveApplication: 'Leave Application',
+};
+
+const REQUIRED_TASKS: TaskKey[] = ['attendance', 'stalls', 'assetInspection', 'locationVisit', 'marketVideo', 'cleaningVideo'];
 
 export default function AllSessions() {
   const location = useLocation();
   const [sessions, setSessions] = useState<Session[]>([]);
-  const [filteredSessions, setFilteredSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedSession, setSelectedSession] = useState<Session | null>(null);
   const [filters, setFilters] = useState({
@@ -47,21 +76,20 @@ export default function AllSessions() {
     dateTo: '',
     status: '',
     marketId: '',
+    employeeId: '',
+    taskStatus: '', // e.g. "pending:assetInspection"
   });
   const [markets, setMarkets] = useState<any[]>([]);
+  const [employees, setEmployees] = useState<any[]>([]);
 
   const resolveStorageRef = (input: string): { bucket: string; path: string } | null => {
     if (!input) return null;
-
-    // If it's already a full URL, try to extract bucket/path from standard storage URL patterns.
     if (input.startsWith('http://') || input.startsWith('https://')) {
       try {
         const u = new URL(input);
         const p = u.pathname;
-
         const publicPrefix = '/storage/v1/object/public/';
         const signPrefix = '/storage/v1/object/sign/';
-
         const stripPrefix = (prefix: string) => {
           const rest = p.slice(prefix.length);
           const [bucket, ...pathParts] = rest.split('/').filter(Boolean);
@@ -69,7 +97,6 @@ export default function AllSessions() {
           if (!bucket || !path) return null;
           return { bucket, path };
         };
-
         if (p.startsWith(publicPrefix)) return stripPrefix(publicPrefix);
         if (p.startsWith(signPrefix)) return stripPrefix(signPrefix);
       } catch {
@@ -77,22 +104,16 @@ export default function AllSessions() {
       }
       return null;
     }
-
-    // In this app, media.file_url is stored as a path within the 'employee-media' bucket.
-    // Example: "<userId>/<timestamp>-filename.jpg"
     return { bucket: 'employee-media', path: input.replace(/^\/+/, '') };
   };
 
   useEffect(() => {
-    fetchMarkets();
-    fetchSessions();
+    fetchAll();
   }, []);
 
   useEffect(() => {
-    // Apply filters based on navigation state
     const state = location.state as any;
     const today = new Date().toISOString().split('T')[0];
-
     if (state?.filterToday) {
       setFilters(prev => ({ ...prev, dateFrom: today, dateTo: today, status: '' }));
     } else if (state?.filterCompleted) {
@@ -100,31 +121,27 @@ export default function AllSessions() {
     }
   }, [location.state]);
 
-  useEffect(() => {
-    applyFilters();
-  }, [sessions, filters]);
-
-  const fetchMarkets = async () => {
-    try {
-      const { data, error } = await supabase.from('markets').select('*').order('name');
-      if (error) throw error;
-      setMarkets(data || []);
-    } catch (error) {
-      console.error('Error fetching markets:', error);
-    }
+  const toIST = (dateStr: string) => {
+    const d = new Date(dateStr + 'T00:00:00');
+    const ist = new Date(d.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
+    const y = ist.getFullYear();
+    const m = String(ist.getMonth() + 1).padStart(2, '0');
+    const d2 = String(ist.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d2}`;
   };
 
-  const fetchSessions = async () => {
+  const fetchAll = async () => {
     try {
-      const toIST = (dateStr: string) => {
-        const d = new Date(dateStr + 'T00:00:00');
-        const ist = new Date(d.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
-        const y = ist.getFullYear();
-        const m = String(ist.getMonth() + 1).padStart(2, '0');
-        const d2 = String(ist.getDate()).padStart(2, '0');
-        return `${y}-${m}-${d2}`;
-      };
-      // Fetch sessions without joins
+      setLoading(true);
+
+      const [{ data: marketsData }, { data: employeesData }] = await Promise.all([
+        supabase.from('markets').select('*').order('name'),
+        supabase.from('employees').select('id, full_name, phone').order('full_name'),
+      ]);
+      setMarkets(marketsData || []);
+      setEmployees(employeesData || []);
+
+      // Fetch sessions
       const { data: sessionsData, error: sessionsError } = await supabase
         .from('sessions')
         .select('*')
@@ -132,228 +149,181 @@ export default function AllSessions() {
         .order('created_at', { ascending: false });
 
       if (sessionsError) throw sessionsError;
+      const rawSessions = sessionsData || [];
 
-      const sessions = sessionsData || [];
-      if (sessions.length === 0) {
+      if (rawSessions.length === 0) {
         setSessions([]);
         setLoading(false);
         return;
       }
 
-      // Get unique user and market IDs
-      const userIds = [...new Set(sessions.map((s: any) => s.user_id).filter(Boolean))];
-      const marketIds = [...new Set(sessions.map((s: any) => s.market_id).filter(Boolean))];
-      const sessionIds = sessions.map((s: any) => s.id);
+      const userIds = [...new Set(rawSessions.map((s: any) => s.user_id).filter(Boolean))];
+      const marketIds = [...new Set(rawSessions.map((s: any) => s.market_id).filter(Boolean))];
+      const sessionIds = rawSessions.map((s: any) => s.id);
 
-      // Compute date range (use session_date as fallback when market_date is null)
-      const allDates = sessions
+      const allDates = rawSessions
         .map((s: any) => (s.market_date || s.session_date))
         .filter(Boolean) as string[];
       const istDates = allDates.map((d: string) => toIST(d));
       const minDate = istDates.length ? istDates.reduce((a: string, b: string) => (a < b ? a : b)) : undefined;
       const maxDate = istDates.length ? istDates.reduce((a: string, b: string) => (a > b ? a : b)) : undefined;
 
-      // Fetch stall confirmations first to get all users who created them
-      const stallConfs = marketIds.length > 0 && minDate && maxDate ? await (async () => {
-        const { data } = await supabase
-          .from('stall_confirmations')
-          .select('id, market_id, market_date, farmer_name, stall_name, stall_no, created_by, created_at')
-          .in('market_id', marketIds)
-          .gte('market_date', minDate)
-          .lte('market_date', maxDate);
-        return data || [];
-      })() : [];
+      const stallConfsPromise = (marketIds.length > 0 && minDate && maxDate)
+        ? supabase
+            .from('stall_confirmations')
+            .select('id, market_id, market_date, farmer_name, stall_name, stall_no, created_by, created_at')
+            .in('market_id', marketIds)
+            .gte('market_date', minDate)
+            .lte('market_date', maxDate)
+            .then(r => r.data || [])
+        : Promise.resolve([] as any[]);
 
-      // Get all user IDs from both sessions and stall confirmations
-      const allUserIds = [...new Set([
-        ...userIds,
-        ...(stallConfs || []).map((sc: any) => sc.created_by).filter(Boolean)
-      ])];
-
-      // Fetch employees, markets, legacy stalls (by session), and media in parallel
+      // Parallel fetch all data
       const [
-        { data: employees },
-        { data: markets },
+        stallConfs,
+        { data: empExtra },
+        { data: rolesData },
+        { data: mktsExtra },
         { data: stallsData },
-        { data: mediaData }
+        { data: mediaData },
+        { data: assetInspections },
+        { data: locationVisits },
+        { data: advanceRequests },
+        { data: leaveApps },
       ] = await Promise.all([
-        supabase.from('employees').select('id, full_name, phone').in('id', allUserIds),
+        stallConfsPromise,
+        supabase.from('employees').select('id, full_name, phone').in('id', userIds),
+        supabase.from('user_roles').select('user_id, role').in('user_id', userIds),
         supabase.from('markets').select('id, name, location').in('id', marketIds),
         supabase.from('stalls').select('*').in('session_id', sessionIds),
-        supabase.from('media').select('*').in('session_id', sessionIds)
+        supabase.from('media').select('*').in('session_id', sessionIds),
+        minDate && maxDate
+          ? supabase.from('bms_asset_inspections').select('user_id, inspection_date, inspection_week').in('user_id', userIds).gte('inspection_week', minDate).lte('inspection_week', maxDate)
+          : Promise.resolve({ data: [] as any[] }),
+        minDate && maxDate
+          ? supabase.from('market_location_visits').select('id, employee_id, created_at, location_name').in('employee_id', userIds).gte('created_at', minDate)
+          : Promise.resolve({ data: [] as any[] }),
+        minDate && maxDate
+          ? supabase.from('advance_requests').select('id, requester_id, required_date, status, amount').in('requester_id', userIds).gte('required_date', minDate).lte('required_date', maxDate)
+          : Promise.resolve({ data: [] as any[] }),
+        minDate && maxDate
+          ? supabase.from('employee_leaves').select('id, user_id, leave_date, status, reason').in('user_id', userIds).gte('leave_date', minDate).lte('leave_date', maxDate)
+          : Promise.resolve({ data: [] as any[] }),
       ]);
 
-      const empById = Object.fromEntries((employees || []).map((e: any) => [e.id, e]));
-      const mktById = Object.fromEntries((markets || []).map((m: any) => [m.id, m]));
+      const empById = Object.fromEntries((empExtra || []).map((e: any) => [e.id, e]));
+      const mktById = Object.fromEntries((mktsExtra || []).map((m: any) => [m.id, m]));
+      const roleByUser: Record<string, string> = {};
+      (rolesData || []).forEach((r: any) => { roleByUser[r.user_id] = r.role; });
 
-      // Group legacy stalls by session_id and new stall_confirmations by composite key market_id|date|user
       const stallsBySession: Record<string, any[]> = {};
       const stallConfsByKey: Record<string, any[]> = {};
       const mediaBySession: Record<string, any[]> = {};
 
       (stallsData || []).forEach((stall: any) => {
-        if (!stallsBySession[stall.session_id]) {
-          stallsBySession[stall.session_id] = [];
-        }
-        stallsBySession[stall.session_id].push(stall);
+        (stallsBySession[stall.session_id] ||= []).push(stall);
       });
-
       (stallConfs || []).forEach((sc: any) => {
         const key = `${sc.market_id}|${sc.market_date}|${sc.created_by || ''}`;
-        if (!stallConfsByKey[key]) {
-          stallConfsByKey[key] = [];
-        }
-        stallConfsByKey[key].push(sc);
+        (stallConfsByKey[key] ||= []).push(sc);
       });
-
       (mediaData || []).forEach((media: any) => {
-        if (!mediaBySession[media.session_id]) {
-          mediaBySession[media.session_id] = [];
-        }
-        mediaBySession[media.session_id].push(media);
+        (mediaBySession[media.session_id] ||= []).push(media);
       });
 
-      // Fetch task data for all sessions to determine actual completion status
-      const taskChecks = await Promise.all([
-        supabase.from('offers').select('session_id').in('session_id', sessionIds),
-        supabase.from('non_available_commodities').select('session_id').in('session_id', sessionIds),
-        supabase.from('organiser_feedback').select('session_id').in('session_id', sessionIds),
-        supabase.from('stall_inspections').select('session_id').in('session_id', sessionIds),
-        supabase.from('next_day_planning').select('session_id').in('session_id', sessionIds)
-      ]);
-
-      const [offersData, commoditiesData, feedbackData, inspectionsData, planningData] = taskChecks.map(r => r.data || []);
-      
-      const tasksBySession: Record<string, { offers: boolean; commodities: boolean; feedback: boolean; inspections: boolean; planning: boolean; attendance: boolean; marketVideo: boolean; cleaningVideo: boolean }> = {};
-      
-      offersData.forEach((o: any) => {
-        if (!tasksBySession[o.session_id]) tasksBySession[o.session_id] = { offers: false, commodities: false, feedback: false, inspections: false, planning: false, attendance: false, marketVideo: false, cleaningVideo: false };
-        tasksBySession[o.session_id].offers = true;
+      // Build per-user/per-date lookups for cross-session tasks
+      const inspByUserDate: Record<string, any[]> = {};
+      (assetInspections || []).forEach((i: any) => {
+        const k = `${i.user_id}|${toIST(i.inspection_week || i.inspection_date)}`;
+        (inspByUserDate[k] ||= []).push(i);
       });
-      commoditiesData.forEach((c: any) => {
-        if (!tasksBySession[c.session_id]) tasksBySession[c.session_id] = { offers: false, commodities: false, feedback: false, inspections: false, planning: false, attendance: false, marketVideo: false, cleaningVideo: false };
-        tasksBySession[c.session_id].commodities = true;
+      const visitsByUserDate: Record<string, any[]> = {};
+      (locationVisits || []).forEach((v: any) => {
+        const k = `${v.employee_id}|${toIST(v.created_at)}`;
+        (visitsByUserDate[k] ||= []).push(v);
       });
-      feedbackData.forEach((f: any) => {
-        if (!tasksBySession[f.session_id]) tasksBySession[f.session_id] = { offers: false, commodities: false, feedback: false, inspections: false, planning: false, attendance: false, marketVideo: false, cleaningVideo: false };
-        tasksBySession[f.session_id].feedback = true;
+      const advByUserDate: Record<string, any[]> = {};
+      (advanceRequests || []).forEach((a: any) => {
+        const k = `${a.requester_id}|${a.required_date}`;
+        (advByUserDate[k] ||= []).push(a);
       });
-      inspectionsData.forEach((i: any) => {
-        if (!tasksBySession[i.session_id]) tasksBySession[i.session_id] = { offers: false, commodities: false, feedback: false, inspections: false, planning: false, attendance: false, marketVideo: false, cleaningVideo: false };
-        tasksBySession[i.session_id].inspections = true;
-      });
-      planningData.forEach((p: any) => {
-        if (!tasksBySession[p.session_id]) tasksBySession[p.session_id] = { offers: false, commodities: false, feedback: false, inspections: false, planning: false, attendance: false, marketVideo: false, cleaningVideo: false };
-        tasksBySession[p.session_id].planning = true;
+      const leaveByUserDate: Record<string, any[]> = {};
+      (leaveApps || []).forEach((l: any) => {
+        const k = `${l.user_id}|${l.leave_date}`;
+        (leaveByUserDate[k] ||= []).push(l);
       });
 
-      // Check media for attendance (photo), market_video, and cleaning_video
-      (mediaData || []).forEach((media: any) => {
-        if (!tasksBySession[media.session_id]) tasksBySession[media.session_id] = { offers: false, commodities: false, feedback: false, inspections: false, planning: false, attendance: false, marketVideo: false, cleaningVideo: false };
-        if (media.media_type === 'photo' || media.media_type === 'attendance') {
-          tasksBySession[media.session_id].attendance = true;
-        }
-        if (media.media_type === 'market_video') {
-          tasksBySession[media.session_id].marketVideo = true;
-        }
-        if (media.media_type === 'cleaning_video') {
-          tasksBySession[media.session_id].cleaningVideo = true;
-        }
-      });
-
-      // Helper to calculate actual status - returns array of statuses
-      const calculateStatus = (session: any, tasks: any): string[] => {
-        // If already finalized, keep it
+      const calculateStatus = (session: any, hasAttendance: boolean, hasStalls: boolean, hasMarketVid: boolean, hasCleanVid: boolean): string[] => {
         if (session.status === 'finalized' || session.status === 'locked') {
           return [session.status];
         }
-
-        // Check if all required tasks are completed
-        const allTasksCompleted = tasks && 
-          tasks.offers && 
-          tasks.commodities && 
-          tasks.feedback && 
-          tasks.inspections && 
-          tasks.planning && 
-          tasks.attendance && 
-          tasks.marketVideo && 
-          tasks.cleaningVideo;
-
-        // If all tasks done and punched out, mark as completed
-        if (allTasksCompleted && session.punch_out_time) {
+        const allCore = hasAttendance && hasStalls && hasMarketVid && hasCleanVid;
+        if (allCore && session.punch_out_time) {
           return ['completed'];
         }
-
-        // Otherwise, determine if session date has passed
         const nowUTC = new Date();
         const istTimeString = nowUTC.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' });
         const istDate = new Date(istTimeString);
         const todayIST = `${istDate.getFullYear()}-${String(istDate.getMonth() + 1).padStart(2, '0')}-${String(istDate.getDate()).padStart(2, '0')}`;
-        
-        const sessionDateStr = session.session_date;
-
-        // Compare dates as strings (YYYY-MM-DD format allows direct comparison)
-        if (sessionDateStr < todayIST) {
-          // Date has passed (after midnight) - show BOTH expired AND incomplete
+        if (session.session_date < todayIST) {
           return ['expired', 'incomplete'];
-        } else {
-          // Current day or future - just incomplete
-          return ['incomplete'];
         }
+        return session.punch_in_time ? ['active'] : ['incomplete'];
       };
 
-      // Match stalls (prefer new stall_confirmations by market/date; fallback to legacy stalls by session)
-      const sessionsWithData = sessions.map((session: any) => {
-        const tasks = tasksBySession[session.id];
-        const statuses = calculateStatus(session, tasks);
-        
+      const sessionsWithData: Session[] = rawSessions.map((session: any) => {
+        const sessionStalls = (() => {
+          const dateStr = toIST(session.market_date || session.session_date);
+          const key = `${session.market_id}|${dateStr}|${session.user_id}`;
+          if (stallConfsByKey[key] && stallConfsByKey[key].length) return stallConfsByKey[key];
+          return stallsBySession[session.id] || [];
+        })();
+        const sessionMedia = mediaBySession[session.id] || [];
+        const userDateKey = `${session.user_id}|${toIST(session.market_date || session.session_date)}`;
+        const userDateKeyExact = `${session.user_id}|${session.session_date}`;
+
+        const hasAttendance = !!session.punch_in_time || sessionMedia.some((m: any) => m.media_type === 'photo' || m.media_type === 'attendance');
+        const hasStalls = sessionStalls.length > 0;
+        const hasMarketVid = sessionMedia.some((m: any) => m.media_type === 'market_video');
+        const hasCleanVid = sessionMedia.some((m: any) => m.media_type === 'cleaning_video');
+        const inspections = inspByUserDate[userDateKey] || [];
+        const visits = visitsByUserDate[userDateKey] || [];
+        const advances = advByUserDate[userDateKeyExact] || [];
+        const leaves = leaveByUserDate[userDateKeyExact] || [];
+
+        const tasks: SessionTasks = {
+          attendance: hasAttendance ? 'completed' : 'pending',
+          stalls: hasStalls ? 'completed' : 'pending',
+          assetInspection: inspections.length > 0 ? 'completed' : 'pending',
+          locationVisit: visits.length > 0 ? 'completed' : 'pending',
+          marketVideo: hasMarketVid ? 'completed' : 'pending',
+          cleaningVideo: hasCleanVid ? 'completed' : 'pending',
+          advanceRequest: advances.length > 0 ? 'completed' : 'not_required',
+          leaveApplication: leaves.length > 0 ? 'completed' : 'not_required',
+        };
+
+        const statuses = calculateStatus(session, hasAttendance, hasStalls, hasMarketVid, hasCleanVid);
+
         return {
           ...session,
-          status: statuses[0], // Primary status for filtering
-          statuses: statuses, // All statuses for display
+          status: statuses[0],
+          statuses,
           employees: empById[session.user_id] || null,
           markets: mktById[session.market_id] || null,
-          stalls: (() => {
-            const dateStr = toIST(session.market_date || session.session_date);
-            const key = `${session.market_id}|${dateStr}|${session.user_id}`;
-            if (stallConfsByKey[key] && stallConfsByKey[key].length) return stallConfsByKey[key];
-            return stallsBySession[session.id] || [];
-          })(),
-          media: mediaBySession[session.id] || []
+          role: roleByUser[session.user_id] || null,
+          stalls: sessionStalls,
+          media: sessionMedia,
+          tasks,
+          taskDetails: {
+            inspections,
+            visits,
+            advances,
+            leaves,
+          },
         };
       });
 
-      // Create virtual sessions for users who have stall confirmations but no sessions
-      const existingSessionKeys = new Set(sessions.map((s: any) => `${s.market_id}|${toIST(s.market_date || s.session_date)}|${s.user_id}`));
-      const virtualSessions = [];
-
-      for (const [key, stallConfs] of Object.entries(stallConfsByKey)) {
-        if (!existingSessionKeys.has(key) && stallConfs.length > 0) {
-          const [marketId, marketDate, userId] = key.split('|');
-          const employee = empById[userId];
-          const market = mktById[marketId];
-          
-          if (employee && market) {
-            virtualSessions.push({
-              id: `virtual-${key}`,
-              user_id: userId,
-              market_id: marketId,
-              session_date: marketDate,
-              market_date: marketDate,
-              punch_in_time: null,
-              punch_out_time: null,
-              status: 'stall_confirmations_only',
-              finalized_at: null,
-              employees: employee,
-              markets: market,
-              stalls: stallConfs,
-              media: []
-            });
-          }
-        }
-      }
-
-      setSessions([...sessionsWithData, ...virtualSessions] as any);
+      setSessions(sessionsWithData);
     } catch (error: any) {
       toast.error('Failed to load sessions');
       console.error(error);
@@ -362,49 +332,62 @@ export default function AllSessions() {
     }
   };
 
-  const applyFilters = () => {
+  const filteredSessions = useMemo(() => {
     let filtered = [...sessions];
-
-    if (filters.dateFrom) {
-      filtered = filtered.filter((s) => s.session_date >= filters.dateFrom);
-    }
-    if (filters.dateTo) {
-      filtered = filtered.filter((s) => s.session_date <= filters.dateTo);
-    }
+    if (filters.dateFrom) filtered = filtered.filter(s => s.session_date >= filters.dateFrom);
+    if (filters.dateTo) filtered = filtered.filter(s => s.session_date <= filters.dateTo);
     if (filters.status && filters.status !== 'all') {
-      filtered = filtered.filter((s) => s.status === filters.status);
+      filtered = filtered.filter(s => (s.statuses || [s.status]).includes(filters.status));
     }
     if (filters.marketId && filters.marketId !== 'all') {
-      filtered = filtered.filter((s) => s.markets && 'id' in s.markets && (s.markets as any).id === filters.marketId);
+      filtered = filtered.filter(s => s.market_id === filters.marketId);
     }
+    if (filters.employeeId && filters.employeeId !== 'all') {
+      filtered = filtered.filter(s => s.user_id === filters.employeeId);
+    }
+    if (filters.taskStatus && filters.taskStatus !== 'all') {
+      const [state, taskKey] = filters.taskStatus.split(':') as [TaskState, TaskKey];
+      filtered = filtered.filter(s => s.tasks && s.tasks[taskKey] === state);
+    }
+    return filtered;
+  }, [sessions, filters]);
 
-    setFilteredSessions(filtered);
-  };
+  const insights = useMemo(() => {
+    const total = filteredSessions.length;
+    const completed = filteredSessions.filter(s => (s.statuses || []).includes('completed') || s.status === 'finalized').length;
+    const incomplete = total - completed;
+    let totalRequired = 0;
+    let totalDone = 0;
+    filteredSessions.forEach(s => {
+      if (!s.tasks) return;
+      REQUIRED_TASKS.forEach(t => {
+        totalRequired++;
+        if (s.tasks![t] === 'completed') totalDone++;
+      });
+    });
+    const pct = totalRequired > 0 ? Math.round((totalDone / totalRequired) * 100) : 0;
+    return { total, completed, incomplete, pct };
+  }, [filteredSessions]);
 
   const exportToCSV = () => {
     const headers = [
-      'Date',
-      'Employee',
-      'Market',
-      'Punch In',
-      'Punch Out',
-      'Status',
-      'Stalls Count',
-      'Media Count',
+      'Date', 'Employee', 'Role', 'Market', 'Status', 'Punch In', 'Punch Out',
+      ...REQUIRED_TASKS.map(t => TASK_LABELS[t]),
+      'Advance Request', 'Leave Application',
     ];
-
-    const rows = filteredSessions.map((s) => [
+    const rows = filteredSessions.map(s => [
       s.session_date,
       s.employees?.full_name || 'N/A',
+      s.role || 'N/A',
       s.markets?.name || 'N/A',
+      (s.statuses || [s.status]).join('|'),
       s.punch_in_time ? new Date(s.punch_in_time).toLocaleString() : 'N/A',
       s.punch_out_time ? new Date(s.punch_out_time).toLocaleString() : 'N/A',
-      s.status,
-      s.stalls?.length || 0,
-      s.media?.length || 0,
+      ...REQUIRED_TASKS.map(t => s.tasks?.[t] || 'pending'),
+      s.tasks?.advanceRequest || 'not_required',
+      s.tasks?.leaveApplication || 'not_required',
     ]);
-
-    const csv = [headers, ...rows].map((row) => row.join(',')).join('\n');
+    const csv = [headers, ...rows].map(row => row.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -415,16 +398,46 @@ export default function AllSessions() {
   };
 
   const getStatusBadge = (status: string) => {
-    const colors = {
+    const colors: Record<string, string> = {
       active: 'bg-info text-info-foreground',
       completed: 'bg-success text-success-foreground',
       incomplete: 'bg-warning text-warning-foreground',
       expired: 'bg-destructive text-destructive-foreground',
       finalized: 'bg-success text-success-foreground',
       locked: 'bg-muted text-muted-foreground',
-      stall_confirmations_only: 'bg-orange-100 text-orange-800',
     };
-    return <Badge className={`${colors[status as keyof typeof colors] || 'bg-muted text-muted-foreground'} text-xs`}>{status.replace('_', ' ')}</Badge>;
+    return <Badge className={`${colors[status] || 'bg-muted text-muted-foreground'} text-xs`}>{status.replace('_', ' ')}</Badge>;
+  };
+
+  const TaskIcon = ({ state }: { state: TaskState }) => {
+    if (state === 'completed') return <Check className="h-3.5 w-3.5 text-success" strokeWidth={3} />;
+    if (state === 'pending') return <X className="h-3.5 w-3.5 text-destructive" strokeWidth={3} />;
+    return <Minus className="h-3.5 w-3.5 text-muted-foreground" />;
+  };
+
+  const TaskPills = ({ tasks }: { tasks?: SessionTasks }) => {
+    if (!tasks) return null;
+    const items: TaskKey[] = [...REQUIRED_TASKS, 'advanceRequest', 'leaveApplication'];
+    return (
+      <div className="flex flex-wrap gap-1.5">
+        {items.map(key => (
+          <div
+            key={key}
+            className={`inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[10px] sm:text-xs ${
+              tasks[key] === 'completed'
+                ? 'border-success/30 bg-success/10 text-success'
+                : tasks[key] === 'pending'
+                ? 'border-destructive/30 bg-destructive/10 text-destructive'
+                : 'border-muted bg-muted/40 text-muted-foreground'
+            }`}
+            title={`${TASK_LABELS[key]}: ${tasks[key]}`}
+          >
+            <TaskIcon state={tasks[key]} />
+            <span className="hidden sm:inline">{TASK_LABELS[key]}</span>
+          </div>
+        ))}
+      </div>
+    );
   };
 
   if (loading) {
@@ -437,15 +450,43 @@ export default function AllSessions() {
 
   return (
     <div className="space-y-3 sm:space-y-6">
-      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2 sm:gap-0">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2">
         <div>
           <h2 className="text-xl sm:text-2xl md:text-3xl font-bold">All Sessions</h2>
-          <p className="text-xs sm:text-sm text-muted-foreground">View and manage employee reporting sessions</p>
+          <p className="text-xs sm:text-sm text-muted-foreground">Detailed task completion across all employee sessions</p>
         </div>
         <Button onClick={exportToCSV} disabled={filteredSessions.length === 0} size="sm" className="btn-touch">
           <Download className="mr-1 h-3 w-3 sm:h-4 sm:w-4" />
           <span className="text-xs sm:text-sm">Export CSV</span>
         </Button>
+      </div>
+
+      {/* Summary Insights */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
+        <Card>
+          <CardContent className="p-3 sm:p-4">
+            <p className="text-xs text-muted-foreground">Total Sessions</p>
+            <p className="text-xl sm:text-2xl font-bold">{insights.total}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-3 sm:p-4">
+            <p className="text-xs text-muted-foreground">Completed</p>
+            <p className="text-xl sm:text-2xl font-bold text-success">{insights.completed}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-3 sm:p-4">
+            <p className="text-xs text-muted-foreground">Incomplete</p>
+            <p className="text-xl sm:text-2xl font-bold text-warning">{insights.incomplete}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-3 sm:p-4">
+            <p className="text-xs text-muted-foreground">Task Completion</p>
+            <p className="text-xl sm:text-2xl font-bold text-primary">{insights.pct}%</p>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Filters */}
@@ -457,33 +498,19 @@ export default function AllSessions() {
           </CardTitle>
         </CardHeader>
         <CardContent className="p-3 sm:p-6 pt-0">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-            <div className="space-y-1 sm:space-y-2">
-              <Label htmlFor="dateFrom" className="text-xs sm:text-sm">Date From</Label>
-              <Input
-                id="dateFrom"
-                type="date"
-                value={filters.dateFrom}
-                onChange={(e) => setFilters({ ...filters, dateFrom: e.target.value })}
-                className="h-9 text-xs sm:text-sm"
-              />
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
+            <div className="space-y-1">
+              <Label className="text-xs">Date From</Label>
+              <Input type="date" value={filters.dateFrom} onChange={(e) => setFilters({ ...filters, dateFrom: e.target.value })} className="h-9 text-xs" />
             </div>
-            <div className="space-y-1 sm:space-y-2">
-              <Label htmlFor="dateTo" className="text-xs sm:text-sm">Date To</Label>
-              <Input
-                id="dateTo"
-                type="date"
-                value={filters.dateTo}
-                onChange={(e) => setFilters({ ...filters, dateTo: e.target.value })}
-                className="h-9 text-xs sm:text-sm"
-              />
+            <div className="space-y-1">
+              <Label className="text-xs">Date To</Label>
+              <Input type="date" value={filters.dateTo} onChange={(e) => setFilters({ ...filters, dateTo: e.target.value })} className="h-9 text-xs" />
             </div>
-            <div className="space-y-1 sm:space-y-2">
-              <Label htmlFor="status" className="text-xs sm:text-sm">Status</Label>
+            <div className="space-y-1">
+              <Label className="text-xs">Session Status</Label>
               <Select value={filters.status} onValueChange={(val) => setFilters({ ...filters, status: val })}>
-                <SelectTrigger id="status" className="h-9 text-xs sm:text-sm">
-                  <SelectValue placeholder="All statuses" />
-                </SelectTrigger>
+                <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="All" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All</SelectItem>
                   <SelectItem value="active">Active</SelectItem>
@@ -491,42 +518,51 @@ export default function AllSessions() {
                   <SelectItem value="incomplete">Incomplete</SelectItem>
                   <SelectItem value="expired">Expired</SelectItem>
                   <SelectItem value="finalized">Finalized</SelectItem>
-                  <SelectItem value="locked">Locked</SelectItem>
-                  <SelectItem value="stall_confirmations_only">Stall Confirmations Only</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-1 sm:space-y-2">
-              <Label htmlFor="market" className="text-xs sm:text-sm">Market</Label>
-              <Select
-                value={filters.marketId}
-                onValueChange={(val) => setFilters({ ...filters, marketId: val })}
-              >
-                <SelectTrigger id="market" className="h-9 text-xs sm:text-sm">
-                  <SelectValue placeholder="All markets" />
-                </SelectTrigger>
+            <div className="space-y-1">
+              <Label className="text-xs">Market</Label>
+              <Select value={filters.marketId} onValueChange={(val) => setFilters({ ...filters, marketId: val })}>
+                <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="All" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All</SelectItem>
-                  {markets.map((m) => (
-                    <SelectItem key={m.id} value={m.id}>
-                      {m.name}
-                    </SelectItem>
+                  {markets.map((m) => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Employee</Label>
+              <Select value={filters.employeeId} onValueChange={(val) => setFilters({ ...filters, employeeId: val })}>
+                <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="All" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All</SelectItem>
+                  {employees.map((e) => <SelectItem key={e.id} value={e.id}>{e.full_name || e.id}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Task Status</Label>
+              <Select value={filters.taskStatus} onValueChange={(val) => setFilters({ ...filters, taskStatus: val })}>
+                <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="All" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All</SelectItem>
+                  {REQUIRED_TASKS.map(t => (
+                    <React.Fragment key={t}>
+                      <SelectItem value={`pending:${t}`}>Pending: {TASK_LABELS[t]}</SelectItem>
+                      <SelectItem value={`completed:${t}`}>Completed: {TASK_LABELS[t]}</SelectItem>
+                    </React.Fragment>
                   ))}
                 </SelectContent>
               </Select>
             </div>
           </div>
-          <div className="mt-3 sm:mt-4 flex flex-col sm:flex-row sm:items-center gap-2">
-            <p className="text-xs sm:text-sm text-muted-foreground">
+          <div className="mt-3 flex flex-col sm:flex-row sm:items-center gap-2">
+            <p className="text-xs text-muted-foreground">
               Showing {filteredSessions.length} of {sessions.length} sessions
             </p>
-            {(filters.dateFrom || filters.dateTo || filters.status || filters.marketId) && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setFilters({ dateFrom: '', dateTo: '', status: '', marketId: '' })}
-                className="text-xs"
-              >
+            {(filters.dateFrom || filters.dateTo || filters.status || filters.marketId || filters.employeeId || filters.taskStatus) && (
+              <Button variant="outline" size="sm" onClick={() => setFilters({ dateFrom: '', dateTo: '', status: '', marketId: '', employeeId: '', taskStatus: '' })} className="text-xs">
                 Clear Filters
               </Button>
             )}
@@ -538,7 +574,7 @@ export default function AllSessions() {
       <div className="space-y-3 sm:space-y-4">
         {filteredSessions.length === 0 ? (
           <Card>
-            <CardContent className="py-8 sm:py-12 text-center text-muted-foreground text-xs sm:text-sm">
+            <CardContent className="py-8 text-center text-muted-foreground text-xs sm:text-sm">
               No sessions found matching the filters
             </CardContent>
           </Card>
@@ -546,45 +582,44 @@ export default function AllSessions() {
           filteredSessions.map((session) => (
             <Card key={session.id}>
               <CardContent className="p-3 sm:p-6">
-                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2 sm:gap-0">
-                  <div className="space-y-1 sm:space-y-2 flex-1">
-                    <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3">
+                  <div className="space-y-2 flex-1 min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
                       <h3 className="font-semibold text-sm sm:text-base">{session.employees?.full_name || 'Unknown'}</h3>
+                      {session.role && (
+                        <Badge variant="outline" className="text-[10px] uppercase">{session.role.replace('_', ' ')}</Badge>
+                      )}
                       <div className="flex gap-1 flex-wrap">
                         {(session.statuses || [session.status]).map((status: string, idx: number) => (
-                          <span key={idx} className="text-xs">{getStatusBadge(status)}</span>
+                          <span key={idx}>{getStatusBadge(status)}</span>
                         ))}
                       </div>
                     </div>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4 text-xs">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
                       <div className="flex items-center gap-1 text-muted-foreground">
-                        <Calendar className="h-3 w-3 flex-shrink-0" />
-                        <span className="truncate">{new Date(session.session_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}</span>
+                        <Calendar className="h-3 w-3" />
+                        <span>{new Date(session.session_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: '2-digit' })}</span>
                       </div>
                       <div className="flex items-center gap-1 text-muted-foreground">
-                        <MapPin className="h-3 w-3 flex-shrink-0" />
+                        <MapPin className="h-3 w-3" />
                         <span className="truncate">{session.markets?.name || 'N/A'}</span>
                       </div>
                       <div className="flex items-center gap-1 text-muted-foreground">
-                        <Clock className="h-3 w-3 flex-shrink-0" />
-                        <span className="truncate">In: {session.punch_in_time ? new Date(session.punch_in_time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : 'N/A'}</span>
+                        <Clock className="h-3 w-3" />
+                        <span>In: {session.punch_in_time ? new Date(session.punch_in_time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : '—'}</span>
                       </div>
                       <div className="flex items-center gap-1 text-muted-foreground">
-                        <Clock className="h-3 w-3 flex-shrink-0" />
-                        <span className="truncate">Out: {session.punch_out_time ? new Date(session.punch_out_time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : 'N/A'}</span>
+                        <Clock className="h-3 w-3" />
+                        <span>Out: {session.punch_out_time ? new Date(session.punch_out_time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : '—'}</span>
                       </div>
                     </div>
-                    <div className="flex gap-3 sm:gap-4 text-xs">
-                      <span className="text-muted-foreground">
-                        Stalls: <strong>{session.stalls?.length || 0}</strong>
-                      </span>
-                      <span className="text-muted-foreground">
-                        Media: <strong>{session.media?.length || 0}</strong>
-                      </span>
+                    <div>
+                      <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1">Task Completion</p>
+                      <TaskPills tasks={session.tasks} />
                     </div>
                   </div>
-                  <Button variant="outline" size="sm" onClick={() => setSelectedSession(session)} className="btn-touch w-full sm:w-auto mt-2 sm:mt-0">
-                    <Eye className="mr-1 h-3 w-3 sm:h-4 sm:w-4" />
+                  <Button variant="outline" size="sm" onClick={() => setSelectedSession(session)} className="btn-touch w-full sm:w-auto">
+                    <Eye className="mr-1 h-4 w-4" />
                     <span className="text-xs sm:text-sm">View Details</span>
                   </Button>
                 </div>
@@ -596,113 +631,149 @@ export default function AllSessions() {
 
       {/* Session Details Dialog */}
       <Dialog open={!!selectedSession} onOpenChange={() => setSelectedSession(null)}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-auto">
+        <DialogContent className="max-w-4xl max-h-[85vh] overflow-auto">
           <DialogHeader>
             <DialogTitle className="text-base sm:text-lg">Session Details</DialogTitle>
             <DialogDescription className="text-xs sm:text-sm">
-              {selectedSession?.employees?.full_name} -{' '}
+              {selectedSession?.employees?.full_name} —{' '}
               {selectedSession && new Date(selectedSession.session_date).toLocaleDateString()}
             </DialogDescription>
           </DialogHeader>
           {selectedSession && (
-            <div className="space-y-4 sm:space-y-6">
+            <div className="space-y-5">
               {/* Basic Info */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <h4 className="font-semibold mb-2 text-sm">Employee Information</h4>
-                  <p className="text-xs sm:text-sm">
-                    <strong>Name:</strong> {selectedSession.employees?.full_name}
-                  </p>
-                  <p className="text-xs sm:text-sm">
-                    <strong>Phone:</strong> {selectedSession.employees?.phone || 'N/A'}
-                  </p>
+                  <h4 className="font-semibold mb-2 text-sm">Employee</h4>
+                  <p className="text-xs sm:text-sm"><strong>Name:</strong> {selectedSession.employees?.full_name}</p>
+                  <p className="text-xs sm:text-sm"><strong>Role:</strong> {selectedSession.role || 'N/A'}</p>
+                  <p className="text-xs sm:text-sm"><strong>Phone:</strong> {selectedSession.employees?.phone || 'N/A'}</p>
                 </div>
                 <div>
-                  <h4 className="font-semibold mb-2 text-sm">Market Information</h4>
-                  <p className="text-xs sm:text-sm">
-                    <strong>Market:</strong> {selectedSession.markets?.name}
-                  </p>
-                  <p className="text-xs sm:text-sm">
-                    <strong>Location:</strong> {selectedSession.markets?.location}
-                  </p>
+                  <h4 className="font-semibold mb-2 text-sm">Market</h4>
+                  <p className="text-xs sm:text-sm"><strong>Name:</strong> {selectedSession.markets?.name}</p>
+                  <p className="text-xs sm:text-sm"><strong>Location:</strong> {selectedSession.markets?.location}</p>
+                </div>
+              </div>
+
+              {/* Task Breakdown */}
+              <div>
+                <h4 className="font-semibold mb-2 text-sm">Task Breakdown</h4>
+                <div className="space-y-2">
+                  {([...REQUIRED_TASKS, 'advanceRequest', 'leaveApplication'] as TaskKey[]).map(key => {
+                    const state = selectedSession.tasks?.[key] || 'pending';
+                    const isOptional = key === 'advanceRequest' || key === 'leaveApplication';
+                    let timestamp: string | null = null;
+                    let preview: string | null = null;
+
+                    if (key === 'attendance' && selectedSession.punch_in_time) {
+                      timestamp = new Date(selectedSession.punch_in_time).toLocaleString('en-IN');
+                      preview = `Punch In recorded`;
+                    } else if (key === 'stalls' && selectedSession.stalls?.length) {
+                      timestamp = selectedSession.stalls[0]?.created_at ? new Date(selectedSession.stalls[0].created_at).toLocaleString('en-IN') : null;
+                      preview = `${selectedSession.stalls.length} stall(s) confirmed`;
+                    } else if (key === 'marketVideo') {
+                      const m = selectedSession.media?.find((mm: any) => mm.media_type === 'market_video');
+                      if (m) { timestamp = new Date(m.captured_at).toLocaleString('en-IN'); preview = m.file_name; }
+                    } else if (key === 'cleaningVideo') {
+                      const m = selectedSession.media?.find((mm: any) => mm.media_type === 'cleaning_video');
+                      if (m) { timestamp = new Date(m.captured_at).toLocaleString('en-IN'); preview = m.file_name; }
+                    } else if (key === 'assetInspection') {
+                      const i = selectedSession.taskDetails?.inspections?.[0];
+                      if (i) { timestamp = new Date(i.inspection_date).toLocaleString('en-IN'); preview = `Week of ${i.inspection_week}`; }
+                    } else if (key === 'locationVisit') {
+                      const v = selectedSession.taskDetails?.visits?.[0];
+                      if (v) { timestamp = new Date(v.created_at).toLocaleString('en-IN'); preview = v.location_name; }
+                    } else if (key === 'advanceRequest') {
+                      const a = selectedSession.taskDetails?.advances?.[0];
+                      if (a) { preview = `₹${a.amount} (${a.status})`; }
+                    } else if (key === 'leaveApplication') {
+                      const l = selectedSession.taskDetails?.leaves?.[0];
+                      if (l) { preview = `${l.status} — ${l.reason || 'No reason'}`; }
+                    }
+
+                    return (
+                      <div
+                        key={key}
+                        className={`flex items-start justify-between gap-3 rounded-md border p-2.5 ${
+                          state === 'completed' ? 'border-success/30 bg-success/5'
+                          : state === 'pending' && !isOptional ? 'border-destructive/30 bg-destructive/5'
+                          : 'border-muted bg-muted/20'
+                        }`}
+                      >
+                        <div className="flex items-start gap-2 min-w-0">
+                          <TaskIcon state={state} />
+                          <div className="min-w-0">
+                            <p className="text-xs sm:text-sm font-medium">{TASK_LABELS[key]} {isOptional && <span className="text-[10px] text-muted-foreground">(optional)</span>}</p>
+                            {preview && <p className="text-xs text-muted-foreground truncate">{preview}</p>}
+                            {timestamp && <p className="text-[10px] text-muted-foreground">{timestamp}</p>}
+                          </div>
+                        </div>
+                        <Badge variant="outline" className="text-[10px] capitalize shrink-0">{state.replace('_', ' ')}</Badge>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 
               {/* Stalls */}
-              <div>
-                <h4 className="font-semibold mb-2 sm:mb-3 text-sm">Stalls ({selectedSession.stalls?.length || 0})</h4>
-                {selectedSession.stalls?.length > 0 ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
+              {selectedSession.stalls && selectedSession.stalls.length > 0 && (
+                <div>
+                  <h4 className="font-semibold mb-2 text-sm">Stalls ({selectedSession.stalls.length})</h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     {selectedSession.stalls.map((stall: any) => (
                       <Card key={stall.id}>
                         <CardContent className="p-2 sm:p-3">
-                          <p className="text-xs sm:text-sm">
-                            <strong>{stall.stall_name}</strong>
-                          </p>
+                          <p className="text-xs sm:text-sm"><strong>{stall.stall_name}</strong></p>
                           <p className="text-xs text-muted-foreground">Farmer: {stall.farmer_name}</p>
                           <p className="text-xs text-muted-foreground">Stall No: {stall.stall_no}</p>
                         </CardContent>
                       </Card>
                     ))}
                   </div>
-                ) : (
-                  <p className="text-xs sm:text-sm text-muted-foreground">No stalls recorded</p>
-                )}
-              </div>
+                </div>
+              )}
 
               {/* Media */}
-              <div>
-                <h4 className="font-semibold mb-2 sm:mb-3 text-sm">Media Files ({selectedSession.media?.length || 0})</h4>
-                {selectedSession.media?.length > 0 ? (
-                  <div className="space-y-2 sm:space-y-3">
+              {selectedSession.media && selectedSession.media.length > 0 && (
+                <div>
+                  <h4 className="font-semibold mb-2 text-sm">Media Files ({selectedSession.media.length})</h4>
+                  <div className="space-y-2">
                     {selectedSession.media.map((media: any) => (
                       <Card key={media.id}>
                         <CardContent className="p-2 sm:p-3">
                           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2">
-                            <div>
-                              <p className="text-xs sm:text-sm font-medium">{media.file_name}</p>
+                            <div className="min-w-0">
+                              <p className="text-xs sm:text-sm font-medium truncate">{media.file_name}</p>
+                              <p className="text-xs text-muted-foreground">Type: {media.media_type}</p>
                               <p className="text-xs text-muted-foreground">
-                                Type: {media.media_type === 'outside_rates' ? 'Outside Rates' : 'Selfie + GPS'}
-                              </p>
-                              <p className="text-xs text-muted-foreground">
-                                Captured: {new Date(media.captured_at).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                                Captured: {new Date(media.captured_at).toLocaleString('en-IN')}
                               </p>
                               {media.gps_lat && media.gps_lng && (
                                 <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
                                   <MapPin className="h-3 w-3" />
-                                  GPS: {media.gps_lat.toFixed(4)}, {media.gps_lng.toFixed(4)}
-                                  <a
-                                    href={`https://www.google.com/maps?q=${media.gps_lat},${media.gps_lng}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-accent hover:underline ml-1"
-                                  >
-                                    View on Map
+                                  {media.gps_lat.toFixed(4)}, {media.gps_lng.toFixed(4)}
+                                  <a href={`https://www.google.com/maps?q=${media.gps_lat},${media.gps_lng}`} target="_blank" rel="noopener noreferrer" className="text-accent hover:underline ml-1">
+                                    Map
                                   </a>
                                 </p>
                               )}
                             </div>
-                            <Button 
-                              variant="outline" 
-                              size="sm" 
+                            <Button
+                              variant="outline"
+                              size="sm"
                               className="text-xs"
                               onClick={async () => {
                                 const raw = String(media.file_url || '');
                                 const ref = resolveStorageRef(raw);
-
-                                // If this is not a storage reference we understand, fall back to opening the raw value.
                                 if (!ref) {
                                   if (raw) window.open(raw, '_blank');
                                   else toast.error('File URL missing');
                                   return;
                                 }
-
                                 const signedUrl = await getSignedUrl(ref.bucket, ref.path);
-                                if (signedUrl) {
-                                  window.open(signedUrl, '_blank');
-                                } else {
-                                  toast.error('Failed to load file. Please try again.');
-                                }
+                                if (signedUrl) window.open(signedUrl, '_blank');
+                                else toast.error('Failed to load file. Please try again.');
                               }}
                             >
                               View File
@@ -712,12 +783,9 @@ export default function AllSessions() {
                       </Card>
                     ))}
                   </div>
-                ) : (
-                  <p className="text-xs sm:text-sm text-muted-foreground">No media files uploaded</p>
-                )}
-              </div>
+                </div>
+              )}
 
-              {/* Comments */}
               <SessionComments sessionId={selectedSession.id} />
             </div>
           )}
