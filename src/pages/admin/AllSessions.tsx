@@ -18,6 +18,7 @@ import { SessionComments } from '@/components/SessionComments';
 import { toast } from 'sonner';
 import { Download, Eye, Filter, MapPin, Calendar, Clock, Check, X, Minus } from 'lucide-react';
 import { getSignedUrl } from '@/lib/storageHelpers';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 type TaskKey = 'attendance' | 'stalls' | 'assetInspection' | 'locationVisit' | 'marketVideo' | 'cleaningVideo' | 'advanceRequest' | 'leaveApplication';
 type TaskState = 'completed' | 'pending' | 'not_required';
