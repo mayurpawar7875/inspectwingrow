@@ -107,33 +107,70 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     );
 
-    // Check for existing session
-    supabase.auth.getSession().then(async ({ data: { session }, error: sessionError }) => {
-      console.log('Getting session:', { hasSession: !!session, error: sessionError });
-      if (sessionError) {
-        console.error('Error getting session:', sessionError);
-        setLoading(false);
-        return;
-      }
-      
-      setSession(session);
-      setUser(session?.user ?? null);
-      
-      if (session?.user) {
-        await fetchAndSetRoles(session.user.id);
-      } else {
+    // Check for existing session with timeout + localStorage fallback
+    // This prevents users being logged out on slow networks (LTE/PWA cold start)
+    const restoreSession = async () => {
+      try {
+        // Race getSession against a 8s timeout
+        const sessionPromise = supabase.auth.getSession();
+        const timeoutPromise = new Promise<{ data: { session: Session | null }, error: any }>((resolve) =>
+          setTimeout(() => resolve({ data: { session: null }, error: { message: 'getSession timeout' } }), 8000)
+        );
+        const { data: { session }, error: sessionError } = await Promise.race([sessionPromise, timeoutPromise]);
+
+        console.log('Getting session:', { hasSession: !!session, error: sessionError });
+
+        if (session?.user) {
+          setSession(session);
+          setUser(session.user);
+          await fetchAndSetRoles(session.user.id);
+          setLoading(false);
+          return;
+        }
+
+        // Fallback: read persisted session directly from localStorage
+        // (Supabase stores it under a key like 'sb-<project>-auth-token')
+        if (sessionError || !session) {
+          try {
+            const keys = Object.keys(localStorage).filter(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
+            for (const k of keys) {
+              const raw = localStorage.getItem(k);
+              if (!raw) continue;
+              const parsed = JSON.parse(raw);
+              const expiresAt = parsed?.expires_at ? parsed.expires_at * 1000 : 0;
+              if (parsed?.access_token && expiresAt > Date.now()) {
+                console.log('Restored session from localStorage fallback');
+                // Trigger a non-blocking refresh; auth state listener will pick it up
+                supabase.auth.setSession({
+                  access_token: parsed.access_token,
+                  refresh_token: parsed.refresh_token,
+                }).catch(err => console.warn('setSession fallback failed:', err));
+                // Optimistically set user so ProtectedRoute doesn't bounce to /auth
+                if (parsed.user) {
+                  setUser(parsed.user as User);
+                  fetchAndSetRoles(parsed.user.id).catch(() => {});
+                }
+                setLoading(false);
+                return;
+              }
+            }
+          } catch (e) {
+            console.warn('localStorage session fallback failed:', e);
+          }
+        }
+
         console.log('No session found, clearing user state');
         setIsAdmin(false);
         setCurrentRole(null);
         setUserRoles([]);
+        setLoading(false);
+      } catch (error) {
+        console.error('Unhandled error in restoreSession:', error);
+        setLoading(false);
       }
-      
-      console.log('Setting loading to false in auth context');
-      setLoading(false);
-    }).catch((error) => {
-      console.error('Unhandled error in getSession:', error);
-      setLoading(false);
-    });
+    };
+
+    restoreSession();
 
     return () => subscription.unsubscribe();
   }, [fetchAndSetRoles]);
