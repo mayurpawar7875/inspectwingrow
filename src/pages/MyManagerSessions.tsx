@@ -215,11 +215,9 @@ export default function MyManagerSessions() {
       filtered = filtered.filter(s => s.session_date <= endDate);
     }
 
-    // Market filter - we need to check which markets were used in this session
+    // Market filter - applies to employee-source sessions which have market_id
     if (selectedMarket && selectedMarket !== 'all') {
-      // For now, we can't filter by market since sessions don't have market_id
-      // This would require checking employee_allocations or other related tables
-      // For simplicity, we'll skip this for now or you can add market_id to sessions table
+      filtered = filtered.filter(s => s.source === 'manager' || s.market_id === selectedMarket);
     }
 
     setFilteredSessions(filtered);
@@ -761,17 +759,29 @@ export default function MyManagerSessions() {
             filteredSessions.map((session) => {
               const isExpanded = expandedSession === session.id;
               const completedTypes = getCompletedTaskTypes(session.task_counts);
-              const taskEntries: [string, string, number][] = [
-                ['employee_allocations', 'Allocations', session.task_counts.employee_allocations],
-                ['punch_in', 'Punch-In', session.task_counts.punch_in],
-                ['land_search', 'Land Search', session.task_counts.land_search],
-                ['stall_search', 'Stall Search', session.task_counts.stall_search],
-                ['money_recovery', 'Recovery', session.task_counts.money_recovery],
-                ['assets_usage', 'Assets', session.task_counts.assets_usage],
-                ['feedbacks', 'Feedbacks', session.task_counts.feedbacks],
-                ['inspections', 'Inspections', session.task_counts.inspections],
-                ['punch_out', 'Punch-Out', session.task_counts.punch_out],
-              ];
+              const taskEntries: [string, string, number][] = session.source === 'employee'
+                ? [
+                    ['employee_allocations', 'Stalls', session.task_counts.employee_allocations],
+                    ['punch_in', 'Punch-In', session.task_counts.punch_in],
+                    ['land_search', 'Offers', session.task_counts.land_search],
+                    ['stall_search', 'Non-Avail', session.task_counts.stall_search],
+                    ['money_recovery', 'Inspections', session.task_counts.money_recovery],
+                    ['assets_usage', 'Selfie GPS', session.task_counts.assets_usage],
+                    ['feedbacks', 'Feedback', session.task_counts.feedbacks],
+                    ['inspections', 'Mkt Video', session.task_counts.inspections],
+                    ['punch_out', 'Punch-Out', session.task_counts.punch_out],
+                  ]
+                : [
+                    ['employee_allocations', 'Allocations', session.task_counts.employee_allocations],
+                    ['punch_in', 'Punch-In', session.task_counts.punch_in],
+                    ['land_search', 'Land Search', session.task_counts.land_search],
+                    ['stall_search', 'Stall Search', session.task_counts.stall_search],
+                    ['money_recovery', 'Recovery', session.task_counts.money_recovery],
+                    ['assets_usage', 'Assets', session.task_counts.assets_usage],
+                    ['feedbacks', 'Feedbacks', session.task_counts.feedbacks],
+                    ['inspections', 'Inspections', session.task_counts.inspections],
+                    ['punch_out', 'Punch-Out', session.task_counts.punch_out],
+                  ];
 
               return (
                 <Card key={session.id} className="overflow-hidden">
@@ -781,16 +791,25 @@ export default function MyManagerSessions() {
                   >
                     <div className="flex items-center gap-2 min-w-0">
                       <div className="min-w-0">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <span className="text-sm font-semibold">
                             {format(new Date(session.session_date), 'dd MMM yyyy')}
                           </span>
                           <span className="text-[10px] text-muted-foreground">
                             {DAY_NAMES[session.day_of_week].slice(0, 3)}
                           </span>
+                          <Badge
+                            variant="outline"
+                            className={`text-[9px] px-1.5 py-0 h-4 ${session.source === 'employee' ? 'border-info text-info' : 'border-primary text-primary'}`}
+                          >
+                            {session.source === 'employee' ? 'Organiser' : 'Manager'}
+                          </Badge>
                         </div>
                         <div className="flex items-center gap-2 mt-0.5">
                           <span className="text-[10px] text-muted-foreground">Tasks: {completedTypes}/{TOTAL_TASK_TYPES}</span>
+                          {session.source === 'employee' && session.market_name && (
+                            <span className="text-[10px] text-muted-foreground truncate">• {session.market_name}</span>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -806,18 +825,20 @@ export default function MyManagerSessions() {
                         {taskEntries.map(([key, label, count]) => (
                           <button
                             key={key}
-                            onClick={() => count > 0 && handleTaskClick(session.id, key)}
-                            disabled={count === 0}
+                            onClick={() => count > 0 && session.source === 'manager' && handleTaskClick(session.id, key)}
+                            disabled={count === 0 || session.source === 'employee'}
                             className={`text-left p-1.5 rounded text-[10px] transition-colors ${
                               count > 0
-                                ? 'bg-muted hover:bg-muted/80 cursor-pointer'
+                                ? session.source === 'manager'
+                                  ? 'bg-muted hover:bg-muted/80 cursor-pointer'
+                                  : 'bg-muted'
                                 : 'bg-muted/30 cursor-not-allowed opacity-50'
                             }`}
                           >
                             <div className="text-muted-foreground truncate">{label}</div>
                             <div className="font-semibold flex items-center gap-0.5">
                               {count}
-                              {count > 0 && <Eye className="h-2.5 w-2.5" />}
+                              {count > 0 && session.source === 'manager' && <Eye className="h-2.5 w-2.5" />}
                             </div>
                           </button>
                         ))}
