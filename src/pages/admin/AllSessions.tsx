@@ -124,7 +124,12 @@ export default function AllSessions() {
   }, [location.state]);
 
   const toIST = (dateStr: string) => {
-    const d = new Date(dateStr + 'T00:00:00');
+    if (!dateStr) return '';
+    // If it's already a YYYY-MM-DD date string, return as-is (DB dates are stored in IST)
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return dateStr;
+    // Otherwise treat as timestamp and convert to IST date
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return '';
     const ist = new Date(d.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
     const y = ist.getFullYear();
     const m = String(ist.getMonth() + 1).padStart(2, '0');
@@ -284,7 +289,7 @@ export default function AllSessions() {
         const userDateKey = `${session.user_id}|${toIST(session.market_date || session.session_date)}`;
         const userDateKeyExact = `${session.user_id}|${session.session_date}`;
 
-        const hasAttendance = !!session.punch_in_time || sessionMedia.some((m: any) => m.media_type === 'photo' || m.media_type === 'attendance');
+        const hasAttendance = !!session.punch_in_time || sessionMedia.some((m: any) => m.media_type === 'selfie_gps');
         const hasStalls = sessionStalls.length > 0;
         const hasMarketVid = sessionMedia.some((m: any) => m.media_type === 'market_video');
         const hasCleanVid = sessionMedia.some((m: any) => m.media_type === 'cleaning_video');
@@ -293,11 +298,22 @@ export default function AllSessions() {
         const advances = advByUserDate[userDateKeyExact] || [];
         const leaves = leaveByUserDate[userDateKeyExact] || [];
 
+        // Asset Inspection & Location Visit are role-specific:
+        // - Asset Inspection is BMS Executive only
+        // - Location Visit is for Employee/BDO scouting workflows (not core organiser session task)
+        const userRole = roleByUser[session.user_id];
+        const isBMS = userRole === 'bms_executive';
+        const isOrganiser = userRole === 'employee' || userRole === 'market_manager';
+
         const tasks: SessionTasks = {
           attendance: hasAttendance ? 'completed' : 'pending',
           stalls: hasStalls ? 'completed' : 'pending',
-          assetInspection: inspections.length > 0 ? 'completed' : 'pending',
-          locationVisit: visits.length > 0 ? 'completed' : 'pending',
+          assetInspection: inspections.length > 0
+            ? 'completed'
+            : isBMS ? 'pending' : 'not_required',
+          locationVisit: visits.length > 0
+            ? 'completed'
+            : isOrganiser ? 'not_required' : 'pending',
           marketVideo: hasMarketVid ? 'completed' : 'pending',
           cleaningVideo: hasCleanVid ? 'completed' : 'pending',
           advanceRequest: advances.length > 0 ? 'completed' : 'not_required',
@@ -363,8 +379,10 @@ export default function AllSessions() {
     filteredSessions.forEach(s => {
       if (!s.tasks) return;
       REQUIRED_TASKS.forEach(t => {
+        const state = s.tasks![t];
+        if (state === 'not_required') return; // skip role-irrelevant tasks
         totalRequired++;
-        if (s.tasks![t] === 'completed') totalDone++;
+        if (state === 'completed') totalDone++;
       });
     });
     const pct = totalRequired > 0 ? Math.round((totalDone / totalRequired) * 100) : 0;
