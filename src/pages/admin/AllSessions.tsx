@@ -18,6 +18,7 @@ import { SessionComments } from '@/components/SessionComments';
 import { toast } from 'sonner';
 import { Download, Eye, Filter, MapPin, Calendar, Clock, Check, X, Minus } from 'lucide-react';
 import { getSignedUrl } from '@/lib/storageHelpers';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 type TaskKey = 'attendance' | 'stalls' | 'assetInspection' | 'locationVisit' | 'marketVideo' | 'cleaningVideo' | 'advanceRequest' | 'leaveApplication';
 type TaskState = 'completed' | 'pending' | 'not_required';
@@ -419,24 +420,33 @@ export default function AllSessions() {
     if (!tasks) return null;
     const items: TaskKey[] = [...REQUIRED_TASKS, 'advanceRequest', 'leaveApplication'];
     return (
-      <div className="flex flex-wrap gap-1.5">
-        {items.map(key => (
-          <div
-            key={key}
-            className={`inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[10px] sm:text-xs ${
-              tasks[key] === 'completed'
-                ? 'border-success/30 bg-success/10 text-success'
-                : tasks[key] === 'pending'
-                ? 'border-destructive/30 bg-destructive/10 text-destructive'
-                : 'border-muted bg-muted/40 text-muted-foreground'
-            }`}
-            title={`${TASK_LABELS[key]}: ${tasks[key]}`}
-          >
-            <TaskIcon state={tasks[key]} />
-            <span className="hidden sm:inline">{TASK_LABELS[key]}</span>
-          </div>
-        ))}
-      </div>
+      <TooltipProvider delayDuration={100}>
+        <div className="flex flex-wrap gap-1 sm:gap-1.5">
+          {items.map(key => (
+            <Tooltip key={key}>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  className={`inline-flex items-center justify-center gap-1 rounded-md border h-6 w-6 sm:w-auto sm:px-1.5 sm:py-0.5 text-[10px] sm:text-xs ${
+                    tasks[key] === 'completed'
+                      ? 'border-success/30 bg-success/10 text-success'
+                      : tasks[key] === 'pending'
+                      ? 'border-destructive/30 bg-destructive/10 text-destructive'
+                      : 'border-muted bg-muted/40 text-muted-foreground'
+                  }`}
+                  aria-label={`${TASK_LABELS[key]}: ${tasks[key]}`}
+                >
+                  <TaskIcon state={tasks[key]} />
+                  <span className="hidden sm:inline">{TASK_LABELS[key]}</span>
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="top" className="text-xs">
+                {TASK_LABELS[key]}: {tasks[key].replace('_', ' ')}
+              </TooltipContent>
+            </Tooltip>
+          ))}
+        </div>
+      </TooltipProvider>
     );
   };
 
