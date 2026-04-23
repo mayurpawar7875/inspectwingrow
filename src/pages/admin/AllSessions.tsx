@@ -175,14 +175,33 @@ export default function AllSessions() {
       const minDate = istDates.length ? istDates.reduce((a: string, b: string) => (a < b ? a : b)) : undefined;
       const maxDate = istDates.length ? istDates.reduce((a: string, b: string) => (a > b ? a : b)) : undefined;
 
+      // Helper: fetch all rows in pages of 1000 to bypass Supabase default limit
+      const fetchAllPaged = async <T,>(builder: () => any): Promise<T[]> => {
+        const PAGE = 1000;
+        let from = 0;
+        const all: T[] = [];
+        // Cap at 20k rows for safety
+        for (let i = 0; i < 20; i++) {
+          const { data, error } = await builder().range(from, from + PAGE - 1);
+          if (error) throw error;
+          if (!data || data.length === 0) break;
+          all.push(...(data as T[]));
+          if (data.length < PAGE) break;
+          from += PAGE;
+        }
+        return all;
+      };
+
       const stallConfsPromise = (marketIds.length > 0 && minDate && maxDate)
-        ? supabase
-            .from('stall_confirmations')
-            .select('id, market_id, market_date, farmer_name, stall_name, stall_no, created_by, created_at')
-            .in('market_id', marketIds)
-            .gte('market_date', minDate)
-            .lte('market_date', maxDate)
-            .then(r => r.data || [])
+        ? fetchAllPaged<any>(() =>
+            supabase
+              .from('stall_confirmations')
+              .select('id, market_id, market_date, farmer_name, stall_name, stall_no, created_by, created_at')
+              .in('market_id', marketIds)
+              .gte('market_date', minDate)
+              .lte('market_date', maxDate)
+              .order('created_at', { ascending: false })
+          )
         : Promise.resolve([] as any[]);
 
       // Parallel fetch all data
@@ -202,8 +221,8 @@ export default function AllSessions() {
         supabase.from('employees').select('id, full_name, phone').in('id', userIds),
         supabase.from('user_roles').select('user_id, role').in('user_id', userIds),
         supabase.from('markets').select('id, name, location').in('id', marketIds),
-        supabase.from('stalls').select('*').in('session_id', sessionIds),
-        supabase.from('media').select('*').in('session_id', sessionIds),
+        fetchAllPaged<any>(() => supabase.from('stalls').select('*').in('session_id', sessionIds)).then(d => ({ data: d })),
+        fetchAllPaged<any>(() => supabase.from('media').select('*').in('session_id', sessionIds)).then(d => ({ data: d })),
         minDate && maxDate
           ? supabase.from('bms_asset_inspections').select('user_id, inspection_date, inspection_week').in('user_id', userIds).gte('inspection_week', minDate).lte('inspection_week', maxDate)
           : Promise.resolve({ data: [] as any[] }),
