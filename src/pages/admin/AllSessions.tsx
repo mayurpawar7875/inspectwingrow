@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/dialog';
 import { SessionComments } from '@/components/SessionComments';
 import { toast } from 'sonner';
-import { Download, Eye, Filter, MapPin, Calendar, Clock, Check, X, Minus } from 'lucide-react';
+import { Download, Eye, Filter, MapPin, Calendar, Clock, Check, X, Minus, ChevronDown, ChevronUp } from 'lucide-react';
 import { getSignedUrl } from '@/lib/storageHelpers';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
