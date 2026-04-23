@@ -272,22 +272,24 @@ export default function MySessions() {
           // Task 13: Organiser Feedback or Next Day Planning (either one counts)
           if ((organiserFeedbackResult.count || 0) > 0 || (nextDayPlanningResult.count || 0) > 0) completedTasks++;
 
-          // Determine status based on task completion and expiration
+          // Determine status based on actual session state and task completion
           const sessionDate = session.session_date;
           const currentDateTime = new Date();
           const sessionDateTime = new Date(sessionDate + 'T23:59:59');
-          
-          let finalStatus = 'incomplete';
-          
-          // Check if all 13 tasks are completed
-          if (completedTasks === totalTasks) {
+          const isPastDate = currentDateTime > sessionDateTime;
+
+          // Preserve original DB statuses first
+          let finalStatus: string;
+          if (session.status === 'finalized' || session.status === 'locked') {
+            finalStatus = session.status;
+          } else if (completedTasks === totalTasks) {
             finalStatus = 'completed';
-          } else if (currentDateTime > sessionDateTime) {
+          } else if (!isPastDate) {
+            // Today or future session that's not yet complete — still active
+            finalStatus = session.status === 'active' ? 'active' : 'incomplete';
+          } else {
             // Past midnight of the session date and tasks are incomplete
             finalStatus = 'incomplete_expired';
-          } else {
-            // Tasks incomplete but session date hasn't expired yet
-            finalStatus = 'incomplete';
           }
 
           return {
