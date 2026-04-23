@@ -221,8 +221,8 @@ export default function AllSessions() {
         supabase.from('employees').select('id, full_name, phone').in('id', userIds),
         supabase.from('user_roles').select('user_id, role').in('user_id', userIds),
         supabase.from('markets').select('id, name, location').in('id', marketIds),
-        supabase.from('stalls').select('*').in('session_id', sessionIds),
-        supabase.from('media').select('*').in('session_id', sessionIds),
+        fetchAllPaged<any>(() => supabase.from('stalls').select('*').in('session_id', sessionIds)).then(d => ({ data: d })),
+        fetchAllPaged<any>(() => supabase.from('media').select('*').in('session_id', sessionIds)).then(d => ({ data: d })),
         minDate && maxDate
           ? supabase.from('bms_asset_inspections').select('user_id, inspection_date, inspection_week').in('user_id', userIds).gte('inspection_week', minDate).lte('inspection_week', maxDate)
           : Promise.resolve({ data: [] as any[] }),
