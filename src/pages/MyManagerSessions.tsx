@@ -20,6 +20,9 @@ interface Session {
   status: string;
   created_at: string;
   updated_at: string;
+  source: 'manager' | 'employee';
+  market_id?: string | null;
+  market_name?: string | null;
   task_counts: {
     employee_allocations: number;
     punch_in: number;
@@ -76,59 +79,128 @@ export default function MyManagerSessions() {
     if (!user) return;
 
     setLoading(true);
-    const { data: sessionData } = await supabase
-      .from('market_manager_sessions')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('session_date', { ascending: false });
 
-    if (sessionData) {
-      // Fetch task counts for each session
-      const sessionsWithCounts = await Promise.all(
-        sessionData.map(async (session) => {
-          const [
-            employeeAllocations,
-            punchIn,
-            landSearch,
-            stallSearch,
-            moneyRecovery,
-            assetsUsage,
-            feedbacks,
-            inspections,
-            punchOut,
-          ] = await Promise.all([
-            supabase.from('employee_allocations').select('*', { count: 'exact', head: true }).eq('session_id', session.id),
-            supabase.from('market_manager_punchin').select('*', { count: 'exact', head: true }).eq('session_id', session.id),
-            supabase.from('market_land_search').select('*', { count: 'exact', head: true }).eq('session_id', session.id),
-            supabase.from('stall_searching_updates').select('*', { count: 'exact', head: true }).eq('session_id', session.id),
-            supabase.from('assets_money_recovery').select('*', { count: 'exact', head: true }).eq('session_id', session.id),
-            supabase.from('assets_usage').select('*', { count: 'exact', head: true }).eq('session_id', session.id),
-            supabase.from('bms_stall_feedbacks').select('*', { count: 'exact', head: true }).eq('session_id', session.id),
-            supabase.from('market_inspection_updates').select('*', { count: 'exact', head: true }).eq('session_id', session.id),
-            supabase.from('market_manager_punchout').select('*', { count: 'exact', head: true }).eq('session_id', session.id),
-          ]);
+    // Fetch BOTH manager sessions and employee sessions for this user
+    const [{ data: managerSessionData }, { data: employeeSessionData }] = await Promise.all([
+      supabase
+        .from('market_manager_sessions')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('session_date', { ascending: false }),
+      supabase
+        .from('sessions')
+        .select('id, session_date, status, created_at, updated_at, market_id, punch_in_time, punch_out_time, market:markets(name)')
+        .eq('user_id', user.id)
+        .order('session_date', { ascending: false }),
+    ]);
 
-          return {
-            ...session,
-            task_counts: {
-              employee_allocations: employeeAllocations.count || 0,
-              punch_in: punchIn.count || 0,
-              land_search: landSearch.count || 0,
-              stall_search: stallSearch.count || 0,
-              money_recovery: moneyRecovery.count || 0,
-              assets_usage: assetsUsage.count || 0,
-              feedbacks: feedbacks.count || 0,
-              inspections: inspections.count || 0,
-              punch_out: punchOut.count || 0,
-            },
-          };
-        })
-      );
+    const managerList = managerSessionData || [];
+    const employeeList = employeeSessionData || [];
 
-      setSessions(sessionsWithCounts);
-      setFilteredSessions(sessionsWithCounts);
-    }
+    // Manager sessions: count from manager-specific tables
+    const managerWithCounts: Session[] = await Promise.all(
+      managerList.map(async (session: any) => {
+        const [
+          employeeAllocations,
+          punchIn,
+          landSearch,
+          stallSearch,
+          moneyRecovery,
+          assetsUsage,
+          feedbacks,
+          inspections,
+          punchOut,
+        ] = await Promise.all([
+          supabase.from('employee_allocations').select('*', { count: 'exact', head: true }).eq('session_id', session.id),
+          supabase.from('market_manager_punchin').select('*', { count: 'exact', head: true }).eq('session_id', session.id),
+          supabase.from('market_land_search').select('*', { count: 'exact', head: true }).eq('session_id', session.id),
+          supabase.from('stall_searching_updates').select('*', { count: 'exact', head: true }).eq('session_id', session.id),
+          supabase.from('assets_money_recovery').select('*', { count: 'exact', head: true }).eq('session_id', session.id),
+          supabase.from('assets_usage').select('*', { count: 'exact', head: true }).eq('session_id', session.id),
+          supabase.from('bms_stall_feedbacks').select('*', { count: 'exact', head: true }).eq('session_id', session.id),
+          supabase.from('market_inspection_updates').select('*', { count: 'exact', head: true }).eq('session_id', session.id),
+          supabase.from('market_manager_punchout').select('*', { count: 'exact', head: true }).eq('session_id', session.id),
+        ]);
 
+        return {
+          ...session,
+          source: 'manager' as const,
+          task_counts: {
+            employee_allocations: employeeAllocations.count || 0,
+            punch_in: punchIn.count || 0,
+            land_search: landSearch.count || 0,
+            stall_search: stallSearch.count || 0,
+            money_recovery: moneyRecovery.count || 0,
+            assets_usage: assetsUsage.count || 0,
+            feedbacks: feedbacks.count || 0,
+            inspections: inspections.count || 0,
+            punch_out: punchOut.count || 0,
+          },
+        };
+      })
+    );
+
+    // Employee sessions: counts from employee/organiser tables
+    const employeeWithCounts: Session[] = await Promise.all(
+      employeeList.map(async (session: any) => {
+        const [
+          stallConfs,
+          mediaSelfie,
+          inspections,
+          offers,
+          nonAvail,
+          feedback,
+          planning,
+          mediaMarketVid,
+          mediaCleanVid,
+        ] = await Promise.all([
+          supabase.from('stall_confirmations').select('*', { count: 'exact', head: true }).eq('market_id', session.market_id).eq('market_date', session.session_date),
+          supabase.from('media').select('*', { count: 'exact', head: true }).eq('session_id', session.id).eq('media_type', 'selfie_gps'),
+          supabase.from('stall_inspections').select('*', { count: 'exact', head: true }).eq('session_id', session.id),
+          supabase.from('offers').select('*', { count: 'exact', head: true }).eq('session_id', session.id),
+          supabase.from('non_available_commodities').select('*', { count: 'exact', head: true }).eq('session_id', session.id),
+          supabase.from('organiser_feedback').select('*', { count: 'exact', head: true }).eq('session_id', session.id),
+          supabase.from('next_day_planning').select('*', { count: 'exact', head: true }).eq('session_id', session.id),
+          supabase.from('media').select('*', { count: 'exact', head: true }).eq('session_id', session.id).eq('media_type', 'market_video'),
+          supabase.from('media').select('*', { count: 'exact', head: true }).eq('session_id', session.id).eq('media_type', 'cleaning_video'),
+        ]);
+
+        const dow = new Date(session.session_date + 'T00:00:00').getDay();
+
+        return {
+          id: session.id,
+          session_date: session.session_date,
+          day_of_week: dow,
+          status: session.status,
+          created_at: session.created_at,
+          updated_at: session.updated_at,
+          source: 'employee' as const,
+          market_id: session.market_id,
+          market_name: session.market?.name || null,
+          task_counts: {
+            // Reuse the same 9 slots — relabeled in the UI when source=employee
+            employee_allocations: stallConfs.count || 0,        // -> Stalls
+            punch_in: session.punch_in_time ? 1 : 0,             // -> Punch-In
+            land_search: offers.count || 0,                      // -> Offers
+            stall_search: nonAvail.count || 0,                   // -> Non-Avail
+            money_recovery: inspections.count || 0,              // -> Inspections
+            assets_usage: mediaSelfie.count || 0,                // -> Selfie GPS
+            feedbacks: (feedback.count || 0) + (planning.count || 0), // -> Feedback/Planning
+            inspections: mediaMarketVid.count || 0,              // -> Market Video
+            punch_out: (session.punch_out_time ? 1 : 0) + (mediaCleanVid.count || 0 > 0 ? 0 : 0), // -> Punch-Out
+          },
+        };
+      })
+    );
+
+    // Merge & sort by date desc, then created_at desc
+    const merged = [...managerWithCounts, ...employeeWithCounts].sort((a, b) => {
+      if (a.session_date !== b.session_date) return a.session_date < b.session_date ? 1 : -1;
+      return (a.created_at < b.created_at ? 1 : -1);
+    });
+
+    setSessions(merged);
+    setFilteredSessions(merged);
     setLoading(false);
   };
 
@@ -143,11 +215,9 @@ export default function MyManagerSessions() {
       filtered = filtered.filter(s => s.session_date <= endDate);
     }
 
-    // Market filter - we need to check which markets were used in this session
+    // Market filter - applies to employee-source sessions which have market_id
     if (selectedMarket && selectedMarket !== 'all') {
-      // For now, we can't filter by market since sessions don't have market_id
-      // This would require checking employee_allocations or other related tables
-      // For simplicity, we'll skip this for now or you can add market_id to sessions table
+      filtered = filtered.filter(s => s.source === 'manager' || s.market_id === selectedMarket);
     }
 
     setFilteredSessions(filtered);
@@ -689,17 +759,29 @@ export default function MyManagerSessions() {
             filteredSessions.map((session) => {
               const isExpanded = expandedSession === session.id;
               const completedTypes = getCompletedTaskTypes(session.task_counts);
-              const taskEntries: [string, string, number][] = [
-                ['employee_allocations', 'Allocations', session.task_counts.employee_allocations],
-                ['punch_in', 'Punch-In', session.task_counts.punch_in],
-                ['land_search', 'Land Search', session.task_counts.land_search],
-                ['stall_search', 'Stall Search', session.task_counts.stall_search],
-                ['money_recovery', 'Recovery', session.task_counts.money_recovery],
-                ['assets_usage', 'Assets', session.task_counts.assets_usage],
-                ['feedbacks', 'Feedbacks', session.task_counts.feedbacks],
-                ['inspections', 'Inspections', session.task_counts.inspections],
-                ['punch_out', 'Punch-Out', session.task_counts.punch_out],
-              ];
+              const taskEntries: [string, string, number][] = session.source === 'employee'
+                ? [
+                    ['employee_allocations', 'Stalls', session.task_counts.employee_allocations],
+                    ['punch_in', 'Punch-In', session.task_counts.punch_in],
+                    ['land_search', 'Offers', session.task_counts.land_search],
+                    ['stall_search', 'Non-Avail', session.task_counts.stall_search],
+                    ['money_recovery', 'Inspections', session.task_counts.money_recovery],
+                    ['assets_usage', 'Selfie GPS', session.task_counts.assets_usage],
+                    ['feedbacks', 'Feedback', session.task_counts.feedbacks],
+                    ['inspections', 'Mkt Video', session.task_counts.inspections],
+                    ['punch_out', 'Punch-Out', session.task_counts.punch_out],
+                  ]
+                : [
+                    ['employee_allocations', 'Allocations', session.task_counts.employee_allocations],
+                    ['punch_in', 'Punch-In', session.task_counts.punch_in],
+                    ['land_search', 'Land Search', session.task_counts.land_search],
+                    ['stall_search', 'Stall Search', session.task_counts.stall_search],
+                    ['money_recovery', 'Recovery', session.task_counts.money_recovery],
+                    ['assets_usage', 'Assets', session.task_counts.assets_usage],
+                    ['feedbacks', 'Feedbacks', session.task_counts.feedbacks],
+                    ['inspections', 'Inspections', session.task_counts.inspections],
+                    ['punch_out', 'Punch-Out', session.task_counts.punch_out],
+                  ];
 
               return (
                 <Card key={session.id} className="overflow-hidden">
@@ -709,16 +791,25 @@ export default function MyManagerSessions() {
                   >
                     <div className="flex items-center gap-2 min-w-0">
                       <div className="min-w-0">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <span className="text-sm font-semibold">
                             {format(new Date(session.session_date), 'dd MMM yyyy')}
                           </span>
                           <span className="text-[10px] text-muted-foreground">
                             {DAY_NAMES[session.day_of_week].slice(0, 3)}
                           </span>
+                          <Badge
+                            variant="outline"
+                            className={`text-[9px] px-1.5 py-0 h-4 ${session.source === 'employee' ? 'border-info text-info' : 'border-primary text-primary'}`}
+                          >
+                            {session.source === 'employee' ? 'Organiser' : 'Manager'}
+                          </Badge>
                         </div>
                         <div className="flex items-center gap-2 mt-0.5">
                           <span className="text-[10px] text-muted-foreground">Tasks: {completedTypes}/{TOTAL_TASK_TYPES}</span>
+                          {session.source === 'employee' && session.market_name && (
+                            <span className="text-[10px] text-muted-foreground truncate">• {session.market_name}</span>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -734,18 +825,20 @@ export default function MyManagerSessions() {
                         {taskEntries.map(([key, label, count]) => (
                           <button
                             key={key}
-                            onClick={() => count > 0 && handleTaskClick(session.id, key)}
-                            disabled={count === 0}
+                            onClick={() => count > 0 && session.source === 'manager' && handleTaskClick(session.id, key)}
+                            disabled={count === 0 || session.source === 'employee'}
                             className={`text-left p-1.5 rounded text-[10px] transition-colors ${
                               count > 0
-                                ? 'bg-muted hover:bg-muted/80 cursor-pointer'
+                                ? session.source === 'manager'
+                                  ? 'bg-muted hover:bg-muted/80 cursor-pointer'
+                                  : 'bg-muted'
                                 : 'bg-muted/30 cursor-not-allowed opacity-50'
                             }`}
                           >
                             <div className="text-muted-foreground truncate">{label}</div>
                             <div className="font-semibold flex items-center gap-0.5">
                               {count}
-                              {count > 0 && <Eye className="h-2.5 w-2.5" />}
+                              {count > 0 && session.source === 'manager' && <Eye className="h-2.5 w-2.5" />}
                             </div>
                           </button>
                         ))}
