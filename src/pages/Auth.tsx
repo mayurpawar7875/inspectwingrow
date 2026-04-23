@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
-import wingrowLogo from '@/assets/wingrow-logo.png';
+import wingrowLogo from '@/assets/wingrow-logo-optimized.png';
 
 export default function Auth() {
   const [isLogin, setIsLogin] = useState(true);
@@ -124,7 +124,7 @@ export default function Auth() {
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1 text-center">
           <div className="flex justify-center mb-4">
-            <img src={wingrowLogo} alt="Wingrow Market" className="h-24 w-auto" />
+            <img src={wingrowLogo} alt="Wingrow Market" className="h-24 w-auto" width="96" height="96" fetchPriority="high" decoding="async" />
           </div>
           <CardTitle className="text-2xl font-bold">
             {isLogin ? t('auth.welcomeBack') : t('auth.createAccount')}
