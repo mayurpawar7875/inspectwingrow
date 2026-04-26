@@ -246,6 +246,7 @@ async function fetchDashboardData(userId: string) {
       completed_tasks: completedTasks,
       computed_status: computedStatus,
       task_details: taskDetails,
+      stalls_count: stallCount,
     });
   }
 
