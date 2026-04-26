@@ -35,6 +35,7 @@ interface Session {
   completed_tasks?: number;
   computed_status?: string;
   task_details?: TaskStatus[];
+  stalls_count?: number;
 }
 
 const getISTDateString = (date: Date): string => {
