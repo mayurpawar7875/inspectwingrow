@@ -70,16 +70,21 @@ export default function Stalls() {
     try {
       const today = getISTDateString(new Date());
 
-      // Resolve current market: prefer today's session market, fall back to dashboard selection
-      const { data: todaySessions } = await supabase
-        .from('sessions')
-        .select('market_id')
-        .eq('user_id', user.id)
-        .eq('session_date', today)
-        .order('created_at', { ascending: false })
-        .limit(1);
+      // Resolve current market: prefer dashboard's selected market (the one the user clicked into),
+      // fall back to today's most recent session market
       const dashboardState = JSON.parse(localStorage.getItem('dashboardState') || '{}');
-      const marketId: string | undefined = todaySessions?.[0]?.market_id ?? dashboardState.selectedMarketId;
+      let marketId: string | undefined = dashboardState.selectedMarketId;
+
+      if (!marketId) {
+        const { data: todaySessions } = await supabase
+          .from('sessions')
+          .select('market_id')
+          .eq('user_id', user.id)
+          .eq('session_date', today)
+          .order('created_at', { ascending: false })
+          .limit(1);
+        marketId = todaySessions?.[0]?.market_id;
+      }
 
       if (!marketId) {
         setStalls([]);
