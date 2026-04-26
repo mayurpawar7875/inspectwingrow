@@ -69,13 +69,30 @@ export default function Stalls() {
 
     try {
       const today = getISTDateString(new Date());
-      
-      // Fetch stall confirmations for today
+
+      // Resolve current market: prefer today's session market, fall back to dashboard selection
+      const { data: todaySessions } = await supabase
+        .from('sessions')
+        .select('market_id')
+        .eq('user_id', user.id)
+        .eq('session_date', today)
+        .order('created_at', { ascending: false })
+        .limit(1);
+      const dashboardState = JSON.parse(localStorage.getItem('dashboardState') || '{}');
+      const marketId: string | undefined = todaySessions?.[0]?.market_id ?? dashboardState.selectedMarketId;
+
+      if (!marketId) {
+        setStalls([]);
+        return;
+      }
+
+      // Fetch stall confirmations for today scoped to the current market
       const { data: stallsData, error: stallsError } = await supabase
         .from('stall_confirmations')
         .select('*')
         .eq('created_by', user.id)
         .eq('market_date', today)
+        .eq('market_id', marketId)
         .order('created_at', { ascending: true });
 
       if (stallsError) throw stallsError;
