@@ -252,11 +252,11 @@ export function MarketsTab({ onChangeMade }: MarketsTabProps) {
       setSelectedMarkets(new Set());
       await fetchMarkets();
       onChangeMade();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error deleting market(s):', error);
       toast({
         title: 'Error',
-        description: 'Failed to delete market(s)',
+        description: error?.message || 'Failed to delete market(s)',
         variant: 'destructive',
       });
     }
