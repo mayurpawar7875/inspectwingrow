@@ -74,7 +74,7 @@ export default function Dashboard() {
   const todaySession = todaySessions[selectedSessionIndex] || null;
   
   // Derived values from hook
-  const stallsCount = dashboardData?.stallsCount || 0;
+  const stallsCount = todaySession?.stalls_count ?? 0;
   const collectionSheetUrl = dashboardData?.collectionSheetUrl || null;
   const attendanceStats = dashboardData?.attendanceStats || null;
   
