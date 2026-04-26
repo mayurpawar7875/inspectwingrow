@@ -35,6 +35,7 @@ interface Session {
   completed_tasks?: number;
   computed_status?: string;
   task_details?: TaskStatus[];
+  stalls_count?: number;
 }
 
 const getISTDateString = (date: Date): string => {
@@ -246,6 +247,7 @@ async function fetchDashboardData(userId: string) {
       completed_tasks: completedTasks,
       computed_status: computedStatus,
       task_details: taskDetails,
+      stalls_count: stallCount,
     });
   }
 
