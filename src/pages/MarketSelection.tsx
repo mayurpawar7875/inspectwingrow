@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/lib/auth';
 import { supabase } from '@/integrations/supabase/client';
@@ -31,6 +31,7 @@ export default function MarketSelection() {
   const [loading, setLoading] = useState(false);
   const [existingSessionMarkets, setExistingSessionMarkets] = useState<string[]>([]);
   const [existingSessions, setExistingSessions] = useState<ExistingSession[]>([]);
+  const submittingRef = useRef(false);
 
   useEffect(() => {
     if (user) {
@@ -132,9 +133,30 @@ export default function MarketSelection() {
       return;
     }
 
+    // Hard guard against double-submission (rapid clicks, StrictMode re-invocations)
+    if (submittingRef.current || loading) return;
+    submittingRef.current = true;
     setLoading(true);
+
     try {
       const today = getISTDateString(new Date());
+
+      // Pre-insert duplicate check: if a session already exists for this
+      // user/market/date, do NOT create another one.
+      const { data: dup } = await supabase
+        .from('sessions')
+        .select('id')
+        .eq('user_id', user!.id)
+        .eq('market_id', selectedMarket)
+        .eq('session_date', today)
+        .limit(1)
+        .maybeSingle();
+
+      if (dup?.id) {
+        toast.success('Resuming existing session');
+        navigate(isOrganiserMode ? '/dashboard?as=organiser' : '/dashboard');
+        return;
+      }
 
       const { error } = await supabase
         .from('sessions')
@@ -160,6 +182,7 @@ export default function MarketSelection() {
       console.error(error);
     } finally {
       setLoading(false);
+      submittingRef.current = false;
     }
   };
 
