@@ -31,6 +31,7 @@ export default function MarketSelection() {
   const [loading, setLoading] = useState(false);
   const [existingSessionMarkets, setExistingSessionMarkets] = useState<string[]>([]);
   const [existingSessions, setExistingSessions] = useState<ExistingSession[]>([]);
+  const submittingRef = useRef(false);
 
   useEffect(() => {
     if (user) {
