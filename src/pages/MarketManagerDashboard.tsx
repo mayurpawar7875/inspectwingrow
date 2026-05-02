@@ -407,14 +407,14 @@ export default function MarketManagerDashboard() {
                   </div>
                 )}
 
-                {organiserSessions.length < 2 && (
+                {organiserSessions.length === 0 && (
                   <div className="text-center space-y-3 md:space-y-4">
                     <div className="p-2.5 md:p-3 bg-accent/10 rounded-full w-fit mx-auto">
                       <MapPin className="h-6 w-6 md:h-8 md:w-8 text-primary" />
                     </div>
                     <div>
                       <h3 className="text-sm md:text-lg font-semibold">
-                        {organiserSessions.length > 0 ? 'Start Another Organiser Session' : 'Start Organiser Session'}
+                        Start Organiser Session
                       </h3>
                       <p className="text-xs md:text-sm text-muted-foreground mt-1">
                         Select a market and complete organiser tasks like stall confirmations, media uploads, and more.
