@@ -88,6 +88,14 @@ export default function MarketSelection() {
       setExistingSessions(sessionRows);
       setExistingSessionMarkets(existingMarketIds);
 
+      // A user should continue today's existing organiser/employee session,
+      // not start a second market session from this screen.
+      if (sessionRows.length > 0) {
+        setMarkets([]);
+        setSelectedMarket('');
+        return;
+      }
+
       const totalSessionsToday = (allTodaySessions.data || []).length;
       if (totalSessionsToday >= 2) {
         setMarkets([]);
@@ -140,6 +148,21 @@ export default function MarketSelection() {
 
     try {
       const today = getISTDateString(new Date());
+
+      const { data: existingToday } = await supabase
+        .from('sessions')
+        .select('id')
+        .eq('user_id', user!.id)
+        .eq('session_date', today)
+        .order('created_at', { ascending: true })
+        .limit(1)
+        .maybeSingle();
+
+      if (existingToday?.id) {
+        toast.success('Continuing existing session');
+        navigate(isOrganiserMode ? '/dashboard?as=organiser' : '/dashboard');
+        return;
+      }
 
       // Pre-insert duplicate check: if a session already exists for this
       // user/market/date, do NOT create another one.
@@ -208,7 +231,7 @@ export default function MarketSelection() {
                 <CardTitle>Select Market</CardTitle>
                 <CardDescription>
                   {existingSessions.length > 0 && isOrganiserMode
-                    ? 'Resume your started market or choose another market for today'
+                    ? 'Continue your started market for today'
                     : "Choose the market you'll be reporting from today"}
                 </CardDescription>
               </div>
@@ -252,7 +275,7 @@ export default function MarketSelection() {
 
             {markets.length > 0 && (
               <div className="space-y-2">
-                <Label htmlFor="market">{existingSessions.length > 0 ? 'Start Another Market' : 'Market'}</Label>
+                <Label htmlFor="market">Market</Label>
                 <Select value={selectedMarket} onValueChange={setSelectedMarket}>
                   <SelectTrigger id="market">
                     <SelectValue placeholder="Select a market" />
@@ -277,14 +300,13 @@ export default function MarketSelection() {
             ) : markets.length === 0 && existingSessionMarkets.length > 0 ? (
               <div className="bg-muted p-4 rounded-lg">
                 <p className="text-sm text-muted-foreground">
-                  <strong>Note:</strong> You have already created sessions for all available markets today.
+                  <strong>Note:</strong> You already have a market session for today. Continue that session instead of starting another.
                 </p>
               </div>
             ) : (
               <div className="bg-muted p-4 rounded-lg">
                 <p className="text-sm text-muted-foreground">
-                  <strong>Note:</strong> You can create up to 2 sessions for different markets on the same day
-                  (e.g., morning and evening markets).
+                  <strong>Note:</strong> Only one market session can be started for today.
                 </p>
               </div>
             )}

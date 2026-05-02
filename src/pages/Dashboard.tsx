@@ -564,7 +564,7 @@ export default function Dashboard() {
                         </Button>
                       ))}
                     </div>
-                    {todaySessions.length < 2 && (
+                    {todaySessions.length === 0 && (
                       <Button
                         variant="outline"
                         size="sm"
