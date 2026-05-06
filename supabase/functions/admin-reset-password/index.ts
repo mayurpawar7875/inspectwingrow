@@ -111,10 +111,19 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Auth user exists - just update password
-    const { error: updErr } = await admin.auth.admin.updateUserById(user_id, {
-      password: new_password,
-    });
+    // Auth user exists - update password and sync email with employee record
+    const { data: emp } = await admin
+      .from("employees")
+      .select("email")
+      .eq("id", user_id)
+      .maybeSingle();
+
+    const updates: any = { password: new_password, email_confirm: true };
+    if (emp?.email && emp.email.toLowerCase() !== existing.user.email?.toLowerCase()) {
+      updates.email = emp.email;
+    }
+
+    const { error: updErr } = await admin.auth.admin.updateUserById(user_id, updates);
 
     if (updErr) {
       return new Response(JSON.stringify({ error: updErr.message }), {
@@ -123,9 +132,10 @@ Deno.serve(async (req) => {
       });
     }
 
-    return new Response(JSON.stringify({ success: true, message: "Password updated" }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return new Response(
+      JSON.stringify({ success: true, message: "Password updated", email_synced: !!updates.email }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
   } catch (e: any) {
     return new Response(JSON.stringify({ error: e.message || "Internal error" }), {
       status: 500,
