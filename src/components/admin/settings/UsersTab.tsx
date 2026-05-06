@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { Users as UsersIcon, Shield, UserPlus, UserX, UserCheck, Pencil } from 'lucide-react';
+import { Users as UsersIcon, Shield, UserPlus, UserX, UserCheck, Pencil, KeyRound } from 'lucide-react';
 
 interface User {
   id: string;
@@ -31,6 +31,10 @@ export function UsersTab({ onChangeMade }: UsersTabProps) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [pwdDialogOpen, setPwdDialogOpen] = useState(false);
+  const [pwdUser, setPwdUser] = useState<User | null>(null);
+  const [newPassword, setNewPassword] = useState('');
+  const [pwdSubmitting, setPwdSubmitting] = useState(false);
   const [editFormData, setEditFormData] = useState({
     full_name: '',
     email: '',
@@ -271,6 +275,37 @@ export function UsersTab({ onChangeMade }: UsersTabProps) {
     }
   };
 
+  const openPasswordDialog = (user: User) => {
+    setPwdUser(user);
+    setNewPassword('');
+    setPwdDialogOpen(true);
+  };
+
+  const handleResetPassword = async () => {
+    if (!pwdUser) return;
+    if (!newPassword || newPassword.length < 6) {
+      toast.error('Password must be at least 6 characters');
+      return;
+    }
+    setPwdSubmitting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('admin-reset-password', {
+        body: { user_id: pwdUser.id, new_password: newPassword },
+      });
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
+      toast.success((data as any)?.message || 'Password updated');
+      setPwdDialogOpen(false);
+      setPwdUser(null);
+      setNewPassword('');
+      fetchUsers();
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to update password');
+    } finally {
+      setPwdSubmitting(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -457,6 +492,15 @@ export function UsersTab({ onChangeMade }: UsersTabProps) {
                         variant="outline"
                         size="sm"
                         className="text-xs flex-1 md:flex-none"
+                        onClick={() => openPasswordDialog(user)}
+                      >
+                        <KeyRound className="mr-1 h-3 w-3" />
+                        <span className="hidden sm:inline">Password</span>
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="text-xs flex-1 md:flex-none"
                         onClick={() => toggleUserStatus(user.id, user.status)}
                       >
                         {user.status === 'active' ? (
@@ -578,6 +622,39 @@ export function UsersTab({ onChangeMade }: UsersTabProps) {
           <DialogFooter className="gap-2">
             <Button variant="outline" size="sm" onClick={() => setEditDialogOpen(false)}>Cancel</Button>
             <Button size="sm" onClick={handleEditUser}>Save Changes</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={pwdDialogOpen} onOpenChange={setPwdDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="text-base md:text-lg">Set / Reset Password</DialogTitle>
+            <DialogDescription className="text-xs md:text-sm">
+              {pwdUser ? `${pwdUser.full_name} (${pwdUser.email})` : ''}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label className="text-xs md:text-sm">New Password *</Label>
+              <Input
+                type="password"
+                className="text-sm"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="Min 6 characters"
+                autoComplete="new-password"
+              />
+              <p className="text-[10px] md:text-xs text-muted-foreground mt-1">
+                Share this password with the user. They can change it after login.
+              </p>
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" size="sm" onClick={() => setPwdDialogOpen(false)} disabled={pwdSubmitting}>Cancel</Button>
+            <Button size="sm" onClick={handleResetPassword} disabled={pwdSubmitting}>
+              {pwdSubmitting ? 'Saving...' : 'Set Password'}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
