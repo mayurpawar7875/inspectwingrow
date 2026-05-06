@@ -85,7 +85,15 @@ const fetchBatchedTaskStats = async (marketIds: string[], todayDate: string) => 
     allUserIds.length > 0
       ? supabase.from('employees').select('id, full_name, status').in('id', [...new Set(allUserIds)])
       : Promise.resolve({ data: [] }),
-    supabase.from('stall_confirmations').select('market_id, created_by, rent_amount').in('market_id', marketIds).eq('market_date', todayDate),
+    // Only count stall confirmations created today (IST). BDOs pre-submit rows
+    // a day in advance with market_date=tomorrow; those should not light up
+    // today's "Stall Confirmation" task tile before any session has started.
+    supabase.from('stall_confirmations')
+      .select('market_id, created_by, rent_amount, created_at')
+      .in('market_id', marketIds)
+      .eq('market_date', todayDate)
+      .gte('created_at', `${todayDate}T00:00:00+05:30`)
+      .lt('created_at', `${todayDate}T23:59:59.999+05:30`),
     supabase.from('media').select('session_id, media_type').in('session_id', safeSessionIds),
     supabase.from('offers').select('market_id, user_id').in('market_id', marketIds).eq('market_date', todayDate),
     supabase.from('non_available_commodities').select('market_id, user_id').in('market_id', marketIds).eq('market_date', todayDate),
