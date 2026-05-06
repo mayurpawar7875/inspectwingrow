@@ -8,6 +8,7 @@ import { AuthProvider, ProtectedRoute } from "./lib/auth";
 import { AdminLayout } from "./components/AdminLayout";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { LanguageProvider } from "./contexts/LanguageContext";
+import { RouteOverlayRecovery } from "./components/RouteOverlayRecovery";
 
 // Lazy load non-critical UI components
 const UpdateBanner = lazy(() => import("./components/UpdateBanner").then(m => ({ default: m.UpdateBanner })));
