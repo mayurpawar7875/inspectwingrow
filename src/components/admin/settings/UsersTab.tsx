@@ -492,6 +492,15 @@ export function UsersTab({ onChangeMade }: UsersTabProps) {
                         variant="outline"
                         size="sm"
                         className="text-xs flex-1 md:flex-none"
+                        onClick={() => openPasswordDialog(user)}
+                      >
+                        <KeyRound className="mr-1 h-3 w-3" />
+                        <span className="hidden sm:inline">Password</span>
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="text-xs flex-1 md:flex-none"
                         onClick={() => toggleUserStatus(user.id, user.status)}
                       >
                         {user.status === 'active' ? (
