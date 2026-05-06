@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import { scheduleOverlayRecovery } from '@/lib/overlayRecovery';
+import { scheduleOverlayRecovery, installOverlayWatchdog } from '@/lib/overlayRecovery';
 
 /**
  * Clears any stuck Radix portal body styles (pointer-events:none,
@@ -9,6 +9,10 @@ import { scheduleOverlayRecovery } from '@/lib/overlayRecovery';
  */
 export function RouteOverlayRecovery() {
   const location = useLocation();
+
+  useEffect(() => {
+    installOverlayWatchdog();
+  }, []);
 
   useEffect(() => {
     scheduleOverlayRecovery();
