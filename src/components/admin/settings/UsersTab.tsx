@@ -251,18 +251,34 @@ export function UsersTab({ onChangeMade }: UsersTabProps) {
         }
       }
 
-      const { error } = await supabase
+      // Update phone/status directly (not in auth)
+      const { error: empErr } = await supabase
         .from('employees')
         .update({
-          full_name: editFormData.full_name,
-          email: editFormData.email,
-          username: editFormData.username,
           phone: editFormData.phone || null,
           status: editFormData.status,
         })
         .eq('id', editingUser.id);
+      if (empErr) throw empErr;
 
-      if (error) throw error;
+      // Sync full_name/email/username through edge function (updates auth + employees)
+      const needsAuthSync =
+        editFormData.full_name !== editingUser.full_name ||
+        editFormData.email !== editingUser.email ||
+        editFormData.username !== editingUser.username;
+
+      if (needsAuthSync) {
+        const { data, error } = await supabase.functions.invoke('admin-reset-password', {
+          body: {
+            user_id: editingUser.id,
+            new_email: editFormData.email,
+            new_username: editFormData.username,
+            new_full_name: editFormData.full_name,
+          },
+        });
+        if (error) throw error;
+        if ((data as any)?.error) throw new Error((data as any).error);
+      }
 
       toast.success('Employee updated successfully');
       setEditDialogOpen(false);
