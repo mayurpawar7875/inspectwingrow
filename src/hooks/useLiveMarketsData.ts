@@ -85,15 +85,7 @@ const fetchBatchedTaskStats = async (marketIds: string[], todayDate: string) => 
     allUserIds.length > 0
       ? supabase.from('employees').select('id, full_name, status').in('id', [...new Set(allUserIds)])
       : Promise.resolve({ data: [] }),
-    // Only count stall confirmations created today (IST). BDOs pre-submit rows
-    // a day in advance with market_date=tomorrow; those should not light up
-    // today's "Stall Confirmation" task tile before any session has started.
-    supabase.from('stall_confirmations')
-      .select('market_id, created_by, rent_amount, created_at')
-      .in('market_id', marketIds)
-      .eq('market_date', todayDate)
-      .gte('created_at', `${todayDate}T00:00:00+05:30`)
-      .lt('created_at', `${todayDate}T23:59:59.999+05:30`),
+    supabase.from('stall_confirmations').select('market_id, created_by, rent_amount, created_at').in('market_id', marketIds).eq('market_date', todayDate),
     supabase.from('media').select('session_id, media_type').in('session_id', safeSessionIds),
     supabase.from('offers').select('market_id, user_id').in('market_id', marketIds).eq('market_date', todayDate),
     supabase.from('non_available_commodities').select('market_id, user_id').in('market_id', marketIds).eq('market_date', todayDate),
@@ -200,9 +192,19 @@ const fetchLiveMarketsData = async (): Promise<LiveMarket[]> => {
       marketInspections.push(...inspections);
     });
 
+    // For the "Stall Confirmation" task tile we only count confirmations that
+    // were actually created today (IST). BDOs pre-submit rows the previous day
+    // with market_date=tomorrow, which would otherwise make the tile show as
+    // completed before any session has started.
+    const todayStartIST = new Date(`${todayDate}T00:00:00+05:30`).getTime();
+    const stallsCreatedToday = stallsData.filter((s: any) => {
+      if (!s.created_at) return false;
+      return new Date(s.created_at).getTime() >= todayStartIST;
+    });
+
     const taskStats = {
       attendance: sessionsData.filter(s => s.punch_in_time).length,
-      stall_confirmations: stallsData.length,
+      stall_confirmations: stallsCreatedToday.length,
       outside_rates: marketMedia.filter(m => m.media_type === 'outside_rates').length,
       rate_board: marketMedia.filter(m => m.media_type === 'rate_board').length,
       market_video: marketMedia.filter(m => m.media_type === 'market_video').length,
