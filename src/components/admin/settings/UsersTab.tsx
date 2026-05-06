@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { Users as UsersIcon, Shield, UserPlus, UserX, UserCheck, Pencil } from 'lucide-react';
+import { Users as UsersIcon, Shield, UserPlus, UserX, UserCheck, Pencil, KeyRound } from 'lucide-react';
 
 interface User {
   id: string;
@@ -31,6 +31,10 @@ export function UsersTab({ onChangeMade }: UsersTabProps) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [pwdDialogOpen, setPwdDialogOpen] = useState(false);
+  const [pwdUser, setPwdUser] = useState<User | null>(null);
+  const [newPassword, setNewPassword] = useState('');
+  const [pwdSubmitting, setPwdSubmitting] = useState(false);
   const [editFormData, setEditFormData] = useState({
     full_name: '',
     email: '',
