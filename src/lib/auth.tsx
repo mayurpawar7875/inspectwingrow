@@ -82,7 +82,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Safety timeout for auth loading - prevent infinite loading state
   useEffect(() => {
-    if (!loading) return;
+    if (!loading) {
+      // After auth loading completes, ensure no stuck overlay styles remain
+      // (skeletons / radix portals can leave body pointer-events:none)
+      scheduleOverlayRecovery();
+      return;
+    }
     const timer = setTimeout(() => {
       console.warn('Auth loading timed out after 15s, forcing load complete');
       setLoading(false);
