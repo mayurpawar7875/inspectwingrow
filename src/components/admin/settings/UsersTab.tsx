@@ -520,6 +520,68 @@ export function UsersTab({ onChangeMade }: UsersTabProps) {
           <p>• Use caution with admin privileges</p>
         </CardContent>
       </Card>
+
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="text-base md:text-lg">Edit Employee</DialogTitle>
+            <DialogDescription className="text-xs md:text-sm">Update employee details</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 md:space-y-4">
+            <div>
+              <Label className="text-xs md:text-sm">Full Name *</Label>
+              <Input
+                className="text-sm"
+                value={editFormData.full_name}
+                onChange={(e) => setEditFormData({ ...editFormData, full_name: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label className="text-xs md:text-sm">Email *</Label>
+              <Input
+                type="email"
+                className="text-sm"
+                value={editFormData.email}
+                onChange={(e) => setEditFormData({ ...editFormData, email: e.target.value })}
+              />
+              <p className="text-[10px] md:text-xs text-muted-foreground mt-1">Note: Changing email here only updates the employee record, not the login email.</p>
+            </div>
+            <div>
+              <Label className="text-xs md:text-sm">Username *</Label>
+              <Input
+                className="text-sm"
+                value={editFormData.username}
+                onChange={(e) => setEditFormData({ ...editFormData, username: e.target.value.toLowerCase().replace(/\s+/g, '') })}
+              />
+            </div>
+            <div>
+              <Label className="text-xs md:text-sm">Phone</Label>
+              <Input
+                className="text-sm"
+                value={editFormData.phone}
+                onChange={(e) => setEditFormData({ ...editFormData, phone: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label className="text-xs md:text-sm">Status</Label>
+              <Select value={editFormData.status} onValueChange={(value) => setEditFormData({ ...editFormData, status: value })}>
+                <SelectTrigger className="text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="active" className="text-sm">Active</SelectItem>
+                  <SelectItem value="inactive" className="text-sm">Inactive</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" size="sm" onClick={() => setEditDialogOpen(false)}>Cancel</Button>
+            <Button size="sm" onClick={handleEditUser}>Save Changes</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
+
   );
 }
