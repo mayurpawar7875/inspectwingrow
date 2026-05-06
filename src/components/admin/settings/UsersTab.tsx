@@ -213,6 +213,64 @@ export function UsersTab({ onChangeMade }: UsersTabProps) {
     }
   };
 
+  const openEditDialog = (user: User) => {
+    setEditingUser(user);
+    setEditFormData({
+      full_name: user.full_name || '',
+      email: user.email || '',
+      username: user.username || '',
+      phone: user.phone || '',
+      status: user.status || 'active',
+    });
+    setEditDialogOpen(true);
+  };
+
+  const handleEditUser = async () => {
+    if (!editingUser) return;
+    try {
+      if (!editFormData.full_name || !editFormData.email || !editFormData.username) {
+        toast.error('Please fill in all required fields');
+        return;
+      }
+
+      // Check username uniqueness if changed
+      if (editFormData.username !== editingUser.username) {
+        const { data: existing } = await (supabase as any)
+          .from('employees')
+          .select('id')
+          .eq('username', editFormData.username)
+          .neq('id', editingUser.id)
+          .maybeSingle();
+        if (existing) {
+          toast.error('Username already taken');
+          return;
+        }
+      }
+
+      const { error } = await supabase
+        .from('employees')
+        .update({
+          full_name: editFormData.full_name,
+          email: editFormData.email,
+          username: editFormData.username,
+          phone: editFormData.phone || null,
+          status: editFormData.status,
+        })
+        .eq('id', editingUser.id);
+
+      if (error) throw error;
+
+      toast.success('Employee updated successfully');
+      setEditDialogOpen(false);
+      setEditingUser(null);
+      fetchUsers();
+      onChangeMade();
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to update employee');
+      console.error(error);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
