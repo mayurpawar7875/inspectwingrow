@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { Users as UsersIcon, Shield, UserPlus, UserX, UserCheck } from 'lucide-react';
+import { Users as UsersIcon, Shield, UserPlus, UserX, UserCheck, Pencil } from 'lucide-react';
 
 interface User {
   id: string;
@@ -29,6 +29,15 @@ export function UsersTab({ onChangeMade }: UsersTabProps) {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [editFormData, setEditFormData] = useState({
+    full_name: '',
+    email: '',
+    username: '',
+    phone: '',
+    status: 'active',
+  });
   const [formData, setFormData] = useState({
     full_name: '',
     email: '',
@@ -200,6 +209,64 @@ export function UsersTab({ onChangeMade }: UsersTabProps) {
       onChangeMade();
     } catch (error: any) {
       toast.error(error.message || 'Failed to add employee');
+      console.error(error);
+    }
+  };
+
+  const openEditDialog = (user: User) => {
+    setEditingUser(user);
+    setEditFormData({
+      full_name: user.full_name || '',
+      email: user.email || '',
+      username: user.username || '',
+      phone: user.phone || '',
+      status: user.status || 'active',
+    });
+    setEditDialogOpen(true);
+  };
+
+  const handleEditUser = async () => {
+    if (!editingUser) return;
+    try {
+      if (!editFormData.full_name || !editFormData.email || !editFormData.username) {
+        toast.error('Please fill in all required fields');
+        return;
+      }
+
+      // Check username uniqueness if changed
+      if (editFormData.username !== editingUser.username) {
+        const { data: existing } = await (supabase as any)
+          .from('employees')
+          .select('id')
+          .eq('username', editFormData.username)
+          .neq('id', editingUser.id)
+          .maybeSingle();
+        if (existing) {
+          toast.error('Username already taken');
+          return;
+        }
+      }
+
+      const { error } = await supabase
+        .from('employees')
+        .update({
+          full_name: editFormData.full_name,
+          email: editFormData.email,
+          username: editFormData.username,
+          phone: editFormData.phone || null,
+          status: editFormData.status,
+        })
+        .eq('id', editingUser.id);
+
+      if (error) throw error;
+
+      toast.success('Employee updated successfully');
+      setEditDialogOpen(false);
+      setEditingUser(null);
+      fetchUsers();
+      onChangeMade();
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to update employee');
       console.error(error);
     }
   };
@@ -381,6 +448,15 @@ export function UsersTab({ onChangeMade }: UsersTabProps) {
                         variant="outline"
                         size="sm"
                         className="text-xs flex-1 md:flex-none"
+                        onClick={() => openEditDialog(user)}
+                      >
+                        <Pencil className="mr-1 h-3 w-3" />
+                        <span className="hidden sm:inline">Edit</span>
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="text-xs flex-1 md:flex-none"
                         onClick={() => toggleUserStatus(user.id, user.status)}
                       >
                         {user.status === 'active' ? (
@@ -444,6 +520,68 @@ export function UsersTab({ onChangeMade }: UsersTabProps) {
           <p>• Use caution with admin privileges</p>
         </CardContent>
       </Card>
+
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="text-base md:text-lg">Edit Employee</DialogTitle>
+            <DialogDescription className="text-xs md:text-sm">Update employee details</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 md:space-y-4">
+            <div>
+              <Label className="text-xs md:text-sm">Full Name *</Label>
+              <Input
+                className="text-sm"
+                value={editFormData.full_name}
+                onChange={(e) => setEditFormData({ ...editFormData, full_name: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label className="text-xs md:text-sm">Email *</Label>
+              <Input
+                type="email"
+                className="text-sm"
+                value={editFormData.email}
+                onChange={(e) => setEditFormData({ ...editFormData, email: e.target.value })}
+              />
+              <p className="text-[10px] md:text-xs text-muted-foreground mt-1">Note: Changing email here only updates the employee record, not the login email.</p>
+            </div>
+            <div>
+              <Label className="text-xs md:text-sm">Username *</Label>
+              <Input
+                className="text-sm"
+                value={editFormData.username}
+                onChange={(e) => setEditFormData({ ...editFormData, username: e.target.value.toLowerCase().replace(/\s+/g, '') })}
+              />
+            </div>
+            <div>
+              <Label className="text-xs md:text-sm">Phone</Label>
+              <Input
+                className="text-sm"
+                value={editFormData.phone}
+                onChange={(e) => setEditFormData({ ...editFormData, phone: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label className="text-xs md:text-sm">Status</Label>
+              <Select value={editFormData.status} onValueChange={(value) => setEditFormData({ ...editFormData, status: value })}>
+                <SelectTrigger className="text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="active" className="text-sm">Active</SelectItem>
+                  <SelectItem value="inactive" className="text-sm">Inactive</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" size="sm" onClick={() => setEditDialogOpen(false)}>Cancel</Button>
+            <Button size="sm" onClick={handleEditUser}>Save Changes</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
+
   );
 }
