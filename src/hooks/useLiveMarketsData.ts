@@ -85,7 +85,7 @@ const fetchBatchedTaskStats = async (marketIds: string[], todayDate: string) => 
     allUserIds.length > 0
       ? supabase.from('employees').select('id, full_name, status').in('id', [...new Set(allUserIds)])
       : Promise.resolve({ data: [] }),
-    supabase.from('stall_confirmations').select('market_id, created_by, rent_amount').in('market_id', marketIds).eq('market_date', todayDate),
+    supabase.from('stall_confirmations').select('market_id, created_by, rent_amount, created_at').in('market_id', marketIds).eq('market_date', todayDate),
     supabase.from('media').select('session_id, media_type').in('session_id', safeSessionIds),
     supabase.from('offers').select('market_id, user_id').in('market_id', marketIds).eq('market_date', todayDate),
     supabase.from('non_available_commodities').select('market_id, user_id').in('market_id', marketIds).eq('market_date', todayDate),
@@ -192,9 +192,19 @@ const fetchLiveMarketsData = async (): Promise<LiveMarket[]> => {
       marketInspections.push(...inspections);
     });
 
+    // For the "Stall Confirmation" task tile we only count confirmations that
+    // were actually created today (IST). BDOs pre-submit rows the previous day
+    // with market_date=tomorrow, which would otherwise make the tile show as
+    // completed before any session has started.
+    const todayStartIST = new Date(`${todayDate}T00:00:00+05:30`).getTime();
+    const stallsCreatedToday = stallsData.filter((s: any) => {
+      if (!s.created_at) return false;
+      return new Date(s.created_at).getTime() >= todayStartIST;
+    });
+
     const taskStats = {
       attendance: sessionsData.filter(s => s.punch_in_time).length,
-      stall_confirmations: stallsData.length,
+      stall_confirmations: stallsCreatedToday.length,
       outside_rates: marketMedia.filter(m => m.media_type === 'outside_rates').length,
       rate_board: marketMedia.filter(m => m.media_type === 'rate_board').length,
       market_video: marketMedia.filter(m => m.media_type === 'market_video').length,
@@ -271,7 +281,7 @@ const fetchLiveMarketsData = async (): Promise<LiveMarket[]> => {
       market_id: market.id, market_name: market.name, city: market.city,
       active_sessions: sessionsData.length,
       active_employees: employees.filter(e => e.status === 'active').length,
-      stall_confirmations_count: stallsData.length,
+      stall_confirmations_count: stallsCreatedToday.length,
       media_uploads_count: marketMedia.length,
       last_upload_time: lastTaskByMarket[market.id] || null,
       last_punch_in: null,
