@@ -3,6 +3,7 @@ import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
+import { scheduleOverlayRecovery } from '@/lib/overlayRecovery';
 
 export type UserRole = 'employee' | 'admin' | 'market_manager' | 'bms_executive' | 'bdo';
 
