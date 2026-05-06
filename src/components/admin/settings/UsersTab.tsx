@@ -29,6 +29,15 @@ export function UsersTab({ onChangeMade }: UsersTabProps) {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [editFormData, setEditFormData] = useState({
+    full_name: '',
+    email: '',
+    username: '',
+    phone: '',
+    status: 'active',
+  });
   const [formData, setFormData] = useState({
     full_name: '',
     email: '',
