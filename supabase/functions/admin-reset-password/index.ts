@@ -51,19 +51,33 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { user_id, new_password } = await req.json();
-    if (!user_id || !new_password || new_password.length < 6) {
-      return new Response(
-        JSON.stringify({ error: "user_id and new_password (min 6 chars) required" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
+    const { user_id, new_password, new_email, new_username, new_full_name } = await req.json();
+    if (!user_id) {
+      return new Response(JSON.stringify({ error: "user_id required" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (new_password && new_password.length < 6) {
+      return new Response(JSON.stringify({ error: "Password must be at least 6 characters" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     // Check if auth user exists
     const { data: existing, error: getErr } = await admin.auth.admin.getUserById(user_id);
 
     if (getErr || !existing?.user) {
-      // Auth user doesn't exist. Look up employee record to create one.
+      // Auth user doesn't exist - need a password to create one
+      if (!new_password) {
+        return new Response(
+          JSON.stringify({ error: "Auth account missing. Provide new_password to create it." }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+
       const { data: emp, error: empErr } = await admin
         .from("employees")
         .select("id, email, full_name, username")
@@ -77,17 +91,17 @@ Deno.serve(async (req) => {
         });
       }
 
-      // Delete the orphan employee row first (handle_new_user trigger will recreate it)
+      const emailToUse = new_email || emp.email;
+      const usernameToUse = new_username || emp.username;
+      const fullNameToUse = new_full_name || emp.full_name;
+
       await admin.from("employees").delete().eq("id", emp.id);
 
       const { data: created, error: createErr } = await admin.auth.admin.createUser({
-        email: emp.email,
+        email: emailToUse,
         password: new_password,
         email_confirm: true,
-        user_metadata: {
-          full_name: emp.full_name,
-          username: emp.username,
-        },
+        user_metadata: { full_name: fullNameToUse, username: usernameToUse },
       });
 
       if (createErr) {
@@ -97,43 +111,55 @@ Deno.serve(async (req) => {
         });
       }
 
-      // Update employee row created by trigger to retain username/status
       if (created?.user) {
         await admin
           .from("employees")
-          .update({ username: emp.username, full_name: emp.full_name })
+          .update({ username: usernameToUse, full_name: fullNameToUse, email: emailToUse })
           .eq("id", created.user.id);
       }
 
       return new Response(
-        JSON.stringify({ success: true, message: "Auth account created with password" }),
+        JSON.stringify({ success: true, message: "Auth account created" }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
-    // Auth user exists - update password and sync email with employee record
-    const { data: emp } = await admin
-      .from("employees")
-      .select("email")
-      .eq("id", user_id)
-      .maybeSingle();
-
-    const updates: any = { password: new_password, email_confirm: true };
-    if (emp?.email && emp.email.toLowerCase() !== existing.user.email?.toLowerCase()) {
-      updates.email = emp.email;
+    // Auth user exists - apply updates
+    const authUpdates: any = {};
+    if (new_password) authUpdates.password = new_password;
+    if (new_email && new_email.toLowerCase() !== existing.user.email?.toLowerCase()) {
+      authUpdates.email = new_email;
+      authUpdates.email_confirm = true;
+    }
+    if (new_username || new_full_name) {
+      authUpdates.user_metadata = {
+        ...(existing.user.user_metadata || {}),
+        ...(new_username ? { username: new_username } : {}),
+        ...(new_full_name ? { full_name: new_full_name } : {}),
+      };
     }
 
-    const { error: updErr } = await admin.auth.admin.updateUserById(user_id, updates);
+    if (Object.keys(authUpdates).length > 0) {
+      const { error: updErr } = await admin.auth.admin.updateUserById(user_id, authUpdates);
+      if (updErr) {
+        return new Response(JSON.stringify({ error: updErr.message }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
 
-    if (updErr) {
-      return new Response(JSON.stringify({ error: updErr.message }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    // Sync employees row
+    const empUpdates: any = {};
+    if (new_email) empUpdates.email = new_email;
+    if (new_username) empUpdates.username = new_username;
+    if (new_full_name) empUpdates.full_name = new_full_name;
+    if (Object.keys(empUpdates).length > 0) {
+      await admin.from("employees").update(empUpdates).eq("id", user_id);
     }
 
     return new Response(
-      JSON.stringify({ success: true, message: "Password updated", email_synced: !!updates.email }),
+      JSON.stringify({ success: true, message: "User updated" }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (e: any) {
