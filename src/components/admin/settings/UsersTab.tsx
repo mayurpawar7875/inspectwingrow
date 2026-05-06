@@ -625,6 +625,39 @@ export function UsersTab({ onChangeMade }: UsersTabProps) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={pwdDialogOpen} onOpenChange={setPwdDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="text-base md:text-lg">Set / Reset Password</DialogTitle>
+            <DialogDescription className="text-xs md:text-sm">
+              {pwdUser ? `${pwdUser.full_name} (${pwdUser.email})` : ''}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label className="text-xs md:text-sm">New Password *</Label>
+              <Input
+                type="password"
+                className="text-sm"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="Min 6 characters"
+                autoComplete="new-password"
+              />
+              <p className="text-[10px] md:text-xs text-muted-foreground mt-1">
+                Share this password with the user. They can change it after login.
+              </p>
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" size="sm" onClick={() => setPwdDialogOpen(false)} disabled={pwdSubmitting}>Cancel</Button>
+            <Button size="sm" onClick={handleResetPassword} disabled={pwdSubmitting}>
+              {pwdSubmitting ? 'Saving...' : 'Set Password'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
 
   );
