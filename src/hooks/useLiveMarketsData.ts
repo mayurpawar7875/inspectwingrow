@@ -281,7 +281,7 @@ const fetchLiveMarketsData = async (): Promise<LiveMarket[]> => {
       market_id: market.id, market_name: market.name, city: market.city,
       active_sessions: sessionsData.length,
       active_employees: employees.filter(e => e.status === 'active').length,
-      stall_confirmations_count: stallsData.length,
+      stall_confirmations_count: stallsCreatedToday.length,
       media_uploads_count: marketMedia.length,
       last_upload_time: lastTaskByMarket[market.id] || null,
       last_punch_in: null,
