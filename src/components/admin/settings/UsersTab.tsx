@@ -275,6 +275,37 @@ export function UsersTab({ onChangeMade }: UsersTabProps) {
     }
   };
 
+  const openPasswordDialog = (user: User) => {
+    setPwdUser(user);
+    setNewPassword('');
+    setPwdDialogOpen(true);
+  };
+
+  const handleResetPassword = async () => {
+    if (!pwdUser) return;
+    if (!newPassword || newPassword.length < 6) {
+      toast.error('Password must be at least 6 characters');
+      return;
+    }
+    setPwdSubmitting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('admin-reset-password', {
+        body: { user_id: pwdUser.id, new_password: newPassword },
+      });
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
+      toast.success((data as any)?.message || 'Password updated');
+      setPwdDialogOpen(false);
+      setPwdUser(null);
+      setNewPassword('');
+      fetchUsers();
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to update password');
+    } finally {
+      setPwdSubmitting(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
