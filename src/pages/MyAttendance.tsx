@@ -770,10 +770,31 @@ export default function MyAttendance() {
                 </div>
               </div>
               {showTasks && (
-                <div className="flex items-center gap-2">
-                  <span className="text-[11px] md:text-sm text-muted-foreground">Tasks:</span>
-                  <span className="text-[11px] md:text-sm font-medium">{tasksLabel}</span>
-                </div>
+                <>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] md:text-sm text-muted-foreground">Tasks:</span>
+                    <span className="text-[11px] md:text-sm font-medium">{tasksLabel}</span>
+                  </div>
+                  {progress?.tasks && progress.tasks.length > 0 && (
+                    <div className="mt-1 border-t pt-2">
+                      <div className="text-[11px] md:text-sm text-muted-foreground mb-1.5">Task breakdown:</div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
+                        {progress.tasks.map((t) => (
+                          <div key={t.key} className="flex items-center gap-1.5 text-[11px] md:text-sm">
+                            {t.done ? (
+                              <CheckCircle className="h-3.5 w-3.5 text-green-600 shrink-0" />
+                            ) : (
+                              <XCircle className="h-3.5 w-3.5 text-red-500 shrink-0" />
+                            )}
+                            <span className={cn('truncate', t.done ? 'text-foreground' : 'text-muted-foreground')}>
+                              {t.label}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
             </>
           )}
