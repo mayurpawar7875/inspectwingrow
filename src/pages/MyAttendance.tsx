@@ -39,6 +39,23 @@ export default function MyAttendance() {
     completed: number;
     total: number;
     loading: boolean;
+    tasks?: Array<{ key: string; label: string; done: boolean }>;
+  };
+
+  const TASK_LABELS: Record<string, string> = {
+    punch_in: 'Punch In',
+    selfie_gps: 'Selfie with GPS',
+    outside_rates: 'Outside Rates',
+    rate_board: 'Rate Board',
+    market_video: 'Market Video',
+    cleaning_video: 'Cleaning Video',
+    customer_feedback: 'Customer Feedback',
+    stall_confirmations: 'Stall Confirmations',
+    offers: "Today's Offers",
+    non_available_commodities: 'Non-Available Commodities',
+    stall_inspections: 'Stall Inspections',
+    organiser_feedback: 'Organiser Feedback',
+    next_day_planning: 'Next Day Planning',
   };
 
   const [taskProgressBySession, setTaskProgressBySession] = useState<Record<string, TaskProgress>>({});
