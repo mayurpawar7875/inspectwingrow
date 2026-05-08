@@ -412,7 +412,7 @@ export default function MyAttendance() {
       // market managers operating in Organiser Mode), so dual-mode best-status works.
       enrichedData.forEach((record: any) => {
         const roleToUse = record.role || currentRole || 'employee';
-        if (roleToUse === 'employee' && record.session_id && (record.completed_tasks === null || record.total_tasks === null)) {
+        if (roleToUse === 'employee' && record.session_id) {
           loadTaskProgressForSession(record.session_id, record.market_id, record.session_date);
         }
       });
