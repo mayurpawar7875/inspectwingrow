@@ -710,7 +710,7 @@ export default function MyAttendance() {
 
     const roleToUse = record?.role || currentRole || 'employee';
 
-    const showTasks = Boolean(record) && (Boolean(record?.session_id) || (record?.total_tasks ?? 0) > 0);
+    const showTasks = Boolean(record) && roleToUse === 'employee' && Boolean(record?.session_id);
     const progress = record?.session_id ? taskProgressBySession[record.session_id] : undefined;
 
     const completedTasks = progress?.completed ?? record?.completed_tasks ?? 0;
