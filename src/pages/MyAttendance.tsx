@@ -39,6 +39,23 @@ export default function MyAttendance() {
     completed: number;
     total: number;
     loading: boolean;
+    tasks?: Array<{ key: string; label: string; done: boolean }>;
+  };
+
+  const TASK_LABELS: Record<string, string> = {
+    punch_in: 'Punch In',
+    selfie_gps: 'Selfie with GPS',
+    outside_rates: 'Outside Rates',
+    rate_board: 'Rate Board',
+    market_video: 'Market Video',
+    cleaning_video: 'Cleaning Video',
+    customer_feedback: 'Customer Feedback',
+    stall_confirmations: 'Stall Confirmations',
+    offers: "Today's Offers",
+    non_available_commodities: 'Non-Available Commodities',
+    stall_inspections: 'Stall Inspections',
+    organiser_feedback: 'Organiser Feedback',
+    next_day_planning: 'Next Day Planning',
   };
 
   const [taskProgressBySession, setTaskProgressBySession] = useState<Record<string, TaskProgress>>({});
@@ -179,9 +196,25 @@ export default function MyAttendance() {
         // Inspections, Feedback, Next Day Planning
         // Collections and Punch Out are NOT part of the 13 tasks for organisers
 
+        const taskList = [
+          { key: 'punch_in', done: !!sessionMeta?.punch_in_time },
+          { key: 'selfie_gps', done: uploadedTypes.has('selfie_gps') },
+          { key: 'outside_rates', done: uploadedTypes.has('outside_rates') },
+          { key: 'rate_board', done: uploadedTypes.has('rate_board') },
+          { key: 'market_video', done: uploadedTypes.has('market_video') },
+          { key: 'cleaning_video', done: uploadedTypes.has('cleaning_video') },
+          { key: 'customer_feedback', done: uploadedTypes.has('customer_feedback') },
+          { key: 'stall_confirmations', done: ((stallsRes as any)?.count ?? 0) > 0 },
+          { key: 'offers', done: ((offersRes as any)?.count ?? 0) > 0 },
+          { key: 'non_available_commodities', done: ((commoditiesRes as any)?.count ?? 0) > 0 },
+          { key: 'stall_inspections', done: ((inspectionsRes as any)?.count ?? 0) > 0 },
+          { key: 'organiser_feedback', done: ((feedbackRes as any)?.count ?? 0) > 0 },
+          { key: 'next_day_planning', done: ((planningRes as any)?.count ?? 0) > 0 },
+        ].map(t => ({ ...t, label: TASK_LABELS[t.key] || t.key }));
+
         setTaskProgressBySession((prev) => ({
           ...prev,
-          [sessionId]: { completed, total: EMPLOYEE_TOTAL_TASKS, loading: false },
+          [sessionId]: { completed, total: EMPLOYEE_TOTAL_TASKS, loading: false, tasks: taskList },
         }));
 
         // Persist computed tasks + derived attendance status so the calendar/reports match.
@@ -379,7 +412,7 @@ export default function MyAttendance() {
       // market managers operating in Organiser Mode), so dual-mode best-status works.
       enrichedData.forEach((record: any) => {
         const roleToUse = record.role || currentRole || 'employee';
-        if (roleToUse === 'employee' && record.session_id && (record.completed_tasks === null || record.total_tasks === null)) {
+        if (roleToUse === 'employee' && record.session_id) {
           loadTaskProgressForSession(record.session_id, record.market_id, record.session_date);
         }
       });
@@ -737,10 +770,31 @@ export default function MyAttendance() {
                 </div>
               </div>
               {showTasks && (
-                <div className="flex items-center gap-2">
-                  <span className="text-[11px] md:text-sm text-muted-foreground">Tasks:</span>
-                  <span className="text-[11px] md:text-sm font-medium">{tasksLabel}</span>
-                </div>
+                <>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] md:text-sm text-muted-foreground">Tasks:</span>
+                    <span className="text-[11px] md:text-sm font-medium">{tasksLabel}</span>
+                  </div>
+                  {progress?.tasks && progress.tasks.length > 0 && (
+                    <div className="mt-1 border-t pt-2">
+                      <div className="text-[11px] md:text-sm text-muted-foreground mb-1.5">Task breakdown:</div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
+                        {progress.tasks.map((t) => (
+                          <div key={t.key} className="flex items-center gap-1.5 text-[11px] md:text-sm">
+                            {t.done ? (
+                              <CheckCircle className="h-3.5 w-3.5 text-green-600 shrink-0" />
+                            ) : (
+                              <XCircle className="h-3.5 w-3.5 text-red-500 shrink-0" />
+                            )}
+                            <span className={cn('truncate', t.done ? 'text-foreground' : 'text-muted-foreground')}>
+                              {t.label}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
             </>
           )}
