@@ -196,9 +196,25 @@ export default function MyAttendance() {
         // Inspections, Feedback, Next Day Planning
         // Collections and Punch Out are NOT part of the 13 tasks for organisers
 
+        const taskList = [
+          { key: 'punch_in', done: !!sessionMeta?.punch_in_time },
+          { key: 'selfie_gps', done: uploadedTypes.has('selfie_gps') },
+          { key: 'outside_rates', done: uploadedTypes.has('outside_rates') },
+          { key: 'rate_board', done: uploadedTypes.has('rate_board') },
+          { key: 'market_video', done: uploadedTypes.has('market_video') },
+          { key: 'cleaning_video', done: uploadedTypes.has('cleaning_video') },
+          { key: 'customer_feedback', done: uploadedTypes.has('customer_feedback') },
+          { key: 'stall_confirmations', done: ((stallsRes as any)?.count ?? 0) > 0 },
+          { key: 'offers', done: ((offersRes as any)?.count ?? 0) > 0 },
+          { key: 'non_available_commodities', done: ((commoditiesRes as any)?.count ?? 0) > 0 },
+          { key: 'stall_inspections', done: ((inspectionsRes as any)?.count ?? 0) > 0 },
+          { key: 'organiser_feedback', done: ((feedbackRes as any)?.count ?? 0) > 0 },
+          { key: 'next_day_planning', done: ((planningRes as any)?.count ?? 0) > 0 },
+        ].map(t => ({ ...t, label: TASK_LABELS[t.key] || t.key }));
+
         setTaskProgressBySession((prev) => ({
           ...prev,
-          [sessionId]: { completed, total: EMPLOYEE_TOTAL_TASKS, loading: false },
+          [sessionId]: { completed, total: EMPLOYEE_TOTAL_TASKS, loading: false, tasks: taskList },
         }));
 
         // Persist computed tasks + derived attendance status so the calendar/reports match.
