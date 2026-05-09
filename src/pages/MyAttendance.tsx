@@ -217,26 +217,40 @@ export default function MyAttendance() {
           [sessionId]: { completed, total: EMPLOYEE_TOTAL_TASKS, loading: false, tasks: taskList },
         }));
 
-        // Persist computed tasks + derived attendance status so the calendar/reports match.
-        // Only update rows that are still in the initial 'present' state.
+        // Persist computed tasks + derived attendance status. PROMOTE-ONLY:
+        // once a record has been credited as full_day or half_day, never demote it
+        // back to a lower status — only upgrade when more tasks have been completed.
         if (user?.id) {
           const completionPercentage = (completed / EMPLOYEE_TOTAL_TASKS) * 100;
           const computedStatus =
             completionPercentage >= 95 ? 'full_day' : completionPercentage >= 55 ? 'half_day' : 'absent';
 
-          // Always re-sync task counts + status (except weekly_off, which is manual).
-          // Previously this was gated to status='present', which caused records to get
-          // stuck on half_day/absent even after the organiser completed more tasks later.
-          await supabase
+          const RANK: Record<string, number> = { absent: 0, present: 1, half_day: 2, full_day: 3 };
+
+          const { data: existing } = await supabase
             .from('attendance_records')
-            .update({
-              completed_tasks: completed,
-              total_tasks: EMPLOYEE_TOTAL_TASKS,
-              status: computedStatus,
-            })
+            .select('status, completed_tasks')
             .eq('user_id', user.id)
             .eq('session_id', sessionId)
-            .in('status', ['present', 'half_day', 'absent', 'full_day']);
+            .maybeSingle();
+
+          const currentStatus = (existing?.status as string) || 'present';
+          const currentRank = RANK[currentStatus] ?? 1;
+          const newRank = RANK[computedStatus] ?? 0;
+          const currentCompleted = existing?.completed_tasks ?? 0;
+
+          // Update only if new status is a promotion, OR same status with more tasks.
+          if (currentStatus !== 'weekly_off' && (newRank > currentRank || (newRank === currentRank && completed > currentCompleted))) {
+            await supabase
+              .from('attendance_records')
+              .update({
+                completed_tasks: completed,
+                total_tasks: EMPLOYEE_TOTAL_TASKS,
+                status: computedStatus,
+              })
+              .eq('user_id', user.id)
+              .eq('session_id', sessionId);
+          }
         }
       } catch {
         // If anything fails, keep UI stable with a safe default.
