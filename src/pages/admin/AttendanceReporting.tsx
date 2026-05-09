@@ -645,6 +645,7 @@ import { format, startOfYear, endOfYear, eachMonthOfInterval, getDaysInMonth, st
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { CheckCircle2, AlertCircle, XCircle, MinusCircle } from "lucide-react";
+import { getISTDateString, resolveAttendanceStatus } from "@/lib/attendance";
 
 /* --- INTERFACES ---- */
 
@@ -653,11 +654,13 @@ interface AttendanceRecord {
   user_id: string;
   attendance_date: string;
   role: string;
-  market_id: string;
-  city: string;
+  market_id: string | null;
+  city: string | null;
   total_tasks: number;
   completed_tasks: number;
-  status: "full_day" | "half_day" | "absent" | "weekly_off";
+  status: "full_day" | "half_day" | "absent" | "weekly_off" | "active" | "leave" | "no_record";
+  punch_in_time?: string | null;
+  punch_out_time?: string | null;
   employee_name?: string;
   market_name?: string;
 }
@@ -670,6 +673,9 @@ interface DayData {
     half_day: number;
     absent: number;
     weekly_off: number;
+      active: number;
+      leave: number;
+      no_record: number;
   };
 }
 
@@ -678,11 +684,16 @@ const STATUS_CONFIG = {
   full_day: { label: "Full Day", color: "bg-green-500", icon: CheckCircle2 },
   half_day: { label: "Half Day", color: "bg-orange-500", icon: AlertCircle },
   absent: { label: "Absent", color: "bg-red-500", icon: XCircle },
+  active: { label: "Active", color: "bg-purple-500", icon: AlertCircle },
+  leave: { label: "Leave", color: "bg-cyan-500", icon: MinusCircle },
   weekly_off: { label: "Weekly Off", color: "bg-blue-500", icon: MinusCircle },
   no_data: { label: "No Data", color: "bg-muted", icon: MinusCircle },
+  no_record: { label: "No Record", color: "bg-muted", icon: MinusCircle },
 };
 
 export default function AttendanceReporting() {
+  const emptySummary = () => ({ full_day: 0, half_day: 0, absent: 0, weekly_off: 0, active: 0, leave: 0, no_record: 0 });
+
   const currentMonth = new Date().getMonth();
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [selectedMonth, setSelectedMonth] = useState<string>(currentMonth.toString()); // Default to current month
@@ -701,12 +712,7 @@ export default function AttendanceReporting() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [dayMap, setDayMap] = useState<Map<string, DayData>>(new Map());
 
-  const [yearSummary, setYearSummary] = useState({
-    full_day: 0,
-    half_day: 0,
-    absent: 0,
-    weekly_off: 0,
-  });
+  const [yearSummary, setYearSummary] = useState(emptySummary());
 
   /* --- FETCH MARKETS AND USERS ---- */
   useEffect(() => {
@@ -717,6 +723,21 @@ export default function AttendanceReporting() {
   /* --- FETCH RECORDS WHEN FILTERS CHANGE ---- */
   useEffect(() => {
     fetchRecords();
+  }, [selectedYear, selectedMonth, selectedRole, selectedCity, selectedMarket, selectedUser, selectedStatus, markets]);
+
+  useEffect(() => {
+    const channel = supabase
+      .channel('admin-attendance-reporting-live')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'attendance_records' }, fetchRecords)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'sessions' }, fetchRecords)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'market_manager_sessions' }, fetchRecords)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'bdo_sessions' }, fetchRecords)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'employee_leaves' }, fetchRecords)
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [selectedYear, selectedMonth, selectedRole, selectedCity, selectedMarket, selectedUser, selectedStatus, markets]);
 
   const fetchMarkets = async () => {
@@ -732,7 +753,7 @@ export default function AttendanceReporting() {
   const fetchUsers = async () => {
     const { data } = await supabase
       .from("employees")
-      .select("id, full_name, email")
+      .select("id, full_name, email, status")
       .eq("status", "active")
       .order("full_name");
 
@@ -761,17 +782,17 @@ export default function AttendanceReporting() {
       endDate = format(monthEnd, "yyyy-MM-dd");
     }
 
-    let query = supabase
-      .from("attendance_records")
-      .select("*")
-      .gte("attendance_date", startDate)
-      .lte("attendance_date", endDate);
+    const reportEndDate = endDate > getISTDateString() ? getISTDateString() : endDate;
 
-    if (selectedRole !== "all") query = query.eq("role", selectedRole as Database["public"]["Enums"]["user_role"]);
-    if (selectedCity !== "all") query = query.eq("city", selectedCity);
-    if (selectedMarket !== "all") query = query.eq("market_id", selectedMarket);
+    const [attendanceRes, employeesRes, rolesRes, leavesRes] = await Promise.all([
+      supabase.from("attendance_records").select("*").gte("attendance_date", startDate).lte("attendance_date", reportEndDate),
+      supabase.from("employees").select("id, full_name, email, status").eq("status", "active").order("full_name"),
+      supabase.from("user_roles").select("user_id, role"),
+      supabase.from("employee_leaves").select("user_id, leave_date, status").gte("leave_date", startDate).lte("leave_date", reportEndDate),
+    ]);
 
-    const { data, error } = await query;
+    const data = attendanceRes.data || [];
+    const error = attendanceRes.error;
 
     if (error) {
       toast.error("Failed to fetch attendance records");
@@ -779,21 +800,66 @@ export default function AttendanceReporting() {
       return;
     }
 
+    const activeEmployees = employeesRes.data || [];
+    const roleByUser = new Map<string, string>();
+    (rolesRes.data || []).forEach((r: any) => {
+      if (!roleByUser.has(r.user_id) || r.role !== 'employee') roleByUser.set(r.user_id, r.role);
+    });
+
     const enriched = await Promise.all(
-      (data || []).map(async (record) => {
+      data.map(async (record) => {
         const { data: profile } = await supabase.from("profiles").select("full_name").eq("id", record.user_id).single();
 
         const market = markets.find((m) => m.id === record.market_id);
+        const status = resolveAttendanceStatus({
+          role: record.role || roleByUser.get(record.user_id),
+          dbStatus: record.status,
+          attendanceDate: record.attendance_date,
+          punchInTime: record.punch_in_time,
+          punchOutTime: record.punch_out_time,
+          completedTasks: record.completed_tasks,
+          totalTasks: record.total_tasks,
+          approvedLeave: (leavesRes.data || []).some((l: any) => l.user_id === record.user_id && l.leave_date === record.attendance_date && l.status === 'approved'),
+        });
 
         return {
           ...record,
+          role: record.role || roleByUser.get(record.user_id) || 'employee',
+          status,
           employee_name: profile?.full_name || "Unknown",
           market_name: market?.name || "Unknown",
         };
       }),
     );
 
-    let filtered = enriched;
+    const existingKeys = new Set(enriched.map((r: any) => `${r.user_id}|${r.attendance_date}`));
+    const synthetic: AttendanceRecord[] = [];
+    for (let cursor = new Date(`${startDate}T00:00:00`); format(cursor, "yyyy-MM-dd") <= reportEndDate; cursor.setDate(cursor.getDate() + 1)) {
+      const dateStr = format(cursor, "yyyy-MM-dd");
+      activeEmployees.forEach((employee: any) => {
+        const role = roleByUser.get(employee.id) || 'employee';
+        if (existingKeys.has(`${employee.id}|${dateStr}`)) return;
+        const approvedLeave = (leavesRes.data || []).some((l: any) => l.user_id === employee.id && l.leave_date === dateStr && l.status === 'approved');
+        synthetic.push({
+          id: `${employee.id}-${dateStr}-synthetic`,
+          user_id: employee.id,
+          attendance_date: dateStr,
+          role,
+          market_id: null,
+          city: null,
+          total_tasks: 0,
+          completed_tasks: 0,
+          status: resolveAttendanceStatus({ role, attendanceDate: dateStr, approvedLeave }),
+          employee_name: employee.full_name || employee.email || 'Unknown',
+          market_name: 'N/A',
+        });
+      });
+    }
+
+    let filtered = [...enriched, ...synthetic];
+    if (selectedRole !== "all") filtered = filtered.filter((r) => r.role === selectedRole);
+    if (selectedCity !== "all") filtered = filtered.filter((r) => r.city === selectedCity);
+    if (selectedMarket !== "all") filtered = filtered.filter((r) => r.market_id === selectedMarket);
     if (selectedUser !== "all") {
       filtered = enriched.filter((r) => r.user_id === selectedUser);
     }
@@ -810,7 +876,7 @@ export default function AttendanceReporting() {
         map.set(dateStr, {
           date: dateStr,
           records: [],
-          summary: { full_day: 0, half_day: 0, absent: 0, weekly_off: 0 },
+          summary: emptySummary(),
         });
       }
       const d = map.get(dateStr)!;
@@ -820,7 +886,7 @@ export default function AttendanceReporting() {
 
     setDayMap(map);
 
-    const summary = { full_day: 0, half_day: 0, absent: 0, weekly_off: 0 };
+    const summary = emptySummary();
     filtered.forEach((record) => summary[record.status]++);
     setYearSummary(summary);
 
