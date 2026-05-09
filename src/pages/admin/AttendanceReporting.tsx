@@ -645,6 +645,7 @@ import { format, startOfYear, endOfYear, eachMonthOfInterval, getDaysInMonth, st
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { CheckCircle2, AlertCircle, XCircle, MinusCircle } from "lucide-react";
+import { getISTDateString, resolveAttendanceStatus } from "@/lib/attendance";
 
 /* --- INTERFACES ---- */
 
@@ -653,11 +654,13 @@ interface AttendanceRecord {
   user_id: string;
   attendance_date: string;
   role: string;
-  market_id: string;
-  city: string;
+  market_id: string | null;
+  city: string | null;
   total_tasks: number;
   completed_tasks: number;
-  status: "full_day" | "half_day" | "absent" | "weekly_off";
+  status: "full_day" | "half_day" | "absent" | "weekly_off" | "active" | "leave" | "no_record";
+  punch_in_time?: string | null;
+  punch_out_time?: string | null;
   employee_name?: string;
   market_name?: string;
 }
@@ -670,6 +673,9 @@ interface DayData {
     half_day: number;
     absent: number;
     weekly_off: number;
+      active: number;
+      leave: number;
+      no_record: number;
   };
 }
 
@@ -678,8 +684,11 @@ const STATUS_CONFIG = {
   full_day: { label: "Full Day", color: "bg-green-500", icon: CheckCircle2 },
   half_day: { label: "Half Day", color: "bg-orange-500", icon: AlertCircle },
   absent: { label: "Absent", color: "bg-red-500", icon: XCircle },
+  active: { label: "Active", color: "bg-purple-500", icon: AlertCircle },
+  leave: { label: "Leave", color: "bg-cyan-500", icon: MinusCircle },
   weekly_off: { label: "Weekly Off", color: "bg-blue-500", icon: MinusCircle },
   no_data: { label: "No Data", color: "bg-muted", icon: MinusCircle },
+  no_record: { label: "No Record", color: "bg-muted", icon: MinusCircle },
 };
 
 export default function AttendanceReporting() {
