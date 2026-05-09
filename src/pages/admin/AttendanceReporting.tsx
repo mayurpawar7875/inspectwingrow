@@ -816,7 +816,7 @@ export default function AttendanceReporting() {
         map.set(dateStr, {
           date: dateStr,
           records: [],
-          summary: { full_day: 0, half_day: 0, absent: 0, weekly_off: 0 },
+          summary: emptySummary(),
         });
       }
       const d = map.get(dateStr)!;
@@ -826,7 +826,7 @@ export default function AttendanceReporting() {
 
     setDayMap(map);
 
-    const summary = { full_day: 0, half_day: 0, absent: 0, weekly_off: 0 };
+    const summary = emptySummary();
     filtered.forEach((record) => summary[record.status]++);
     setYearSummary(summary);
 
