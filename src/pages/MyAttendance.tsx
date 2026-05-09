@@ -573,6 +573,11 @@ export default function MyAttendance() {
         best = s;
       }
     }
+    // Past day that resolved to 'no_record' (e.g. row exists but no tasks/punch) → Absent.
+    const isToday = isSameDay(date, new Date());
+    if (best === 'no_record' && !isToday) {
+      return 'absent';
+    }
     return best;
   };
 
