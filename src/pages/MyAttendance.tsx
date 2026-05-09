@@ -455,7 +455,7 @@ export default function MyAttendance() {
 
   const computeRecordStatus = (
     record: AttendanceRecord
-  ): 'full_day' | 'half_day' | 'absent' | 'weekly_off' | 'active' => {
+  ): 'full_day' | 'half_day' | 'absent' | 'weekly_off' | 'active' | 'no_record' => {
     // If session is ongoing today, mark active
     const date = parseISO(record.attendance_date);
     const today = new Date();
@@ -556,10 +556,10 @@ export default function MyAttendance() {
     // Pick the BEST status across all records for the day (MM + Organiser dual mode).
     const dayRecords = getRecordsForDate(date);
     if (dayRecords.length === 0) {
-      return 'absent';
+      return 'no_record';
     }
 
-    let best: 'full_day' | 'half_day' | 'absent' | 'weekly_off' | 'active' = 'absent';
+    let best: 'full_day' | 'half_day' | 'absent' | 'weekly_off' | 'active' | 'no_record' = 'no_record';
     let bestRank = -1;
     for (const record of dayRecords) {
       const s = computeRecordStatus(record);
