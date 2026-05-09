@@ -19,7 +19,7 @@ import {
 interface AttendanceRecord {
   id: string;
   attendance_date: string;
-  status: 'full_day' | 'half_day' | 'absent' | 'weekly_off' | 'active' | 'no_record';
+  status: 'full_day' | 'half_day' | 'absent' | 'weekly_off' | 'active' | 'leave' | 'no_record';
   punch_in_time: string | null;
   punch_out_time: string | null;
   session_id: string | null;
@@ -101,83 +101,16 @@ export default function MyAttendance() {
     punchInTime: string | null,
     punchOutTime: string | null,
     recordRole?: string | null
-  ): 'full_day' | 'half_day' | 'absent' | 'weekly_off' | 'active' | 'no_record' => {
-    // Check if it's Monday (weekly off) - Monday = 1 in getDay()
-    const date = parseISO(attendanceDate);
-    if (date.getDay() === 1) {
-      return 'weekly_off';
-    }
-    
-    // Check if session is ongoing (punched in but not punched out today)
-    const today = new Date();
-    const isToday = date.toDateString() === today.toDateString();
-    if (isToday && punchInTime && !punchOutTime) {
-      return 'active';
-    }
-    
-    // If marked as weekly off in DB, respect that
-    if (dbStatus === 'weekly_off') {
-      return 'weekly_off';
-    }
-    
-    // If DB has a valid calculated status (full_day, half_day, absent), use it directly
-    // NOTE: 'present' means "punched-in" and still needs calculation (tasks/hours).
-    if (dbStatus === 'full_day') {
-      return 'full_day';
-    }
-    if (dbStatus === 'half_day') {
-      return 'half_day';
-    }
-    if (dbStatus === 'absent') {
-      return 'absent';
-    }
-    
-    // Use role from record, or fall back to current user role
-    const roleToUse = recordRole || currentRole || 'employee';
-    
-    // For records without a final status, calculate based on role logic
-    if (roleToUse === 'market_manager' || roleToUse === 'bdo') {
-      if (punchInTime && punchOutTime) {
-        const punchIn = new Date(punchInTime);
-        const punchOut = new Date(punchOutTime);
-        const workingHours = (punchOut.getTime() - punchIn.getTime()) / (1000 * 60 * 60);
-        
-        if (workingHours >= 8) {
-          return 'full_day';
-        } else if (workingHours >= 4) {
-          return 'half_day';
-        }
-        return 'absent';
-      }
-    } else {
-      // Organiser (employee): Based on TASK COMPLETION
-      // ≥95% = Full Day, ≥55% = Half Day, <55% = Absent
-      const completed = completedTasks ?? 0;
-      const total = totalTasks ?? 0;
-
-      // If tasks are persisted in DB, use them
-      if (total > 0) {
-        const completionPercentage = (completed / total) * 100;
-
-        if (completionPercentage >= 95) {
-          return 'full_day';
-        } else if (completionPercentage >= 55) {
-          return 'half_day';
-        } else {
-          return 'absent';
-        }
-      }
-      
-      // Tasks not yet calculated - keep neutral until real task progress is loaded/persisted.
-      return 'no_record';
-    }
-    
-    if (punchInTime && !punchOutTime) {
-      return 'full_day';
-    }
-    
-    return 'absent';
-  };
+  ): 'full_day' | 'half_day' | 'absent' | 'weekly_off' | 'active' | 'leave' | 'no_record' =>
+    resolveAttendanceStatus({
+      role: recordRole || currentRole || 'employee',
+      dbStatus,
+      attendanceDate,
+      punchInTime,
+      punchOutTime,
+      completedTasks,
+      totalTasks,
+    });
 
   const fetchMyAttendance = async () => {
     if (!user) return;
@@ -259,14 +192,7 @@ export default function MyAttendance() {
 
   // Rank statuses so we can pick the BEST one when a Market Manager has both an
   // MM session and an Organiser session on the same day.
-  const STATUS_RANK: Record<string, number> = {
-    full_day: 4,
-    active: 3,
-    half_day: 2,
-    weekly_off: 1,
-    no_record: 0,
-    absent: 0,
-  };
+  const STATUS_RANK = ATTENDANCE_STATUS_RANK;
 
   const getRecordsForDate = (date: Date): AttendanceRecord[] => {
     const dateStr = format(date, 'yyyy-MM-dd');
