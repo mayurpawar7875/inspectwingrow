@@ -725,6 +725,21 @@ export default function AttendanceReporting() {
     fetchRecords();
   }, [selectedYear, selectedMonth, selectedRole, selectedCity, selectedMarket, selectedUser, selectedStatus, markets]);
 
+  useEffect(() => {
+    const channel = supabase
+      .channel('admin-attendance-reporting-live')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'attendance_records' }, fetchRecords)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'sessions' }, fetchRecords)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'market_manager_sessions' }, fetchRecords)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'bdo_sessions' }, fetchRecords)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'employee_leaves' }, fetchRecords)
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [selectedYear, selectedMonth, selectedRole, selectedCity, selectedMarket, selectedUser, selectedStatus, markets]);
+
   const fetchMarkets = async () => {
     const { data } = await supabase.from("markets").select("id, name, city").eq("is_active", true).order("name");
 
@@ -738,7 +753,7 @@ export default function AttendanceReporting() {
   const fetchUsers = async () => {
     const { data } = await supabase
       .from("employees")
-      .select("id, full_name, email")
+      .select("id, full_name, email, status")
       .eq("status", "active")
       .order("full_name");
 
