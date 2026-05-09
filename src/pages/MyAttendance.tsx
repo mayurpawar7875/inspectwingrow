@@ -557,7 +557,10 @@ export default function MyAttendance() {
     // Pick the BEST status across all records for the day (MM + Organiser dual mode).
     const dayRecords = getRecordsForDate(date);
     if (dayRecords.length === 0) {
-      return 'no_record';
+      // Past day with no attendance record at all → Absent.
+      // Today with no record → no_record (still in progress).
+      const isToday = isSameDay(date, new Date());
+      return isToday ? 'no_record' : 'absent';
     }
 
     let best: 'full_day' | 'half_day' | 'absent' | 'weekly_off' | 'active' | 'no_record' = 'no_record';
