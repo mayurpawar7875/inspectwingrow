@@ -224,6 +224,9 @@ export default function MyAttendance() {
           const computedStatus =
             completionPercentage >= 95 ? 'full_day' : completionPercentage >= 55 ? 'half_day' : 'absent';
 
+          // Always re-sync task counts + status (except weekly_off, which is manual).
+          // Previously this was gated to status='present', which caused records to get
+          // stuck on half_day/absent even after the organiser completed more tasks later.
           await supabase
             .from('attendance_records')
             .update({
@@ -233,7 +236,7 @@ export default function MyAttendance() {
             })
             .eq('user_id', user.id)
             .eq('session_id', sessionId)
-            .in('status', ['present']);
+            .in('status', ['present', 'half_day', 'absent', 'full_day']);
         }
       } catch {
         // If anything fails, keep UI stable with a safe default.
