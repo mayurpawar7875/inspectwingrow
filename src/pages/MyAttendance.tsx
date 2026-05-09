@@ -9,6 +9,12 @@ import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSam
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
+import {
+  ATTENDANCE_STATUS_RANK,
+  ORGANISER_TOTAL_TASKS,
+  fetchOrganiserTaskProgress,
+  resolveAttendanceStatus,
+} from '@/lib/attendance';
 
 interface AttendanceRecord {
   id: string;
@@ -33,29 +39,11 @@ export default function MyAttendance() {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 
-  const EMPLOYEE_TOTAL_TASKS = 13 as const;
-
   type TaskProgress = {
     completed: number;
     total: number;
     loading: boolean;
     tasks?: Array<{ key: string; label: string; done: boolean }>;
-  };
-
-  const TASK_LABELS: Record<string, string> = {
-    punch_in: 'Punch In',
-    selfie_gps: 'Selfie with GPS',
-    outside_rates: 'Outside Rates',
-    rate_board: 'Rate Board',
-    market_video: 'Market Video',
-    cleaning_video: 'Cleaning Video',
-    customer_feedback: 'Customer Feedback',
-    stall_confirmations: 'Stall Confirmations',
-    offers: "Today's Offers",
-    non_available_commodities: 'Non-Available Commodities',
-    stall_inspections: 'Stall Inspections',
-    organiser_feedback: 'Organiser Feedback',
-    next_day_planning: 'Next Day Planning',
   };
 
   const [taskProgressBySession, setTaskProgressBySession] = useState<Record<string, TaskProgress>>({});
@@ -71,196 +59,27 @@ export default function MyAttendance() {
         ...prev,
         [sessionId]: {
           completed: prev[sessionId]?.completed ?? 0,
-          total: EMPLOYEE_TOTAL_TASKS,
+          total: ORGANISER_TOTAL_TASKS,
           loading: true,
         },
       }));
 
       try {
-        // Resolve from session to ensure we have punch times + market/date.
-        const { data: sessionMeta } = await supabase
-          .from('sessions')
-          .select('market_id, session_date, punch_in_time, punch_out_time')
-          .eq('id', sessionId)
-          .maybeSingle();
-
-        const resolvedMarketId = marketId ?? sessionMeta?.market_id ?? null;
-        const resolvedSessionDate = sessionDate ?? sessionMeta?.session_date ?? null;
-        const dateStr = (resolvedSessionDate || '').slice(0, 10) || undefined;
-
-        let completed = 0;
-
-        // Task 1: Punch In
-        if (sessionMeta?.punch_in_time) completed++;
-
-        // Task 2: Stall Confirmations (>= 1)
-        const stallsPromise =
-          resolvedMarketId && dateStr
-            ? supabase
-                .from('stall_confirmations')
-                .select('*', { count: 'exact', head: true })
-                .eq('market_id', resolvedMarketId)
-                .eq('market_date', dateStr)
-            : Promise.resolve({ count: 0 } as any);
-
-        // Task 3-8: Media uploads (6 types)
-        const { data: mediaData } = await supabase
-          .from('media')
-          .select('media_type')
-          .eq('session_id', sessionId);
-
-        const uploadedTypes = new Set(mediaData?.map((m: any) => m.media_type) || []);
-        const requiredMediaTypes: Array<
-          'outside_rates' | 'rate_board' | 'market_video' | 'cleaning_video' | 'customer_feedback' | 'selfie_gps'
-        > = ['outside_rates', 'rate_board', 'market_video', 'cleaning_video', 'customer_feedback', 'selfie_gps'];
-
-        completed += requiredMediaTypes.filter((t) => uploadedTypes.has(t)).length;
-
-        const [stallsRes, offersRes, commoditiesRes, inspectionsRes, feedbackRes, planningRes, collectionsRes] = await Promise.all([
-          stallsPromise,
-          resolvedMarketId && dateStr
-            ? supabase
-                .from('offers')
-                .select('*', { count: 'exact', head: true })
-                .eq('market_id', resolvedMarketId)
-                .eq('market_date', dateStr)
-                .eq('session_id', sessionId)
-            : supabase.from('offers').select('*', { count: 'exact', head: true }).eq('session_id', sessionId),
-          resolvedMarketId && dateStr
-            ? supabase
-                .from('non_available_commodities')
-                .select('*', { count: 'exact', head: true })
-                .eq('market_id', resolvedMarketId)
-                .eq('market_date', dateStr)
-                .eq('session_id', sessionId)
-            : supabase
-                .from('non_available_commodities')
-                .select('*', { count: 'exact', head: true })
-                .eq('session_id', sessionId),
-          supabase
-            .from('stall_inspections')
-            .select('*', { count: 'exact', head: true })
-            .eq('session_id', sessionId),
-          resolvedMarketId && dateStr
-            ? supabase
-                .from('organiser_feedback')
-                .select('*', { count: 'exact', head: true })
-                .eq('market_id', resolvedMarketId)
-                .eq('market_date', dateStr)
-                .eq('session_id', sessionId)
-            : supabase
-                .from('organiser_feedback')
-                .select('*', { count: 'exact', head: true })
-                .eq('session_id', sessionId),
-          resolvedMarketId && dateStr
-            ? supabase
-                .from('next_day_planning')
-                .select('*', { count: 'exact', head: true })
-                .eq('market_id', resolvedMarketId)
-                .eq('market_date', dateStr)
-                .eq('session_id', sessionId)
-            : supabase
-                .from('next_day_planning')
-                .select('*', { count: 'exact', head: true })
-                .eq('session_id', sessionId),
-          // Collections query
-          resolvedMarketId && dateStr
-            ? supabase
-                .from('collections')
-                .select('*', { count: 'exact', head: true })
-                .eq('market_id', resolvedMarketId)
-                .eq('collection_date', dateStr)
-            : Promise.resolve({ count: 0 } as any),
-        ]);
-
-        // Task 2: stalls
-        if ((stallsRes as any)?.count > 0) completed++;
-
-        // Task 9: Today's Offers
-        if ((offersRes as any)?.count > 0) completed++;
-
-        // Task 10: Non-Available Commodities
-        if ((commoditiesRes as any)?.count > 0) completed++;
-
-        // Task 11: Stall Inspections
-        if ((inspectionsRes as any)?.count > 0) completed++;
-
-        // Task 12: Organiser Feedback
-        if ((feedbackRes as any)?.count > 0) completed++;
-
-        // Task 13: Next Day Planning
-        if ((planningRes as any)?.count > 0) completed++;
-
-        // Note: Collections is NOT counted as a separate task per current 13-task definition
-        // The 13 tasks are: Punch In, 6 Media types, Stall Confirmations, Offers, Commodities, 
-        // Inspections, Feedback, Next Day Planning
-        // Collections and Punch Out are NOT part of the 13 tasks for organisers
-
-        const taskList = [
-          { key: 'punch_in', done: !!sessionMeta?.punch_in_time },
-          { key: 'selfie_gps', done: uploadedTypes.has('selfie_gps') },
-          { key: 'outside_rates', done: uploadedTypes.has('outside_rates') },
-          { key: 'rate_board', done: uploadedTypes.has('rate_board') },
-          { key: 'market_video', done: uploadedTypes.has('market_video') },
-          { key: 'cleaning_video', done: uploadedTypes.has('cleaning_video') },
-          { key: 'customer_feedback', done: uploadedTypes.has('customer_feedback') },
-          { key: 'stall_confirmations', done: ((stallsRes as any)?.count ?? 0) > 0 },
-          { key: 'offers', done: ((offersRes as any)?.count ?? 0) > 0 },
-          { key: 'non_available_commodities', done: ((commoditiesRes as any)?.count ?? 0) > 0 },
-          { key: 'stall_inspections', done: ((inspectionsRes as any)?.count ?? 0) > 0 },
-          { key: 'organiser_feedback', done: ((feedbackRes as any)?.count ?? 0) > 0 },
-          { key: 'next_day_planning', done: ((planningRes as any)?.count ?? 0) > 0 },
-        ].map(t => ({ ...t, label: TASK_LABELS[t.key] || t.key }));
+        const progress = await fetchOrganiserTaskProgress(sessionId, marketId, sessionDate);
 
         setTaskProgressBySession((prev) => ({
           ...prev,
-          [sessionId]: { completed, total: EMPLOYEE_TOTAL_TASKS, loading: false, tasks: taskList },
+          [sessionId]: { ...progress, loading: false },
         }));
-
-        // Persist computed tasks + derived attendance status. PROMOTE-ONLY:
-        // once a record has been credited as full_day or half_day, never demote it
-        // back to a lower status — only upgrade when more tasks have been completed.
-        if (user?.id) {
-          const completionPercentage = (completed / EMPLOYEE_TOTAL_TASKS) * 100;
-          const computedStatus =
-            completionPercentage >= 95 ? 'full_day' : completionPercentage >= 55 ? 'half_day' : 'absent';
-
-          const RANK: Record<string, number> = { absent: 0, present: 1, half_day: 2, full_day: 3 };
-
-          const { data: existing } = await supabase
-            .from('attendance_records')
-            .select('status, completed_tasks')
-            .eq('user_id', user.id)
-            .eq('session_id', sessionId)
-            .maybeSingle();
-
-          const currentStatus = (existing?.status as string) || 'present';
-          const currentRank = RANK[currentStatus] ?? 1;
-          const newRank = RANK[computedStatus] ?? 0;
-          const currentCompleted = existing?.completed_tasks ?? 0;
-
-          // Update only if new status is a promotion, OR same status with more tasks.
-          if (currentStatus !== 'weekly_off' && (newRank > currentRank || (newRank === currentRank && completed > currentCompleted))) {
-            await supabase
-              .from('attendance_records')
-              .update({
-                completed_tasks: completed,
-                total_tasks: EMPLOYEE_TOTAL_TASKS,
-                status: computedStatus,
-              })
-              .eq('user_id', user.id)
-              .eq('session_id', sessionId);
-          }
-        }
       } catch {
         // If anything fails, keep UI stable with a safe default.
         setTaskProgressBySession((prev) => ({
           ...prev,
-          [sessionId]: { completed: prev[sessionId]?.completed ?? 0, total: EMPLOYEE_TOTAL_TASKS, loading: false },
+          [sessionId]: { completed: prev[sessionId]?.completed ?? 0, total: ORGANISER_TOTAL_TASKS, loading: false },
         }));
       }
     },
-    [EMPLOYEE_TOTAL_TASKS, taskProgressBySession, user?.id]
+    [taskProgressBySession]
   );
 
 
