@@ -201,7 +201,7 @@ export default function MyAttendance() {
 
   const computeRecordStatus = (
     record: AttendanceRecord
-  ): 'full_day' | 'half_day' | 'absent' | 'weekly_off' | 'active' | 'no_record' => {
+  ): 'full_day' | 'half_day' | 'absent' | 'weekly_off' | 'active' | 'leave' | 'no_record' => {
     // If session is ongoing today, mark active
     const date = parseISO(record.attendance_date);
     const today = new Date();
@@ -286,7 +286,7 @@ export default function MyAttendance() {
 
   const getDayStatus = (
     date: Date
-  ): 'full_day' | 'half_day' | 'absent' | 'weekly_off' | 'future' | 'active' | 'no_record' => {
+  ): 'full_day' | 'half_day' | 'absent' | 'weekly_off' | 'future' | 'active' | 'leave' | 'no_record' => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
@@ -308,7 +308,7 @@ export default function MyAttendance() {
       return isToday ? 'no_record' : 'absent';
     }
 
-    let best: 'full_day' | 'half_day' | 'absent' | 'weekly_off' | 'active' | 'no_record' = 'no_record';
+    let best: 'full_day' | 'half_day' | 'absent' | 'weekly_off' | 'active' | 'leave' | 'no_record' = 'no_record';
     let bestRank = -1;
     for (const record of dayRecords) {
       const s = computeRecordStatus(record);
@@ -487,7 +487,7 @@ export default function MyAttendance() {
     const progress = record?.session_id ? taskProgressBySession[record.session_id] : undefined;
 
     const completedTasks = progress?.completed ?? record?.completed_tasks ?? 0;
-    const totalTasks = showTasks ? (progress?.total ?? EMPLOYEE_TOTAL_TASKS) : (record?.total_tasks ?? 0);
+    const totalTasks = showTasks ? (progress?.total ?? ORGANISER_TOTAL_TASKS) : (record?.total_tasks ?? 0);
 
     const taskPercent = showTasks && totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
