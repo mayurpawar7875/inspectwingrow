@@ -253,14 +253,15 @@ export default function MyAttendance() {
 
     const roleToUse = record.role || currentRole || 'employee';
 
-    // For organiser-mode rows, prefer live task progress when available
-    if (roleToUse === 'employee' && record.session_id) {
+    // For any record tied to an organiser session, prefer live task progress.
+    // This covers Market Managers working as Organisers on a date too.
+    if (record.session_id) {
       const progress = taskProgressBySession[record.session_id];
       if (progress && !progress.loading && progress.total > 0) {
         const pct = (progress.completed / progress.total) * 100;
         if (pct >= 95) return 'full_day';
         if (pct >= 55) return 'half_day';
-        return 'absent';
+        return roleToUse === 'market_manager' ? record.status : 'absent';
       }
     }
 
