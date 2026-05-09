@@ -445,6 +445,7 @@ export default function MyAttendance() {
     active: 3,
     half_day: 2,
     weekly_off: 1,
+    no_record: 0,
     absent: 0,
   };
 
@@ -540,7 +541,7 @@ export default function MyAttendance() {
 
   const getDayStatus = (
     date: Date
-  ): 'full_day' | 'half_day' | 'absent' | 'weekly_off' | 'future' | 'active' => {
+  ): 'full_day' | 'half_day' | 'absent' | 'weekly_off' | 'future' | 'active' | 'no_record' => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
