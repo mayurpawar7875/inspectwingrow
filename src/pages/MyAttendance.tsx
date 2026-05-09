@@ -842,7 +842,7 @@ export default function MyAttendance() {
           </div>
         </div>
 
-        <div className="grid grid-cols-3 md:grid-cols-5 gap-1.5 md:gap-3">
+        <div className="grid grid-cols-3 md:grid-cols-6 gap-1.5 md:gap-3">
           <Card className="bg-green-50/50 border-green-100">
             <CardContent className="py-1.5 px-1 md:pt-4 md:pb-4 md:px-4">
               <div className="text-center">
