@@ -481,7 +481,8 @@ export default function MyAttendance() {
 
     const roleToUse = record?.role || currentRole || 'employee';
 
-    const showTasks = Boolean(record) && roleToUse === 'employee' && Boolean(record?.session_id);
+    // Show task breakdown for every role that has a session attached.
+    const showTasks = Boolean(record?.session_id);
     const progress = record?.session_id ? taskProgressBySession[record.session_id] : undefined;
 
     const completedTasks = progress?.completed ?? record?.completed_tasks ?? 0;
