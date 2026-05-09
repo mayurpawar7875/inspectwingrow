@@ -883,11 +883,21 @@ export default function MyAttendance() {
             </CardContent>
           </Card>
 
-          <Card className="bg-slate-50/50 border-slate-100 col-span-2 md:col-span-1">
+          <Card className="bg-purple-50/50 border-purple-100">
+            <CardContent className="py-1.5 px-1 md:pt-4 md:pb-4 md:px-4">
+              <div className="text-center">
+                <AlertCircle className="w-3.5 h-3.5 md:w-6 md:h-6 mx-auto text-purple-600" />
+                <div className="text-base md:text-2xl font-bold text-purple-600 leading-tight">{summary.active}</div>
+                <div className="text-[8px] md:text-xs text-purple-700/70">Active</div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-slate-50/50 border-slate-100 col-span-3 md:col-span-1">
             <CardContent className="py-1.5 px-1 md:pt-4 md:pb-4 md:px-4">
               <div className="text-center">
                 <CalendarCheck className="w-3.5 h-3.5 md:w-6 md:h-6 mx-auto text-slate-600" />
-                <div className="text-base md:text-2xl font-bold text-slate-600 leading-tight">{summary.fullDays + summary.halfDays + summary.weeklyOffs}</div>
+                <div className="text-base md:text-2xl font-bold text-slate-600 leading-tight">{summary.fullDays + summary.halfDays + summary.weeklyOffs + summary.active}</div>
                 <div className="text-[8px] md:text-xs text-slate-700/70">Total Days</div>
               </div>
             </CardContent>
