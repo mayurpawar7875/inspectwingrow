@@ -175,11 +175,10 @@ export default function MyAttendance() {
 
       setRecords(enrichedData);
 
-      // Preload task progress for any organiser-style sessions (works for employees AND
-      // market managers operating in Organiser Mode), so dual-mode best-status works.
+      // Preload task progress for ALL roles that have a session attached, so the
+      // day-wise task breakdown is visible for every employee regardless of role.
       enrichedData.forEach((record: any) => {
-        const roleToUse = record.role || currentRole || 'employee';
-        if (roleToUse === 'employee' && record.session_id) {
+        if (record.session_id) {
           loadTaskProgressForSession(record.session_id, record.market_id, record.session_date);
         }
       });
