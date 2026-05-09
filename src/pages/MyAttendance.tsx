@@ -271,8 +271,7 @@ export default function MyAttendance() {
     // (a Market Manager may have one MM record + one Organiser record).
     const dayRecords = getRecordsForDate(selectedDate);
     dayRecords.forEach((record) => {
-      const roleToUse = record.role || currentRole || 'employee';
-      if (roleToUse !== 'employee' || !record.session_id) return;
+      if (!record.session_id) return;
       if (taskProgressBySession[record.session_id]) return;
       void loadTaskProgressForSession(
         record.session_id,
