@@ -13,7 +13,7 @@ import { cn } from '@/lib/utils';
 interface AttendanceRecord {
   id: string;
   attendance_date: string;
-  status: 'full_day' | 'half_day' | 'absent' | 'weekly_off' | 'active';
+  status: 'full_day' | 'half_day' | 'absent' | 'weekly_off' | 'active' | 'no_record';
   punch_in_time: string | null;
   punch_out_time: string | null;
   session_id: string | null;
@@ -282,7 +282,7 @@ export default function MyAttendance() {
     punchInTime: string | null,
     punchOutTime: string | null,
     recordRole?: string | null
-  ): 'full_day' | 'half_day' | 'absent' | 'weekly_off' | 'active' => {
+  ): 'full_day' | 'half_day' | 'absent' | 'weekly_off' | 'active' | 'no_record' => {
     // Check if it's Monday (weekly off) - Monday = 1 in getDay()
     const date = parseISO(attendanceDate);
     if (date.getDay() === 1) {
@@ -349,10 +349,8 @@ export default function MyAttendance() {
         }
       }
       
-      // Tasks not yet calculated - don't assume full_day, return absent 
-      // (will be updated when task progress is loaded)
-      // Exception: if DB explicitly has a calculated status, it would have been caught earlier
-      return 'absent';
+      // Tasks not yet calculated - keep neutral until real task progress is loaded/persisted.
+      return 'no_record';
     }
     
     if (punchInTime && !punchOutTime) {
@@ -447,6 +445,7 @@ export default function MyAttendance() {
     active: 3,
     half_day: 2,
     weekly_off: 1,
+    no_record: 0,
     absent: 0,
   };
 
@@ -457,7 +456,7 @@ export default function MyAttendance() {
 
   const computeRecordStatus = (
     record: AttendanceRecord
-  ): 'full_day' | 'half_day' | 'absent' | 'weekly_off' | 'active' => {
+  ): 'full_day' | 'half_day' | 'absent' | 'weekly_off' | 'active' | 'no_record' => {
     // If session is ongoing today, mark active
     const date = parseISO(record.attendance_date);
     const today = new Date();
@@ -542,7 +541,7 @@ export default function MyAttendance() {
 
   const getDayStatus = (
     date: Date
-  ): 'full_day' | 'half_day' | 'absent' | 'weekly_off' | 'future' | 'active' => {
+  ): 'full_day' | 'half_day' | 'absent' | 'weekly_off' | 'future' | 'active' | 'no_record' => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
@@ -558,10 +557,10 @@ export default function MyAttendance() {
     // Pick the BEST status across all records for the day (MM + Organiser dual mode).
     const dayRecords = getRecordsForDate(date);
     if (dayRecords.length === 0) {
-      return 'absent';
+      return 'no_record';
     }
 
-    let best: 'full_day' | 'half_day' | 'absent' | 'weekly_off' | 'active' = 'absent';
+    let best: 'full_day' | 'half_day' | 'absent' | 'weekly_off' | 'active' | 'no_record' = 'no_record';
     let bestRank = -1;
     for (const record of dayRecords) {
       const s = computeRecordStatus(record);
@@ -606,6 +605,8 @@ export default function MyAttendance() {
         return cn(baseClasses, 'bg-purple-500 text-white hover:bg-purple-600 animate-pulse');
       case 'future':
         return cn(baseClasses, 'bg-muted text-muted-foreground');
+      case 'no_record':
+        return cn(baseClasses, 'bg-muted/50 text-muted-foreground hover:bg-muted');
       default:
         return cn(baseClasses, 'bg-muted/50 text-muted-foreground hover:bg-muted');
     }
@@ -755,6 +756,7 @@ export default function MyAttendance() {
             {status === 'weekly_off' && <Badge className="bg-blue-500/10 text-blue-600 border-blue-500/20 text-[10px] h-5">Weekly Off</Badge>}
             {status === 'active' && <Badge className="bg-purple-500/10 text-purple-600 border-purple-500/20 text-[10px] h-5">Active</Badge>}
             {status === 'future' && <Badge variant="outline" className="text-[10px] h-5">Future</Badge>}
+            {status === 'no_record' && <Badge variant="outline" className="text-[10px] h-5">No Record</Badge>}
             {(() => {
               const dayRecs = getRecordsForDate(selectedDate);
               const hasMM = dayRecs.some(r => (r.role || '') === 'market_manager');
