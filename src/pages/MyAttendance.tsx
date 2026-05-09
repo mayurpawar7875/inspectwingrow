@@ -175,11 +175,10 @@ export default function MyAttendance() {
 
       setRecords(enrichedData);
 
-      // Preload task progress for any organiser-style sessions (works for employees AND
-      // market managers operating in Organiser Mode), so dual-mode best-status works.
+      // Preload task progress for ALL roles that have a session attached, so the
+      // day-wise task breakdown is visible for every employee regardless of role.
       enrichedData.forEach((record: any) => {
-        const roleToUse = record.role || currentRole || 'employee';
-        if (roleToUse === 'employee' && record.session_id) {
+        if (record.session_id) {
           loadTaskProgressForSession(record.session_id, record.market_id, record.session_date);
         }
       });
@@ -272,8 +271,7 @@ export default function MyAttendance() {
     // (a Market Manager may have one MM record + one Organiser record).
     const dayRecords = getRecordsForDate(selectedDate);
     dayRecords.forEach((record) => {
-      const roleToUse = record.role || currentRole || 'employee';
-      if (roleToUse !== 'employee' || !record.session_id) return;
+      if (!record.session_id) return;
       if (taskProgressBySession[record.session_id]) return;
       void loadTaskProgressForSession(
         record.session_id,
@@ -483,7 +481,8 @@ export default function MyAttendance() {
 
     const roleToUse = record?.role || currentRole || 'employee';
 
-    const showTasks = Boolean(record) && roleToUse === 'employee' && Boolean(record?.session_id);
+    // Show task breakdown for every role that has a session attached.
+    const showTasks = Boolean(record?.session_id);
     const progress = record?.session_id ? taskProgressBySession[record.session_id] : undefined;
 
     const completedTasks = progress?.completed ?? record?.completed_tasks ?? 0;
