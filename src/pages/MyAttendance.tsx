@@ -605,6 +605,8 @@ export default function MyAttendance() {
         return cn(baseClasses, 'bg-purple-500 text-white hover:bg-purple-600 animate-pulse');
       case 'future':
         return cn(baseClasses, 'bg-muted text-muted-foreground');
+      case 'no_record':
+        return cn(baseClasses, 'bg-muted/50 text-muted-foreground hover:bg-muted');
       default:
         return cn(baseClasses, 'bg-muted/50 text-muted-foreground hover:bg-muted');
     }
@@ -754,6 +756,7 @@ export default function MyAttendance() {
             {status === 'weekly_off' && <Badge className="bg-blue-500/10 text-blue-600 border-blue-500/20 text-[10px] h-5">Weekly Off</Badge>}
             {status === 'active' && <Badge className="bg-purple-500/10 text-purple-600 border-purple-500/20 text-[10px] h-5">Active</Badge>}
             {status === 'future' && <Badge variant="outline" className="text-[10px] h-5">Future</Badge>}
+            {status === 'no_record' && <Badge variant="outline" className="text-[10px] h-5">No Record</Badge>}
             {(() => {
               const dayRecs = getRecordsForDate(selectedDate);
               const hasMM = dayRecs.some(r => (r.role || '') === 'market_manager');
