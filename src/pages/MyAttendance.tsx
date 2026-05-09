@@ -13,7 +13,7 @@ import { cn } from '@/lib/utils';
 interface AttendanceRecord {
   id: string;
   attendance_date: string;
-  status: 'full_day' | 'half_day' | 'absent' | 'weekly_off' | 'active';
+  status: 'full_day' | 'half_day' | 'absent' | 'weekly_off' | 'active' | 'no_record';
   punch_in_time: string | null;
   punch_out_time: string | null;
   session_id: string | null;
@@ -282,7 +282,7 @@ export default function MyAttendance() {
     punchInTime: string | null,
     punchOutTime: string | null,
     recordRole?: string | null
-  ): 'full_day' | 'half_day' | 'absent' | 'weekly_off' | 'active' => {
+  ): 'full_day' | 'half_day' | 'absent' | 'weekly_off' | 'active' | 'no_record' => {
     // Check if it's Monday (weekly off) - Monday = 1 in getDay()
     const date = parseISO(attendanceDate);
     if (date.getDay() === 1) {
@@ -349,10 +349,8 @@ export default function MyAttendance() {
         }
       }
       
-      // Tasks not yet calculated - don't assume full_day, return absent 
-      // (will be updated when task progress is loaded)
-      // Exception: if DB explicitly has a calculated status, it would have been caught earlier
-      return 'absent';
+      // Tasks not yet calculated - keep neutral until real task progress is loaded/persisted.
+      return 'no_record';
     }
     
     if (punchInTime && !punchOutTime) {
