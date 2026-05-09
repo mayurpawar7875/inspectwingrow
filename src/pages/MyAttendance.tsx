@@ -114,77 +114,119 @@ export default function MyAttendance() {
 
   const fetchMyAttendance = async () => {
     if (!user) return;
-    
+
     setLoading(true);
-    
-    const thirtyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000); // Extended to 90 days for calendar view
-    
-    const { data, error } = await supabase
-      .from('attendance_records')
-      .select('*')
-      .eq('user_id', user.id)
-      .gte('attendance_date', format(thirtyDaysAgo, 'yyyy-MM-dd'))
-      .order('attendance_date', { ascending: false });
-    
-    if (error) {
+
+    const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
+    const fromDate = format(ninetyDaysAgo, 'yyyy-MM-dd');
+
+    // Fetch attendance_records AND organiser sessions in parallel. Sessions are
+    // pulled directly so that any user who worked as an Organiser on a given
+    // date (including Market Managers in dual-mode) gets the full organiser
+    // task breakdown — not only those with a matching attendance_records row.
+    const [attendanceRes, sessionsRes] = await Promise.all([
+      supabase
+        .from('attendance_records')
+        .select('*')
+        .eq('user_id', user.id)
+        .gte('attendance_date', fromDate)
+        .order('attendance_date', { ascending: false }),
+      supabase
+        .from('sessions')
+        .select('id, market_id, session_date, punch_in_time, punch_out_time, markets(name)')
+        .eq('user_id', user.id)
+        .gte('session_date', fromDate)
+        .order('session_date', { ascending: false }),
+    ]);
+
+    if (attendanceRes.error) {
       toast.error('Failed to fetch attendance records');
       setLoading(false);
       return;
     }
-    
-    if (data && data.length > 0) {
-      const sessionIds = [...new Set(data.map(r => r.session_id).filter(Boolean))];
 
-      let sessionMetaMap = new Map<string, { marketName: string; marketId: string | null; sessionDate: string | null }>();
-      if (sessionIds.length > 0) {
-        const { data: sessionsData } = await supabase
-          .from('sessions')
-          .select('id, market_id, session_date, markets(name)')
-          .in('id', sessionIds);
+    const attendanceRows = attendanceRes.data || [];
+    const sessionRows = sessionsRes.data || [];
 
-        sessionMetaMap = new Map(
-          sessionsData?.map((s: any) => [
-            s.id,
-            {
-              marketName: s.markets?.name || 'N/A',
-              marketId: s.market_id ?? null,
-              sessionDate: s.session_date ?? null,
-            },
-          ]) || []
-        );
-      }
+    // Map session metadata for enrichment.
+    const sessionMetaMap = new Map<string, { marketName: string; marketId: string | null; sessionDate: string | null; punchIn: string | null; punchOut: string | null }>(
+      sessionRows.map((s: any) => [
+        s.id,
+        {
+          marketName: s.markets?.name || 'N/A',
+          marketId: s.market_id ?? null,
+          sessionDate: s.session_date ?? null,
+          punchIn: s.punch_in_time ?? null,
+          punchOut: s.punch_out_time ?? null,
+        },
+      ])
+    );
 
-      const enrichedData = data.map((record: any) => {
-        const meta = record.session_id ? sessionMetaMap.get(record.session_id) : null;
+    const enrichedData: AttendanceRecord[] = attendanceRows.map((record: any) => {
+      const meta = record.session_id ? sessionMetaMap.get(record.session_id) : null;
+      return {
+        ...record,
+        market_name: meta?.marketName ?? 'N/A',
+        market_id: meta?.marketId ?? record.market_id ?? null,
+        session_date: meta?.sessionDate ?? null,
+        status: calculateStatus(
+          record.completed_tasks,
+          record.total_tasks,
+          record.status,
+          record.attendance_date,
+          record.punch_in_time,
+          record.punch_out_time,
+          record.role
+        ),
+      };
+    });
+
+    // Synthesize organiser records for sessions that are NOT already covered by
+    // an attendance_records row with the same session_id. This is the key fix
+    // for Market Managers who also work as organisers on a date.
+    const coveredSessionIds = new Set(
+      enrichedData.map((r) => r.session_id).filter(Boolean) as string[]
+    );
+
+    const synthesized: AttendanceRecord[] = sessionRows
+      .filter((s: any) => s.id && !coveredSessionIds.has(s.id) && s.session_date)
+      .map((s: any) => {
+        const dateStr = String(s.session_date).slice(0, 10);
+        const meta = sessionMetaMap.get(s.id)!;
         return {
-          ...record,
-          market_name: meta?.marketName ?? 'N/A',
-          market_id: meta?.marketId ?? record.market_id ?? null,
-          session_date: meta?.sessionDate ?? null,
+          id: `synth-${s.id}`,
+          attendance_date: dateStr,
           status: calculateStatus(
-            record.completed_tasks,
-            record.total_tasks,
-            record.status,
-            record.attendance_date,
-            record.punch_in_time,
-            record.punch_out_time,
-            record.role
+            null,
+            null,
+            null,
+            dateStr,
+            s.punch_in_time ?? null,
+            s.punch_out_time ?? null,
+            'employee'
           ),
-        };
+          punch_in_time: s.punch_in_time ?? null,
+          punch_out_time: s.punch_out_time ?? null,
+          session_id: s.id,
+          completed_tasks: 0,
+          total_tasks: ORGANISER_TOTAL_TASKS,
+          market_name: meta.marketName,
+          market_id: meta.marketId,
+          session_date: meta.sessionDate,
+          role: 'employee',
+        } as AttendanceRecord;
       });
 
-      setRecords(enrichedData);
+    const allRecords = [...enrichedData, ...synthesized];
+    setRecords(allRecords);
 
-      // Preload task progress for ALL roles that have a session attached, so the
-      // day-wise task breakdown is visible for every employee regardless of role.
-      enrichedData.forEach((record: any) => {
-        if (record.session_id) {
-          loadTaskProgressForSession(record.session_id, record.market_id, record.session_date);
-        }
-      });
-    } else {
-      setRecords([]);
-    }
+    // Preload task progress for every record that has a session attached, so the
+    // task breakdown is visible for every role (Organiser, MM-as-Organiser, etc.).
+    allRecords.forEach((record) => {
+      if (record.session_id) {
+        loadTaskProgressForSession(record.session_id, record.market_id, record.session_date);
+      }
+    });
 
     setLoading(false);
   };
@@ -211,14 +253,15 @@ export default function MyAttendance() {
 
     const roleToUse = record.role || currentRole || 'employee';
 
-    // For organiser-mode rows, prefer live task progress when available
-    if (roleToUse === 'employee' && record.session_id) {
+    // For any record tied to an organiser session, prefer live task progress.
+    // This covers Market Managers working as Organisers on a date too.
+    if (record.session_id) {
       const progress = taskProgressBySession[record.session_id];
       if (progress && !progress.loading && progress.total > 0) {
         const pct = (progress.completed / progress.total) * 100;
         if (pct >= 95) return 'full_day';
         if (pct >= 55) return 'half_day';
-        return 'absent';
+        return roleToUse === 'market_manager' ? record.status : 'absent';
       }
     }
 
