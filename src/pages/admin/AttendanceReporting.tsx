@@ -692,6 +692,8 @@ const STATUS_CONFIG = {
 };
 
 export default function AttendanceReporting() {
+  const emptySummary = () => ({ full_day: 0, half_day: 0, absent: 0, weekly_off: 0, active: 0, leave: 0, no_record: 0 });
+
   const currentMonth = new Date().getMonth();
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [selectedMonth, setSelectedMonth] = useState<string>(currentMonth.toString()); // Default to current month
@@ -710,12 +712,7 @@ export default function AttendanceReporting() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [dayMap, setDayMap] = useState<Map<string, DayData>>(new Map());
 
-  const [yearSummary, setYearSummary] = useState({
-    full_day: 0,
-    half_day: 0,
-    absent: 0,
-    weekly_off: 0,
-  });
+  const [yearSummary, setYearSummary] = useState(emptySummary());
 
   /* --- FETCH MARKETS AND USERS ---- */
   useEffect(() => {
