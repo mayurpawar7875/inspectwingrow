@@ -557,7 +557,10 @@ export default function MyAttendance() {
     // Pick the BEST status across all records for the day (MM + Organiser dual mode).
     const dayRecords = getRecordsForDate(date);
     if (dayRecords.length === 0) {
-      return 'no_record';
+      // Past day with no attendance record at all → Absent.
+      // Today with no record → no_record (still in progress).
+      const isToday = isSameDay(date, new Date());
+      return isToday ? 'no_record' : 'absent';
     }
 
     let best: 'full_day' | 'half_day' | 'absent' | 'weekly_off' | 'active' | 'no_record' = 'no_record';
@@ -626,6 +629,7 @@ export default function MyAttendance() {
     let halfDays = 0;
     let absent = 0;
     let weeklyOffs = 0;
+    let active = 0;
 
     days.forEach((day) => {
       if (day > todayEod) return;
@@ -635,9 +639,10 @@ export default function MyAttendance() {
       else if (status === 'half_day') halfDays++;
       else if (status === 'absent') absent++;
       else if (status === 'weekly_off') weeklyOffs++;
+      else if (status === 'active') active++;
     });
 
-    return { fullDays, halfDays, absent, weeklyOffs };
+    return { fullDays, halfDays, absent, weeklyOffs, active };
   };
 
   const renderCalendar = () => {
@@ -837,7 +842,7 @@ export default function MyAttendance() {
           </div>
         </div>
 
-        <div className="grid grid-cols-3 md:grid-cols-5 gap-1.5 md:gap-3">
+        <div className="grid grid-cols-3 md:grid-cols-6 gap-1.5 md:gap-3">
           <Card className="bg-green-50/50 border-green-100">
             <CardContent className="py-1.5 px-1 md:pt-4 md:pb-4 md:px-4">
               <div className="text-center">
@@ -878,11 +883,21 @@ export default function MyAttendance() {
             </CardContent>
           </Card>
 
-          <Card className="bg-slate-50/50 border-slate-100 col-span-2 md:col-span-1">
+          <Card className="bg-purple-50/50 border-purple-100">
+            <CardContent className="py-1.5 px-1 md:pt-4 md:pb-4 md:px-4">
+              <div className="text-center">
+                <AlertCircle className="w-3.5 h-3.5 md:w-6 md:h-6 mx-auto text-purple-600" />
+                <div className="text-base md:text-2xl font-bold text-purple-600 leading-tight">{summary.active}</div>
+                <div className="text-[8px] md:text-xs text-purple-700/70">Active</div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-slate-50/50 border-slate-100 col-span-3 md:col-span-1">
             <CardContent className="py-1.5 px-1 md:pt-4 md:pb-4 md:px-4">
               <div className="text-center">
                 <CalendarCheck className="w-3.5 h-3.5 md:w-6 md:h-6 mx-auto text-slate-600" />
-                <div className="text-base md:text-2xl font-bold text-slate-600 leading-tight">{summary.fullDays + summary.halfDays + summary.weeklyOffs}</div>
+                <div className="text-base md:text-2xl font-bold text-slate-600 leading-tight">{summary.fullDays + summary.halfDays + summary.weeklyOffs + summary.active}</div>
                 <div className="text-[8px] md:text-xs text-slate-700/70">Total Days</div>
               </div>
             </CardContent>
