@@ -629,6 +629,7 @@ export default function MyAttendance() {
     let halfDays = 0;
     let absent = 0;
     let weeklyOffs = 0;
+    let active = 0;
 
     days.forEach((day) => {
       if (day > todayEod) return;
@@ -638,9 +639,10 @@ export default function MyAttendance() {
       else if (status === 'half_day') halfDays++;
       else if (status === 'absent') absent++;
       else if (status === 'weekly_off') weeklyOffs++;
+      else if (status === 'active') active++;
     });
 
-    return { fullDays, halfDays, absent, weeklyOffs };
+    return { fullDays, halfDays, absent, weeklyOffs, active };
   };
 
   const renderCalendar = () => {
