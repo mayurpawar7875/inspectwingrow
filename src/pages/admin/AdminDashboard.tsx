@@ -260,8 +260,9 @@ export default function AdminDashboard() {
         case 'inspections':
           const { data: inspectionsData } = await supabase
             .from('stall_inspections')
-            .select('*, sessions!inner(user_id)')
+            .select('*, sessions!inner(user_id, session_date)')
             .eq('market_id', marketId)
+            .eq('sessions.session_date', todayDate)
             .order('created_at', { ascending: false });
           
           if (inspectionsData && inspectionsData.length > 0) {
