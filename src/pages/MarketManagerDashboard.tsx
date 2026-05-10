@@ -418,7 +418,7 @@ export default function MarketManagerDashboard() {
                         <Button
                           size="sm"
                           className="shrink-0 text-xs"
-                          onClick={() => navigate('/dashboard?as=organiser')}
+                          onClick={() => continueOrganiserSession(session)}
                         >
                           Continue Session
                         </Button>
