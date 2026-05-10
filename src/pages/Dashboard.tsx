@@ -212,6 +212,25 @@ export default function Dashboard() {
     return () => clearInterval(interval);
   }, [todaySessions, selectedSessionIndex]);
 
+  // Persist the actively-selected session/market so other pages (Punch, MediaUpload, Stalls)
+  // submit tasks against the correct market when the user has multiple sessions today.
+  useEffect(() => {
+    if (todaySession) {
+      try {
+        localStorage.setItem(
+          'dashboardState',
+          JSON.stringify({
+            selectedMarketId: todaySession.market_id,
+            selectedSessionId: todaySession.id,
+            selectedSessionDate: todaySession.session_date,
+          })
+        );
+      } catch {
+        // ignore storage errors
+      }
+    }
+  }, [todaySession?.id, todaySession?.market_id, todaySession?.session_date]);
+
   const handleOpenCollectionSheet = () => {
     navigate('/collections');
   };
