@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/lib/auth';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -10,6 +10,7 @@ import { ArrowLeft, CheckCircle, AlertCircle } from 'lucide-react';
 export default function Finalize() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [session, setSession] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [finalizing, setFinalizing] = useState(false);
@@ -31,14 +32,30 @@ export default function Finalize() {
         return `${y}-${m}-${d}`;
       };
       const today = getISTDateString(new Date());
-      const { data, error } = await supabase
+      let selectedSessionId = searchParams.get('sessionId') || undefined;
+      try {
+        const ds = JSON.parse(localStorage.getItem('dashboardState') || '{}');
+        if (!selectedSessionId && ds?.selectedSessionId && ds?.selectedSessionDate === today) {
+          selectedSessionId = ds.selectedSessionId;
+        }
+      } catch {}
+
+      let query = supabase
         .from('sessions')
         .select(`*, stalls(*), media(*)`)
         .eq('user_id', user.id)
-        .eq('session_date', today)
-        .maybeSingle();
+        .eq('session_date', today);
+
+      if (selectedSessionId) {
+        query = query.eq('id', selectedSessionId);
+      } else {
+        query = query.order('created_at', { ascending: false }).limit(1);
+      }
+
+      const { data: rows, error } = await query;
 
       if (error) throw error;
+      const data = rows?.[0];
       if (!data) {
         toast.error('No session found for today');
         navigate('/dashboard');
