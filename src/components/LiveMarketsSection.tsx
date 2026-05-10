@@ -90,7 +90,7 @@ export default function LiveMarketsSection({ showNavigateToEmployee = false, onE
           break;
         }
         case 'inspections': {
-          const { data: d } = await supabase.from('stall_inspections').select('*, sessions!inner(user_id)').eq('market_id', marketId).order('created_at', { ascending: false });
+          const { data: d } = await supabase.from('stall_inspections').select('*, sessions!inner(user_id, session_date)').eq('market_id', marketId).eq('sessions.session_date', todayDate).order('created_at', { ascending: false });
           if (d && d.length > 0) {
             const userIds = [...new Set(d.map((i: any) => i.sessions?.user_id).filter(Boolean))];
             const { data: emp } = await supabase.from('employees').select('id, full_name').in('id', userIds);
