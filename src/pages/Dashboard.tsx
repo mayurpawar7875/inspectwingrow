@@ -63,6 +63,7 @@ export default function Dashboard() {
   const isMobile = useIsMobile();
   const [searchParams] = useSearchParams();
   const isOrganiserMode = searchParams.get('as') === 'organiser';
+  const requestedSessionId = searchParams.get('sessionId');
   const { t } = useLanguage();
   
   // Use centralized data hook with caching
@@ -242,6 +243,34 @@ export default function Dashboard() {
     const d = String(ist.getDate()).padStart(2, '0');
     return `${y}-${m}-${d}`;
   };
+
+  useEffect(() => {
+    if (todaySessions.length === 0) return;
+
+    const today = getISTDateString(new Date());
+    let targetSessionId = requestedSessionId;
+
+    if (!targetSessionId) {
+      try {
+        const stored = JSON.parse(localStorage.getItem('dashboardState') || '{}');
+        if (stored?.selectedSessionDate === today) {
+          targetSessionId = stored.selectedSessionId;
+        }
+      } catch {
+        // ignore storage errors
+      }
+    }
+
+    const targetIndex = targetSessionId
+      ? todaySessions.findIndex((session) => session.id === targetSessionId)
+      : -1;
+
+    if (targetIndex >= 0 && targetIndex !== selectedSessionIndex) {
+      setSelectedSessionIndex(targetIndex);
+    } else if (selectedSessionIndex >= todaySessions.length) {
+      setSelectedSessionIndex(0);
+    }
+  }, [todaySessions, requestedSessionId, selectedSessionIndex]);
 
   const handleSignOut = async () => {
     await signOut();
