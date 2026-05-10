@@ -70,6 +70,7 @@ export default function StallInspectionForm({ sessionId, marketId, marketDate, u
         .select('*')
         .eq('market_id', marketId)
         .eq('market_date', marketDate)
+        .eq('created_by', userId)
         .order('farmer_name', { ascending: true });
 
       if (confirmError) throw confirmError;
