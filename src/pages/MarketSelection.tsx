@@ -57,7 +57,7 @@ export default function MarketSelection() {
       const dow = istNow.getDay();
       const today = getISTDateString(new Date());
 
-      const [byWeekday, scheduleRows, existingSessionsResult, allTodaySessions] = await Promise.all([
+      const [byWeekday, scheduleRows, existingSessionsResult] = await Promise.all([
         supabase
           .from('markets')
           .select('id, name, location')
@@ -75,11 +75,6 @@ export default function MarketSelection() {
           .eq('user_id', user.id)
           .eq('session_date', today)
           .order('created_at', { ascending: true }),
-        supabase
-          .from('sessions')
-          .select('id')
-          .eq('user_id', user.id)
-          .eq('session_date', today),
       ]);
 
       const sessionRows = ((existingSessionsResult.data || []) as ExistingSession[]);
@@ -88,20 +83,8 @@ export default function MarketSelection() {
       setExistingSessions(sessionRows);
       setExistingSessionMarkets(existingMarketIds);
 
-      // A user should continue today's existing organiser/employee session,
-      // not start a second market session from this screen.
-      if (sessionRows.length > 0) {
-        setMarkets([]);
-        setSelectedMarket('');
-        return;
-      }
-
-      const totalSessionsToday = (allTodaySessions.data || []).length;
-      if (totalSessionsToday >= 2) {
-        setMarkets([]);
-        setSelectedMarket('');
-        return;
-      }
+      // Multi-market support: do NOT short-circuit when sessions already exist.
+      // Instead, list remaining available markets so the user can add another.
 
       const scheduleIds = (scheduleRows.data || []).map((row: any) => row.market_id).filter(Boolean);
 
