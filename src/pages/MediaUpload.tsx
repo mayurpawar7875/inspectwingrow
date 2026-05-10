@@ -122,13 +122,20 @@ export default function MediaUpload() {
       const now = new Date();
       const istDate = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
       const today = istDate.toISOString().split('T')[0];
+      const selectedSessionId = getSelectedSessionIdForToday(today);
       
       // Fetch only today's session for this user
-      const { data: sessionsData } = await supabase
+      let sessionsQuery = supabase
         .from('sessions')
         .select('id')
         .eq('user_id', user.id)
         .eq('session_date', today);
+
+      if (selectedSessionId) {
+        sessionsQuery = sessionsQuery.eq('id', selectedSessionId);
+      }
+
+      const { data: sessionsData } = await sessionsQuery;
       
       const sessionIds = (sessionsData || []).map(s => s.id);
       
