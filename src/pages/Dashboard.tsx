@@ -348,7 +348,7 @@ export default function Dashboard() {
     );
   };
 
-  if (authLoading || loading) {
+  if (authLoading || loading || isResolvingRequestedSession) {
     return (
       <div className="min-h-screen bg-background p-4">
         <div className="container mx-auto max-w-4xl space-y-4">
