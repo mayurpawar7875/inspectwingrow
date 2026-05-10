@@ -404,6 +404,15 @@ export default function MarketManagerDashboard() {
                         </Button>
                       </div>
                     ))}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full text-xs md:text-sm"
+                      onClick={() => navigate('/market-selection?as=organiser')}
+                    >
+                      <MapPin className="h-3.5 w-3.5 mr-1.5" />
+                      Add Another Market
+                    </Button>
                   </div>
                 )}
 
