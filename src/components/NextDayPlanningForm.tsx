@@ -88,13 +88,19 @@ export default function NextDayPlanningForm({ sessionId, marketDate, userId, onS
       setMarketName('');
       setConfirmations([]);
 
-      const { data, error } = await supabase
+      const query = supabase
         .from('next_day_planning')
         .select('*')
-        .eq('session_id', sessionId || null)
         .eq('user_id', userId)
-        .eq('market_date', marketDate)
-        .maybeSingle();
+        .eq('market_date', marketDate);
+
+      if (sessionId) {
+        query.eq('session_id', sessionId);
+      } else {
+        query.is('session_id', null);
+      }
+
+      const { data, error } = await query.maybeSingle();
 
       if (error) throw error;
 
