@@ -117,6 +117,7 @@ async function fetchDashboardData(userId: string) {
       .from('stall_confirmations')
       .select('market_id')
       .in('market_id', allMarketIds)
+      .eq('created_by', userId)
       .eq('market_date', today),
     supabase
       .from('media')
