@@ -1256,29 +1256,6 @@ export default function Dashboard() {
         </DialogContent>
       </Dialog>
 
-      {/* Stall Inspection Dialog */}
-      <Dialog open={inspectionDialog} onOpenChange={setInspectionDialog}>
-        <DialogContent className="w-screen h-screen max-w-full max-h-full overflow-y-auto p-4 sm:p-6">
-          <DialogHeader>
-            <DialogTitle>{t('dashboard.stallInspection')}</DialogTitle>
-          </DialogHeader>
-          <Suspense fallback={<div className="p-6 text-center text-muted-foreground">Loading form...</div>}>
-            {todaySession && (
-              <StallInspectionForm
-                sessionId={todaySession.id}
-                marketId={todaySession.market_id}
-                marketDate={todaySession.session_date}
-                userId={user!.id}
-                onSuccess={() => {
-                  refetch();
-                  setInspectionDialog(false);
-                }}
-              />
-            )}
-          </Suspense>
-        </DialogContent>
-      </Dialog>
-
       {/* Market Location Visit Dialog */}
       <Dialog open={locationVisitDialog} onOpenChange={setLocationVisitDialog}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
