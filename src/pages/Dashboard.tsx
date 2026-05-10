@@ -564,17 +564,15 @@ export default function Dashboard() {
                         </Button>
                       ))}
                     </div>
-                    {todaySessions.length === 0 && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => navigate('/market-selection')}
-                        className="text-xs ml-auto"
-                      >
-                        <MapPin className="mr-1 h-3 w-3" />
-                        {t('dashboard.addSession')}
-                      </Button>
-                    )}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => navigate(isOrganiserMode ? '/market-selection?as=organiser' : '/market-selection')}
+                      className="text-xs sm:ml-auto"
+                    >
+                      <MapPin className="mr-1 h-3 w-3" />
+                      Add Another Market
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
