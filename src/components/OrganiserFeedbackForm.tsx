@@ -52,6 +52,9 @@ export default function OrganiserFeedbackForm({ sessionId, marketId, marketDate,
 
   const fetchExistingFeedback = async () => {
     try {
+      setExistingEntry(null);
+      form.reset({ difficulties: '', feedback: '' });
+
       const { data, error } = await supabase
         .from('organiser_feedback')
         .select('*')
