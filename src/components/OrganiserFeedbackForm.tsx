@@ -46,14 +46,16 @@ export default function OrganiserFeedbackForm({ sessionId, marketId, marketDate,
   });
 
   useEffect(() => {
+    setLoading(true);
     fetchExistingFeedback();
-  }, [userId, marketDate]);
+  }, [sessionId, userId, marketDate]);
 
   const fetchExistingFeedback = async () => {
     try {
       const { data, error } = await supabase
         .from('organiser_feedback')
         .select('*')
+        .eq('session_id', sessionId)
         .eq('user_id', userId)
         .eq('market_date', marketDate)
         .maybeSingle();
