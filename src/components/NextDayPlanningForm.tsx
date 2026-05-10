@@ -50,9 +50,10 @@ export default function NextDayPlanningForm({ sessionId, marketDate, userId, onS
   const [markets, setMarkets] = useState<Market[]>([]);
 
   useEffect(() => {
+    setLoading(true);
     fetchExistingPlan();
     fetchMarkets();
-  }, [userId, marketDate]);
+  }, [sessionId, userId, marketDate]);
 
   const fetchMarkets = async () => {
     try {
@@ -83,9 +84,14 @@ export default function NextDayPlanningForm({ sessionId, marketDate, userId, onS
 
   const fetchExistingPlan = async () => {
     try {
+      setExistingPlan(null);
+      setMarketName('');
+      setConfirmations([]);
+
       const { data, error } = await supabase
         .from('next_day_planning')
         .select('*')
+        .eq('session_id', sessionId || null)
         .eq('user_id', userId)
         .eq('market_date', marketDate)
         .maybeSingle();
