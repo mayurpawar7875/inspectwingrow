@@ -79,7 +79,7 @@ export default function TodaysOffersForm({ sessionId, marketId, marketDate, user
 
   useEffect(() => {
     fetchSubmittedOffers();
-  }, [userId, marketDate]);
+  }, [sessionId, userId, marketDate]);
 
   const fetchSubmittedOffers = async () => {
     try {
@@ -87,6 +87,7 @@ export default function TodaysOffersForm({ sessionId, marketId, marketDate, user
       const { data, error } = await supabase
         .from('offers')
         .select('*')
+        .eq('session_id', sessionId)
         .eq('user_id', userId)
         .eq('market_date', marketDate)
         .order('created_at', { ascending: false });

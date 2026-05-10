@@ -1,5 +1,6 @@
 import { useEffect, useState, lazy, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/lib/auth';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -42,6 +43,7 @@ const TASK_KEYS = [
 export default function MarketManagerDashboard() {
   const { user, signOut, currentRole, loading: authLoading } = useAuth();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { t } = useLanguage();
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [openDialog, setOpenDialog] = useState<number | null>(null);
@@ -54,7 +56,7 @@ export default function MarketManagerDashboard() {
   const [locationVisitDialog, setLocationVisitDialog] = useState(false);
   const [advanceDialog, setAdvanceDialog] = useState(false);
   const [assetRequestDialog, setAssetRequestDialog] = useState(false);
-  const [organiserSessions, setOrganiserSessions] = useState<Array<{ id: string; market_id: string; market: { id: string; name: string; location: string } | null }>>([]);
+  const [organiserSessions, setOrganiserSessions] = useState<Array<{ id: string; market_id: string; session_date: string; market: { id: string; name: string; location: string } | null }>>([]);
 
   const getISTDateString = () => {
     const ist = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
@@ -69,11 +71,29 @@ export default function MarketManagerDashboard() {
     const today = getISTDateString();
     const { data } = await supabase
       .from('sessions')
-      .select('id, market_id, market:markets(id, name, location)')
+      .select('id, market_id, session_date, market:markets(id, name, location)')
       .eq('user_id', user.id)
       .eq('session_date', today)
       .order('created_at', { ascending: true });
     setOrganiserSessions((data || []) as any);
+  };
+
+  const continueOrganiserSession = async (session: { id: string; market_id: string; session_date: string }) => {
+    try {
+      localStorage.setItem(
+        'dashboardState',
+        JSON.stringify({
+          selectedMarketId: session.market_id,
+          selectedSessionId: session.id,
+          selectedSessionDate: session.session_date,
+        })
+      );
+    } catch {
+      // ignore storage errors
+    }
+
+    await queryClient.invalidateQueries({ queryKey: ['dashboard-data', user?.id] });
+    navigate(`/dashboard?as=organiser&sessionId=${session.id}`);
   };
 
   useEffect(() => {
@@ -398,7 +418,7 @@ export default function MarketManagerDashboard() {
                         <Button
                           size="sm"
                           className="shrink-0 text-xs"
-                          onClick={() => navigate('/dashboard?as=organiser')}
+                          onClick={() => continueOrganiserSession(session)}
                         >
                           Continue Session
                         </Button>

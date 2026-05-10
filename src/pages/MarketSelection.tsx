@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/lib/auth';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -18,12 +19,14 @@ interface Market {
 interface ExistingSession {
   id: string;
   market_id: string;
+  session_date: string;
   market: Market | null;
 }
 
 export default function MarketSelection() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [searchParams] = useSearchParams();
   const isOrganiserMode = searchParams.get('as') === 'organiser';
   const [markets, setMarkets] = useState<Market[]>([]);
@@ -45,6 +48,24 @@ export default function MarketSelection() {
     const m = String(ist.getMonth() + 1).padStart(2, '0');
     const d = String(ist.getDate()).padStart(2, '0');
     return `${y}-${m}-${d}`;
+  };
+
+  const continueSession = async (sessionId: string, marketId: string, date: string) => {
+    try {
+      localStorage.setItem(
+        'dashboardState',
+        JSON.stringify({
+          selectedMarketId: marketId,
+          selectedSessionId: sessionId,
+          selectedSessionDate: date,
+        })
+      );
+    } catch {
+      // ignore storage errors
+    }
+
+    await queryClient.invalidateQueries({ queryKey: ['dashboard-data', user?.id] });
+    navigate(isOrganiserMode ? `/dashboard?as=organiser&sessionId=${sessionId}` : `/dashboard?sessionId=${sessionId}`);
   };
 
   const fetchMarketsAndSessions = async () => {
@@ -71,7 +92,7 @@ export default function MarketSelection() {
           .eq('is_active', true),
         supabase
           .from('sessions')
-          .select('id, market_id, created_at, market:markets(id, name, location)')
+          .select('id, market_id, session_date, created_at, market:markets(id, name, location)')
           .eq('user_id', user.id)
           .eq('session_date', today)
           .order('created_at', { ascending: true }),
@@ -146,11 +167,11 @@ export default function MarketSelection() {
 
       if (dup?.id) {
         toast.success('Resuming existing session');
-        navigate(isOrganiserMode ? '/dashboard?as=organiser' : '/dashboard');
+        await continueSession(dup.id, selectedMarket, today);
         return;
       }
 
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('sessions')
         .insert({
           user_id: user!.id,
@@ -164,7 +185,7 @@ export default function MarketSelection() {
       if (error) throw error;
 
       toast.success('Session created successfully!');
-      navigate(isOrganiserMode ? '/dashboard?as=organiser' : '/dashboard');
+      await continueSession(data.id, data.market_id, data.session_date);
     } catch (error: any) {
       if (error.code === '23505') {
         toast.error('You already have a session for today');
@@ -232,7 +253,7 @@ export default function MarketSelection() {
                         type="button"
                         variant="outline"
                         className="shrink-0"
-                        onClick={() => navigate('/dashboard?as=organiser')}
+                        onClick={() => continueSession(session.id, session.market_id, session.session_date)}
                       >
                         Continue Session
                       </Button>

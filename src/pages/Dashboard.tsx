@@ -63,15 +63,21 @@ export default function Dashboard() {
   const isMobile = useIsMobile();
   const [searchParams] = useSearchParams();
   const isOrganiserMode = searchParams.get('as') === 'organiser';
+  const requestedSessionId = searchParams.get('sessionId');
   const { t } = useLanguage();
   
   // Use centralized data hook with caching
-  const { data: dashboardData, isLoading: dataLoading, refetch, isError, error: dataError } = useDashboardData();
+  const { data: dashboardData, isLoading: dataLoading, isFetching, refetch, isError, error: dataError } = useDashboardData();
   
   // Derive sessions from hook data
   const todaySessions = useMemo(() => dashboardData?.sessions || [], [dashboardData?.sessions]);
   const [selectedSessionIndex, setSelectedSessionIndex] = useState(0);
-  const todaySession = todaySessions[selectedSessionIndex] || null;
+  const requestedSession = useMemo(
+    () => requestedSessionId ? todaySessions.find((session) => session.id === requestedSessionId) || null : null,
+    [requestedSessionId, todaySessions]
+  );
+  const todaySession = requestedSession || todaySessions[selectedSessionIndex] || null;
+  const isResolvingRequestedSession = !!requestedSessionId && !requestedSession && isFetching;
   
   // Derived values from hook
   const stallsCount = todaySession?.stalls_count ?? 0;
@@ -215,8 +221,18 @@ export default function Dashboard() {
   // Persist the actively-selected session/market so other pages (Punch, MediaUpload, Stalls)
   // submit tasks against the correct market when the user has multiple sessions today.
   useEffect(() => {
+    if (requestedSessionId && todaySession?.id !== requestedSessionId) return;
+
     if (todaySession) {
       try {
+        const today = getISTDateString(new Date());
+        const stored = JSON.parse(localStorage.getItem('dashboardState') || '{}');
+        const storedSessionStillExists = todaySessions.some((session) => session.id === stored?.selectedSessionId);
+
+        if (!requestedSessionId && stored?.selectedSessionDate === today && storedSessionStillExists && stored.selectedSessionId !== todaySession.id) {
+          return;
+        }
+
         localStorage.setItem(
           'dashboardState',
           JSON.stringify({
@@ -229,7 +245,7 @@ export default function Dashboard() {
         // ignore storage errors
       }
     }
-  }, [todaySession?.id, todaySession?.market_id, todaySession?.session_date]);
+  }, [requestedSessionId, todaySession?.id, todaySession?.market_id, todaySession?.session_date, todaySessions]);
 
   const handleOpenCollectionSheet = () => {
     navigate('/collections');
@@ -242,6 +258,34 @@ export default function Dashboard() {
     const d = String(ist.getDate()).padStart(2, '0');
     return `${y}-${m}-${d}`;
   };
+
+  useEffect(() => {
+    if (todaySessions.length === 0) return;
+
+    const today = getISTDateString(new Date());
+    let targetSessionId = requestedSessionId;
+
+    if (!targetSessionId) {
+      try {
+        const stored = JSON.parse(localStorage.getItem('dashboardState') || '{}');
+        if (stored?.selectedSessionDate === today) {
+          targetSessionId = stored.selectedSessionId;
+        }
+      } catch {
+        // ignore storage errors
+      }
+    }
+
+    const targetIndex = targetSessionId
+      ? todaySessions.findIndex((session) => session.id === targetSessionId)
+      : -1;
+
+    if (targetIndex >= 0 && targetIndex !== selectedSessionIndex) {
+      setSelectedSessionIndex(targetIndex);
+    } else if (selectedSessionIndex >= todaySessions.length) {
+      setSelectedSessionIndex(0);
+    }
+  }, [todaySessions, requestedSessionId, selectedSessionIndex]);
 
   const handleSignOut = async () => {
     await signOut();
@@ -312,7 +356,7 @@ export default function Dashboard() {
     );
   };
 
-  if (authLoading || loading) {
+  if (authLoading || loading || isResolvingRequestedSession) {
     return (
       <div className="min-h-screen bg-background p-4">
         <div className="container mx-auto max-w-4xl space-y-4">
@@ -590,7 +634,10 @@ export default function Dashboard() {
                           key={session.id}
                           variant={selectedSessionIndex === index ? "default" : "outline"}
                           size="sm"
-                          onClick={() => setSelectedSessionIndex(index)}
+                          onClick={() => {
+                            setSelectedSessionIndex(index);
+                            navigate(isOrganiserMode ? `/dashboard?as=organiser&sessionId=${session.id}` : `/dashboard?sessionId=${session.id}`, { replace: true });
+                          }}
                           className="text-xs"
                         >
                           {session.market.name}
