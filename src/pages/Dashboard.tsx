@@ -626,7 +626,10 @@ export default function Dashboard() {
                           key={session.id}
                           variant={selectedSessionIndex === index ? "default" : "outline"}
                           size="sm"
-                          onClick={() => setSelectedSessionIndex(index)}
+                          onClick={() => {
+                            setSelectedSessionIndex(index);
+                            navigate(isOrganiserMode ? `/dashboard?as=organiser&sessionId=${session.id}` : `/dashboard?sessionId=${session.id}`, { replace: true });
+                          }}
                           className="text-xs"
                         >
                           {session.market.name}
