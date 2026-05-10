@@ -132,24 +132,16 @@ export default function MarketSelection() {
     try {
       const today = getISTDateString(new Date());
 
-      const { data: existingToday } = await supabase
+      // Pre-insert duplicate check: prevent creating two sessions for the same
+      // user/market/date. Other markets on the same day are allowed.
+      const { data: dup } = await supabase
         .from('sessions')
         .select('id')
         .eq('user_id', user!.id)
+        .eq('market_id', selectedMarket)
         .eq('session_date', today)
-        .order('created_at', { ascending: true })
         .limit(1)
         .maybeSingle();
-
-      if (existingToday?.id) {
-        toast.success('Continuing existing session');
-        navigate(isOrganiserMode ? '/dashboard?as=organiser' : '/dashboard');
-        return;
-      }
-
-      // Pre-insert duplicate check: if a session already exists for this
-      // user/market/date, do NOT create another one.
-      const { data: dup } = await supabase
         .from('sessions')
         .select('id')
         .eq('user_id', user!.id)
