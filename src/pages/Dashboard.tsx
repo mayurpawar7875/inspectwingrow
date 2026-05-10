@@ -383,6 +383,23 @@ export default function Dashboard() {
                   <p>{t('dashboard.mySessions')}</p>
                 </TooltipContent>
               </Tooltip>
+
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="default"
+                    size="sm"
+                    className="h-7 px-2 sm:h-9 sm:px-3 flex-shrink-0"
+                    onClick={() => navigate(isOrganiserMode ? '/market-selection?as=organiser' : '/market-selection')}
+                  >
+                    <MapPin className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-2" />
+                    <span className="hidden sm:inline">Add Market</span>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Add another market for today</p>
+                </TooltipContent>
+              </Tooltip>
               
               <Tooltip>
                 <TooltipTrigger asChild>
