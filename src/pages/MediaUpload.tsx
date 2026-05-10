@@ -30,6 +30,18 @@ interface MediaFile {
   market_name?: string;
 }
 
+// Returns the dashboard-selected session id if it's for today's IST date, else undefined.
+// Ensures multi-market days submit media against the active market chosen by the user.
+function getSelectedSessionIdForToday(todayIST: string): string | undefined {
+  try {
+    const ds = JSON.parse(localStorage.getItem('dashboardState') || '{}');
+    if (ds?.selectedSessionId && ds?.selectedSessionDate === todayIST) {
+      return ds.selectedSessionId;
+    }
+  } catch {}
+  return undefined;
+}
+
 export default function MediaUpload() {
   const { user, currentRole } = useAuth();
   const navigate = useNavigate();
