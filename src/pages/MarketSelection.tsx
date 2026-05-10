@@ -65,7 +65,7 @@ export default function MarketSelection() {
     }
 
     await queryClient.invalidateQueries({ queryKey: ['dashboard-data', user?.id] });
-    navigate(`${isOrganiserMode ? '/dashboard?as=organiser' : '/dashboard'}&sessionId=${sessionId}`);
+    navigate(isOrganiserMode ? `/dashboard?as=organiser&sessionId=${sessionId}` : `/dashboard?sessionId=${sessionId}`);
   };
 
   const fetchMarketsAndSessions = async () => {
