@@ -48,14 +48,30 @@ export default function Punch() {
         return `${y}-${m}-${d}`;
       };
       const today = getISTDateString(new Date());
-      const { data, error } = await supabase
+
+      // Prefer the session selected on the dashboard so multi-market days punch the correct one
+      let selectedSessionId: string | undefined;
+      try {
+        const ds = JSON.parse(localStorage.getItem('dashboardState') || '{}');
+        if (ds?.selectedSessionId && ds?.selectedSessionDate === today) {
+          selectedSessionId = ds.selectedSessionId;
+        }
+      } catch {}
+
+      let query = supabase
         .from('sessions')
         .select('*')
         .eq('user_id', user.id)
         .eq('session_date', today)
-        .neq('status', 'completed')
-        .order('created_at', { ascending: false })
-        .limit(1);
+        .neq('status', 'completed');
+
+      if (selectedSessionId) {
+        query = query.eq('id', selectedSessionId);
+      } else {
+        query = query.order('created_at', { ascending: false }).limit(1);
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
       

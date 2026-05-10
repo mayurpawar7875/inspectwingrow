@@ -212,6 +212,25 @@ export default function Dashboard() {
     return () => clearInterval(interval);
   }, [todaySessions, selectedSessionIndex]);
 
+  // Persist the actively-selected session/market so other pages (Punch, MediaUpload, Stalls)
+  // submit tasks against the correct market when the user has multiple sessions today.
+  useEffect(() => {
+    if (todaySession) {
+      try {
+        localStorage.setItem(
+          'dashboardState',
+          JSON.stringify({
+            selectedMarketId: todaySession.market_id,
+            selectedSessionId: todaySession.id,
+            selectedSessionDate: todaySession.session_date,
+          })
+        );
+      } catch {
+        // ignore storage errors
+      }
+    }
+  }, [todaySession?.id, todaySession?.market_id, todaySession?.session_date]);
+
   const handleOpenCollectionSheet = () => {
     navigate('/collections');
   };
@@ -1234,29 +1253,6 @@ export default function Dashboard() {
               {submittingLeave ? t('common.submitting') : t('dashboard.applyForApproval')}
             </Button>
           </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Stall Inspection Dialog */}
-      <Dialog open={inspectionDialog} onOpenChange={setInspectionDialog}>
-        <DialogContent className="w-screen h-screen max-w-full max-h-full overflow-y-auto p-4 sm:p-6">
-          <DialogHeader>
-            <DialogTitle>{t('dashboard.stallInspection')}</DialogTitle>
-          </DialogHeader>
-          <Suspense fallback={<div className="p-6 text-center text-muted-foreground">Loading form...</div>}>
-            {todaySession && (
-              <StallInspectionForm
-                sessionId={todaySession.id}
-                marketId={todaySession.market_id}
-                marketDate={todaySession.session_date}
-                userId={user!.id}
-                onSuccess={() => {
-                  refetch();
-                  setInspectionDialog(false);
-                }}
-              />
-            )}
-          </Suspense>
         </DialogContent>
       </Dialog>
 

@@ -114,27 +114,27 @@ export default function Stalls() {
     if (!user) return;
 
     try {
-      // Resolve market id from local storage OR fallback to today's active session
+      // Resolve market id: prefer the dashboard's currently-selected market so users
+      // adding stalls for an additional market today don't get bound to the previous one.
       const dashboardState = JSON.parse(localStorage.getItem('dashboardState') || '{}');
       let marketId: string | undefined = dashboardState.selectedMarketId;
 
-      const today = getISTDateString(new Date());
-      const { data: todaySessions, error: sessionErr } = await supabase
-        .from('sessions')
-        .select('id, market_id, status, session_date')
-        .eq('user_id', user.id)
-        .eq('session_date', today)
-        .order('created_at', { ascending: false })
-        .limit(1);
-      const todaySession = todaySessions?.[0] ?? null;
-      if (sessionErr) throw sessionErr;
-
-      // If a session already exists for today, always use its market to avoid duplicate session creation
-      if (todaySession?.market_id) {
-        marketId = todaySession.market_id;
-        localStorage.setItem('dashboardState', JSON.stringify({ selectedMarketId: marketId }));
+      if (!marketId) {
+        const today = getISTDateString(new Date());
+        const { data: todaySessions, error: sessionErr } = await supabase
+          .from('sessions')
+          .select('id, market_id, status, session_date')
+          .eq('user_id', user.id)
+          .eq('session_date', today)
+          .order('created_at', { ascending: false })
+          .limit(1);
+        if (sessionErr) throw sessionErr;
+        const todaySession = todaySessions?.[0] ?? null;
+        if (todaySession?.market_id) {
+          marketId = todaySession.market_id;
+          localStorage.setItem('dashboardState', JSON.stringify({ ...dashboardState, selectedMarketId: marketId }));
+        }
       }
-      // Otherwise keep previously selected marketId (from dashboard)
 
       if (!marketId) {
         toast.error('Please select a market from the dashboard first');
