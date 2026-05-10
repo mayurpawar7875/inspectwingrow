@@ -57,7 +57,7 @@ export default function MarketSelection() {
       const dow = istNow.getDay();
       const today = getISTDateString(new Date());
 
-      const [byWeekday, scheduleRows, existingSessionsResult, allTodaySessions] = await Promise.all([
+      const [byWeekday, scheduleRows, existingSessionsResult] = await Promise.all([
         supabase
           .from('markets')
           .select('id, name, location')
@@ -75,11 +75,6 @@ export default function MarketSelection() {
           .eq('user_id', user.id)
           .eq('session_date', today)
           .order('created_at', { ascending: true }),
-        supabase
-          .from('sessions')
-          .select('id')
-          .eq('user_id', user.id)
-          .eq('session_date', today),
       ]);
 
       const sessionRows = ((existingSessionsResult.data || []) as ExistingSession[]);
@@ -88,20 +83,8 @@ export default function MarketSelection() {
       setExistingSessions(sessionRows);
       setExistingSessionMarkets(existingMarketIds);
 
-      // A user should continue today's existing organiser/employee session,
-      // not start a second market session from this screen.
-      if (sessionRows.length > 0) {
-        setMarkets([]);
-        setSelectedMarket('');
-        return;
-      }
-
-      const totalSessionsToday = (allTodaySessions.data || []).length;
-      if (totalSessionsToday >= 2) {
-        setMarkets([]);
-        setSelectedMarket('');
-        return;
-      }
+      // Multi-market support: do NOT short-circuit when sessions already exist.
+      // Instead, list remaining available markets so the user can add another.
 
       const scheduleIds = (scheduleRows.data || []).map((row: any) => row.market_id).filter(Boolean);
 
@@ -149,23 +132,8 @@ export default function MarketSelection() {
     try {
       const today = getISTDateString(new Date());
 
-      const { data: existingToday } = await supabase
-        .from('sessions')
-        .select('id')
-        .eq('user_id', user!.id)
-        .eq('session_date', today)
-        .order('created_at', { ascending: true })
-        .limit(1)
-        .maybeSingle();
-
-      if (existingToday?.id) {
-        toast.success('Continuing existing session');
-        navigate(isOrganiserMode ? '/dashboard?as=organiser' : '/dashboard');
-        return;
-      }
-
-      // Pre-insert duplicate check: if a session already exists for this
-      // user/market/date, do NOT create another one.
+      // Pre-insert duplicate check: prevent creating two sessions for the same
+      // user/market/date. Other markets on the same day are allowed.
       const { data: dup } = await supabase
         .from('sessions')
         .select('id')
@@ -174,6 +142,7 @@ export default function MarketSelection() {
         .eq('session_date', today)
         .limit(1)
         .maybeSingle();
+
 
       if (dup?.id) {
         toast.success('Resuming existing session');
@@ -291,22 +260,22 @@ export default function MarketSelection() {
               </div>
             )}
 
-            {markets.length === 0 && existingSessionMarkets.length >= 2 ? (
+            {markets.length === 0 && existingSessionMarkets.length > 0 ? (
               <div className="bg-muted p-4 rounded-lg">
                 <p className="text-sm text-muted-foreground">
-                  <strong>Note:</strong> You have reached the maximum of 2 sessions per day.
+                  <strong>Note:</strong> You have already started sessions for every market scheduled today. You can continue any of them above.
                 </p>
               </div>
-            ) : markets.length === 0 && existingSessionMarkets.length > 0 ? (
+            ) : markets.length === 0 ? (
               <div className="bg-muted p-4 rounded-lg">
                 <p className="text-sm text-muted-foreground">
-                  <strong>Note:</strong> You already have a market session for today. Continue that session instead of starting another.
+                  <strong>Note:</strong> No markets are scheduled for today.
                 </p>
               </div>
             ) : (
               <div className="bg-muted p-4 rounded-lg">
                 <p className="text-sm text-muted-foreground">
-                  <strong>Note:</strong> Only one market session can be started for today.
+                  <strong>Tip:</strong> You can start sessions for multiple markets on the same day. Attendance and tasks are tracked separately for each.
                 </p>
               </div>
             )}
