@@ -215,14 +215,18 @@ export default function MediaUpload() {
       
       console.log('Looking for session on date:', today, 'for user:', user.id);
       
-      const { data: sessionData, error: sessionError } = await supabase
+      const selectedSessionId = getSelectedSessionIdForToday(today);
+      let sessionQuery = supabase
         .from('sessions')
         .select('id, market_id, status')
         .eq('user_id', user.id)
-        .eq('session_date', today)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
+        .eq('session_date', today);
+      if (selectedSessionId) {
+        sessionQuery = sessionQuery.eq('id', selectedSessionId);
+      } else {
+        sessionQuery = sessionQuery.order('created_at', { ascending: false }).limit(1);
+      }
+      const { data: sessionData, error: sessionError } = await sessionQuery.maybeSingle();
       
       console.log('Session query result:', sessionData, 'error:', sessionError);
       
