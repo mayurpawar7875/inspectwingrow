@@ -260,22 +260,22 @@ export default function MarketSelection() {
               </div>
             )}
 
-            {markets.length === 0 && existingSessionMarkets.length >= 2 ? (
+            {markets.length === 0 && existingSessionMarkets.length > 0 ? (
               <div className="bg-muted p-4 rounded-lg">
                 <p className="text-sm text-muted-foreground">
-                  <strong>Note:</strong> You have reached the maximum of 2 sessions per day.
+                  <strong>Note:</strong> You have already started sessions for every market scheduled today. You can continue any of them above.
                 </p>
               </div>
-            ) : markets.length === 0 && existingSessionMarkets.length > 0 ? (
+            ) : markets.length === 0 ? (
               <div className="bg-muted p-4 rounded-lg">
                 <p className="text-sm text-muted-foreground">
-                  <strong>Note:</strong> You already have a market session for today. Continue that session instead of starting another.
+                  <strong>Note:</strong> No markets are scheduled for today.
                 </p>
               </div>
             ) : (
               <div className="bg-muted p-4 rounded-lg">
                 <p className="text-sm text-muted-foreground">
-                  <strong>Note:</strong> Only one market session can be started for today.
+                  <strong>Tip:</strong> You can start sessions for multiple markets on the same day. Attendance and tasks are tracked separately for each.
                 </p>
               </div>
             )}
