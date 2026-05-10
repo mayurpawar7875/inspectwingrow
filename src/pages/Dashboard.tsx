@@ -216,6 +216,8 @@ export default function Dashboard() {
   // Persist the actively-selected session/market so other pages (Punch, MediaUpload, Stalls)
   // submit tasks against the correct market when the user has multiple sessions today.
   useEffect(() => {
+    if (requestedSessionId && todaySession?.id !== requestedSessionId) return;
+
     if (todaySession) {
       try {
         localStorage.setItem(
