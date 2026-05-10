@@ -19,6 +19,7 @@ interface Market {
 interface ExistingSession {
   id: string;
   market_id: string;
+  session_date: string;
   market: Market | null;
 }
 
@@ -91,7 +92,7 @@ export default function MarketSelection() {
           .eq('is_active', true),
         supabase
           .from('sessions')
-          .select('id, market_id, created_at, market:markets(id, name, location)')
+          .select('id, market_id, session_date, created_at, market:markets(id, name, location)')
           .eq('user_id', user.id)
           .eq('session_date', today)
           .order('created_at', { ascending: true }),
@@ -252,7 +253,7 @@ export default function MarketSelection() {
                         type="button"
                         variant="outline"
                         className="shrink-0"
-                        onClick={() => navigate('/dashboard?as=organiser')}
+                        onClick={() => continueSession(session.id, session.market_id, session.session_date)}
                       >
                         Continue Session
                       </Button>
