@@ -1,0 +1,1 @@
+DROP INDEX IF EXISTS public.sessions_one_per_user_day_from_2026_05_02;
