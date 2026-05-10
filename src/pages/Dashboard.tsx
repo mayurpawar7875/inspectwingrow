@@ -67,12 +67,17 @@ export default function Dashboard() {
   const { t } = useLanguage();
   
   // Use centralized data hook with caching
-  const { data: dashboardData, isLoading: dataLoading, refetch, isError, error: dataError } = useDashboardData();
+  const { data: dashboardData, isLoading: dataLoading, isFetching, refetch, isError, error: dataError } = useDashboardData();
   
   // Derive sessions from hook data
   const todaySessions = useMemo(() => dashboardData?.sessions || [], [dashboardData?.sessions]);
   const [selectedSessionIndex, setSelectedSessionIndex] = useState(0);
-  const todaySession = todaySessions[selectedSessionIndex] || null;
+  const requestedSession = useMemo(
+    () => requestedSessionId ? todaySessions.find((session) => session.id === requestedSessionId) || null : null,
+    [requestedSessionId, todaySessions]
+  );
+  const todaySession = requestedSession || todaySessions[selectedSessionIndex] || null;
+  const isResolvingRequestedSession = !!requestedSessionId && !requestedSession && isFetching;
   
   // Derived values from hook
   const stallsCount = todaySession?.stalls_count ?? 0;
