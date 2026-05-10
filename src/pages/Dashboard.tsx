@@ -225,6 +225,14 @@ export default function Dashboard() {
 
     if (todaySession) {
       try {
+        const today = getISTDateString(new Date());
+        const stored = JSON.parse(localStorage.getItem('dashboardState') || '{}');
+        const storedSessionStillExists = todaySessions.some((session) => session.id === stored?.selectedSessionId);
+
+        if (!requestedSessionId && stored?.selectedSessionDate === today && storedSessionStillExists && stored.selectedSessionId !== todaySession.id) {
+          return;
+        }
+
         localStorage.setItem(
           'dashboardState',
           JSON.stringify({
@@ -237,7 +245,7 @@ export default function Dashboard() {
         // ignore storage errors
       }
     }
-  }, [todaySession?.id, todaySession?.market_id, todaySession?.session_date]);
+  }, [requestedSessionId, todaySession?.id, todaySession?.market_id, todaySession?.session_date, todaySessions]);
 
   const handleOpenCollectionSheet = () => {
     navigate('/collections');
