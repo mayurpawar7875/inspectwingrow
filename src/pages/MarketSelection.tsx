@@ -142,13 +142,7 @@ export default function MarketSelection() {
         .eq('session_date', today)
         .limit(1)
         .maybeSingle();
-        .from('sessions')
-        .select('id')
-        .eq('user_id', user!.id)
-        .eq('market_id', selectedMarket)
-        .eq('session_date', today)
-        .limit(1)
-        .maybeSingle();
+
 
       if (dup?.id) {
         toast.success('Resuming existing session');
