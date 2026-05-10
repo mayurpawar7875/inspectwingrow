@@ -812,13 +812,18 @@ export default function MediaUpload() {
       const todayIST = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }))
         .toISOString().split('T')[0];
       
-      const { data: sessions, error: sessionError } = await supabase
+      const _selectedSessionId = getSelectedSessionIdForToday(todayIST);
+      let _sessionQuery = supabase
         .from('sessions')
         .select('id, market_id')
         .eq('user_id', user.id)
-        .eq('session_date', todayIST)
-        .order('created_at', { ascending: false })
-        .limit(1);
+        .eq('session_date', todayIST);
+      if (_selectedSessionId) {
+        _sessionQuery = _sessionQuery.eq('id', _selectedSessionId);
+      } else {
+        _sessionQuery = _sessionQuery.order('created_at', { ascending: false }).limit(1);
+      }
+      const { data: sessions, error: sessionError } = await _sessionQuery;
       
       if (sessionError) throw sessionError;
       
@@ -941,13 +946,18 @@ export default function MediaUpload() {
       const todayIST = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }))
         .toISOString().split('T')[0];
       
-      const { data: sessions, error: sessionError } = await supabase
+      const _selectedSessionId = getSelectedSessionIdForToday(todayIST);
+      let _sessionQuery = supabase
         .from('sessions')
         .select('id, market_id')
         .eq('user_id', user.id)
-        .eq('session_date', todayIST)
-        .order('created_at', { ascending: false })
-        .limit(1);
+        .eq('session_date', todayIST);
+      if (_selectedSessionId) {
+        _sessionQuery = _sessionQuery.eq('id', _selectedSessionId);
+      } else {
+        _sessionQuery = _sessionQuery.order('created_at', { ascending: false }).limit(1);
+      }
+      const { data: sessions, error: sessionError } = await _sessionQuery;
       
       if (sessionError) throw sessionError;
       
@@ -1077,13 +1087,18 @@ export default function MediaUpload() {
       const todayIST = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }))
         .toISOString().split('T')[0];
       
-      const { data: sessions, error: sessionError } = await supabase
+      const _selectedSessionId = getSelectedSessionIdForToday(todayIST);
+      let _sessionQuery = supabase
         .from('sessions')
         .select('id, market_id')
         .eq('user_id', user.id)
-        .eq('session_date', todayIST)
-        .order('created_at', { ascending: false })
-        .limit(1);
+        .eq('session_date', todayIST);
+      if (_selectedSessionId) {
+        _sessionQuery = _sessionQuery.eq('id', _selectedSessionId);
+      } else {
+        _sessionQuery = _sessionQuery.order('created_at', { ascending: false }).limit(1);
+      }
+      const { data: sessions, error: sessionError } = await _sessionQuery;
       
       if (sessionError) throw sessionError;
       
@@ -1150,14 +1165,19 @@ export default function MediaUpload() {
       const todayIST = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }))
         .toISOString().split('T')[0];
       
-      const { data: sessions, error: sessionError } = await supabase
+      const _selectedSessionId = getSelectedSessionIdForToday(todayIST);
+      let _sessionQuery = supabase
         .from('sessions')
         .select('id, market_id')
         .eq('user_id', user.id)
         .eq('session_date', todayIST)
-        .eq('status', 'active')
-        .order('created_at', { ascending: false })
-        .limit(1);
+        .eq('status', 'active');
+      if (_selectedSessionId) {
+        _sessionQuery = _sessionQuery.eq('id', _selectedSessionId);
+      } else {
+        _sessionQuery = _sessionQuery.order('created_at', { ascending: false }).limit(1);
+      }
+      const { data: sessions, error: sessionError } = await _sessionQuery;
       
       if (sessionError) throw sessionError;
       
