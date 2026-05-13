@@ -97,7 +97,7 @@ async function reencodeVideo(file: File, targetBitrate: number, duration: number
       canvas.height = Math.floor(originalHeight * scale);
       
       // Cap bitrate for reasonable quality
-      const cappedBitrate = Math.min(Math.max(targetBitrate, 500000), 4000000);
+      const cappedBitrate = Math.min(Math.max(targetBitrate, 200000), 1500000);
       
       const stream = canvas.captureStream(30);
       
