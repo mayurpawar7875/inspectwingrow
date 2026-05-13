@@ -478,26 +478,29 @@ export default function MediaUpload() {
             console.log('Found existing market:', existingMarket.id, existingMarket.name);
           }
 
-          // Compress video if larger than 50MB
+          // Compress video if larger than 50MB; on failure, fall back to original
           let videoToUpload = marketData.videoFile;
           if (needsCompression(marketData.videoFile)) {
             try {
               videoToUpload = await compressVideo(marketData.videoFile);
             } catch (compressError) {
               console.error('Compression failed for market:', marketData.marketName, compressError);
-              toast.error(`Compression failed for ${marketData.marketName}`);
-              errorCount++;
-              continue;
+              toast.warning(`Could not compress video for ${marketData.marketName} — uploading original.`);
+              videoToUpload = marketData.videoFile;
             }
           }
 
           const fileName = `${user.id}/${Date.now()}-${videoToUpload.name}`;
           const { error: uploadError } = await supabase.storage
             .from('employee-media')
-            .upload(fileName, videoToUpload);
+            .upload(fileName, videoToUpload, {
+              contentType: videoToUpload.type || 'video/mp4',
+              upsert: false,
+            });
 
           if (uploadError) {
             console.error('File upload error:', uploadError);
+            toast.error(`Upload failed for ${marketData.marketName}: ${uploadError.message}`);
             errorCount++;
             continue;
           }
