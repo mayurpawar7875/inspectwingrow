@@ -257,9 +257,9 @@ export default function MediaUpload() {
         try {
           fileToUpload = await compressVideo(file);
         } catch (compressError) {
-          console.error('Compression failed:', compressError);
-          setUploading(false);
-          return;
+          console.error('Compression failed, uploading original:', compressError);
+          toast.warning('Could not compress video — uploading original file. This may take a while.');
+          fileToUpload = file;
         }
       }
       
@@ -276,9 +276,9 @@ export default function MediaUpload() {
             try {
               fileToUpload = await compressVideo(file);
             } catch (compressError) {
-              console.error('Compression failed:', compressError);
-              setUploading(false);
-              return;
+              console.error('Compression failed, uploading original:', compressError);
+              toast.warning('Could not compress video — uploading original file.');
+              fileToUpload = file;
             }
           }
           validateVideo(fileToUpload);
@@ -296,7 +296,10 @@ export default function MediaUpload() {
       const fileName = generateUploadPath(user.id, fileToUpload.name);
       const { error: uploadError } = await supabase.storage
         .from('employee-media')
-        .upload(fileName, fileToUpload);
+        .upload(fileName, fileToUpload, {
+          contentType: fileToUpload.type || 'application/octet-stream',
+          upsert: false,
+        });
 
       if (uploadError) throw uploadError;
 
