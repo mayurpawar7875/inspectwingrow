@@ -257,9 +257,9 @@ export default function MediaUpload() {
         try {
           fileToUpload = await compressVideo(file);
         } catch (compressError) {
-          console.error('Compression failed:', compressError);
-          setUploading(false);
-          return;
+          console.error('Compression failed, uploading original:', compressError);
+          toast.warning('Could not compress video — uploading original file. This may take a while.');
+          fileToUpload = file;
         }
       }
       
@@ -276,9 +276,9 @@ export default function MediaUpload() {
             try {
               fileToUpload = await compressVideo(file);
             } catch (compressError) {
-              console.error('Compression failed:', compressError);
-              setUploading(false);
-              return;
+              console.error('Compression failed, uploading original:', compressError);
+              toast.warning('Could not compress video — uploading original file.');
+              fileToUpload = file;
             }
           }
           validateVideo(fileToUpload);
@@ -296,7 +296,10 @@ export default function MediaUpload() {
       const fileName = generateUploadPath(user.id, fileToUpload.name);
       const { error: uploadError } = await supabase.storage
         .from('employee-media')
-        .upload(fileName, fileToUpload);
+        .upload(fileName, fileToUpload, {
+          contentType: fileToUpload.type || 'application/octet-stream',
+          upsert: false,
+        });
 
       if (uploadError) throw uploadError;
 
@@ -323,8 +326,8 @@ export default function MediaUpload() {
       toast.success(`Saved at ${istTime} IST`);
       fetchData();
     } catch (error: any) {
-      toast.error('Failed to upload media');
-      console.error(error);
+      console.error('Upload error:', error);
+      toast.error(`Upload failed: ${error?.message || error?.error || 'Unknown error'}`);
     } finally {
       setUploading(false);
     }
@@ -475,26 +478,29 @@ export default function MediaUpload() {
             console.log('Found existing market:', existingMarket.id, existingMarket.name);
           }
 
-          // Compress video if larger than 50MB
+          // Compress video if larger than 50MB; on failure, fall back to original
           let videoToUpload = marketData.videoFile;
           if (needsCompression(marketData.videoFile)) {
             try {
               videoToUpload = await compressVideo(marketData.videoFile);
             } catch (compressError) {
               console.error('Compression failed for market:', marketData.marketName, compressError);
-              toast.error(`Compression failed for ${marketData.marketName}`);
-              errorCount++;
-              continue;
+              toast.warning(`Could not compress video for ${marketData.marketName} — uploading original.`);
+              videoToUpload = marketData.videoFile;
             }
           }
 
           const fileName = `${user.id}/${Date.now()}-${videoToUpload.name}`;
           const { error: uploadError } = await supabase.storage
             .from('employee-media')
-            .upload(fileName, videoToUpload);
+            .upload(fileName, videoToUpload, {
+              contentType: videoToUpload.type || 'video/mp4',
+              upsert: false,
+            });
 
           if (uploadError) {
             console.error('File upload error:', uploadError);
+            toast.error(`Upload failed for ${marketData.marketName}: ${uploadError.message}`);
             errorCount++;
             continue;
           }
