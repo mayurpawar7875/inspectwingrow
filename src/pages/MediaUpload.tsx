@@ -326,8 +326,8 @@ export default function MediaUpload() {
       toast.success(`Saved at ${istTime} IST`);
       fetchData();
     } catch (error: any) {
-      toast.error('Failed to upload media');
-      console.error(error);
+      console.error('Upload error:', error);
+      toast.error(`Upload failed: ${error?.message || error?.error || 'Unknown error'}`);
     } finally {
       setUploading(false);
     }
