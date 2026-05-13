@@ -50,6 +50,15 @@ export default defineConfig(({ mode }) => ({
             }
           },
           {
+            // Storage uploads/downloads must NEVER be cached or timed-out by SW.
+            // Large video uploads can take much longer than 10s on mobile networks.
+            urlPattern: /^https:\/\/.*\.supabase\.co\/storage\/.*/i,
+            handler: 'NetworkOnly',
+            options: {
+              cacheName: 'supabase-storage-no-cache',
+            }
+          },
+          {
             urlPattern: /^https:\/\/.*\.supabase\.co\/.*/i,
             handler: 'NetworkFirst',
             options: {
