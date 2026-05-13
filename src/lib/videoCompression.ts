@@ -1,7 +1,7 @@
 import { toast } from 'sonner';
 
-const TARGET_SIZE_MB = 30;
-const MAX_SIZE_MB = 50;
+const TARGET_SIZE_MB = 8;
+const MAX_SIZE_MB = 10;
 
 /**
  * Compresses a video file to target size using browser APIs
