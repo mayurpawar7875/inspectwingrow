@@ -87,7 +87,7 @@ async function reencodeVideo(file: File, targetBitrate: number, duration: number
       const originalHeight = video.videoHeight;
       
       let scale = 1;
-      const maxDimension = 1280; // Max 720p-ish
+      const maxDimension = 854; // Max ~480p for tighter compression to ~10MB
       
       if (originalWidth > maxDimension || originalHeight > maxDimension) {
         scale = maxDimension / Math.max(originalWidth, originalHeight);
