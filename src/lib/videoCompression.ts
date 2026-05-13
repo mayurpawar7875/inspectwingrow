@@ -1,7 +1,7 @@
 import { toast } from 'sonner';
 
-const TARGET_SIZE_MB = 30;
-const MAX_SIZE_MB = 50;
+const TARGET_SIZE_MB = 8;
+const MAX_SIZE_MB = 10;
 
 /**
  * Compresses a video file to target size using browser APIs
@@ -87,7 +87,7 @@ async function reencodeVideo(file: File, targetBitrate: number, duration: number
       const originalHeight = video.videoHeight;
       
       let scale = 1;
-      const maxDimension = 1280; // Max 720p-ish
+      const maxDimension = 854; // Max ~480p for tighter compression to ~10MB
       
       if (originalWidth > maxDimension || originalHeight > maxDimension) {
         scale = maxDimension / Math.max(originalWidth, originalHeight);
@@ -97,7 +97,7 @@ async function reencodeVideo(file: File, targetBitrate: number, duration: number
       canvas.height = Math.floor(originalHeight * scale);
       
       // Cap bitrate for reasonable quality
-      const cappedBitrate = Math.min(Math.max(targetBitrate, 500000), 4000000);
+      const cappedBitrate = Math.min(Math.max(targetBitrate, 200000), 1500000);
       
       const stream = canvas.captureStream(30);
       
