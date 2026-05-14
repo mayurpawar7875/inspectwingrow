@@ -4,6 +4,19 @@ const TARGET_SIZE_MB = 8;
 const MAX_SIZE_MB = 10;
 
 /**
+ * Detects if browser supports the compression pipeline (MediaRecorder + webm/vp8).
+ */
+function isCompressionSupported(): boolean {
+  try {
+    if (typeof MediaRecorder === 'undefined') return false;
+    if (typeof HTMLCanvasElement.prototype.captureStream !== 'function') return false;
+    return MediaRecorder.isTypeSupported('video/webm;codecs=vp8');
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Compresses a video file to target size using browser APIs
  * @param file - The video file to compress
  * @returns Compressed video blob or original if already small enough
@@ -13,6 +26,13 @@ export async function compressVideo(file: File): Promise<File> {
   
   // If file is already under max size, return as-is
   if (fileSizeMB <= MAX_SIZE_MB) {
+    return file;
+  }
+
+  // Skip compression on unsupported browsers (e.g. iOS Safari) — return original
+  if (!isCompressionSupported()) {
+    console.warn('Video compression not supported in this browser; uploading original.');
+    toast.info(`Uploading ${fileSizeMB.toFixed(1)}MB video (compression unavailable on this device)...`);
     return file;
   }
 
@@ -30,11 +50,14 @@ export async function compressVideo(file: File): Promise<File> {
     const compressedSizeMB = compressedBlob.size / (1024 * 1024);
     toast.success(`Video compressed: ${fileSizeMB.toFixed(1)}MB → ${compressedSizeMB.toFixed(1)}MB`);
 
-    return new File([compressedBlob], file.name, { type: 'video/webm' });
+    // Replace extension with .webm so storage/content-type stays consistent
+    const baseName = file.name.replace(/\.[^.]+$/, '');
+    return new File([compressedBlob], `${baseName}.webm`, { type: 'video/webm' });
   } catch (error) {
     console.error('Video compression failed:', error);
-    toast.error('Video compression failed. Please try a smaller file.');
-    throw new Error('Video compression failed');
+    toast.warning('Compression failed — uploading original file instead.');
+    // Don't throw — let caller upload original file as fallback
+    return file;
   }
 }
 

@@ -2,7 +2,7 @@ import { toast } from 'sonner';
 
 // File validation constants
 export const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
-export const MAX_VIDEO_SIZE = 50 * 1024 * 1024; // 50MB for videos
+export const MAX_VIDEO_SIZE = 500 * 1024 * 1024; // 500MB for videos (auto-compressed before upload)
 
 export const ALLOWED_IMAGE_TYPES = [
   'image/jpeg',
