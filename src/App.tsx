@@ -40,10 +40,7 @@ const MySessions = lazy(() => import("./pages/MySessions"));
 const Notifications = lazy(() => import("./pages/Notifications"));
 const MarketManagerDashboard = lazy(() => import("./pages/MarketManagerDashboard"));
 const MyManagerSessions = lazy(() => import("./pages/MyManagerSessions"));
-const BDODashboard = lazy(() => import("./pages/BDODashboard"));
-const BDOSession = lazy(() => import("./pages/BDOSession"));
-const MMSession = lazy(() => import("./pages/BDOSession")); // Same component, different route for Market Managers
-const BDOReporting = lazy(() => import("./pages/admin/BDOReporting"));
+const MMSession = lazy(() => import("./pages/BDOSession")); // Reused component for Market Managers
 const EmployeeReporting = lazy(() => import("./pages/admin/EmployeeReporting"));
 const EmployeeCitySelection = lazy(() => import("./pages/admin/EmployeeCitySelection"));
 const EmployeeMarketsList = lazy(() => import("./pages/admin/EmployeeMarketsList"));
