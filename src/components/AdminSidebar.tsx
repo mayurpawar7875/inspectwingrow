@@ -16,7 +16,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
 
 const menuItems = [
   { titleKey: "admin.dashboard", url: "/admin", icon: LayoutDashboard },
-  { titleKey: "admin.bdoReporting", url: "/admin/bdo-reporting", icon: MapPin },
+  
   { titleKey: "admin.mmReporting", url: "/admin/market-reporting", icon: Building2 },
   { titleKey: "admin.bmsMonitoring", url: "/admin/bms-monitoring", icon: Users },
   { titleKey: "admin.requests", url: "/admin/requests", icon: ClipboardList },
