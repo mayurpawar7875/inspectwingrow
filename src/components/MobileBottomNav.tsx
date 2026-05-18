@@ -83,8 +83,6 @@ export function MobileBottomNav({ onAction }: MobileBottomNavProps) {
     switch (currentRole) {
       case 'admin':
         return adminNavItems;
-      case 'bdo':
-        return bdoNavItems;
       case 'market_manager':
         return marketManagerNavItems;
       default:
