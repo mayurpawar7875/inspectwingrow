@@ -43,13 +43,6 @@ const adminNavItems: NavItem[] = [
   { icon: UserCircle, labelKey: 'Profile', path: '/my-profile' },
 ];
 
-const bdoNavItems: NavItem[] = [
-  { icon: Home, labelKey: 'nav.home', path: '/bdo-dashboard' },
-  { icon: MapPin, labelKey: 'nav.markets', path: '/admin/live-markets' },
-  { icon: CalendarCheck, labelKey: 'nav.attendance', path: '/my-attendance' },
-  { icon: FileText, labelKey: 'nav.documents', path: '/bdo-dashboard' },
-  { icon: UserCircle, labelKey: 'Profile', path: '/my-profile' },
-];
 
 const marketManagerNavItems: NavItem[] = [
   { icon: Home, labelKey: 'nav.home', path: '/manager-dashboard' },
