@@ -264,7 +264,7 @@ export const translations: Record<Language, Record<string, string>> = {
     'bdo.stallsInQueue': 'Stalls in Queue',
 
     // BMS Executive Dashboard
-    'bms.title': 'BMS Executive',
+    'bms.title': 'Market Service Executive',
     'bms.attendance': 'Attendance',
     'bms.inspection': 'Inspection',
     'bms.assetRequest': 'Assets',
@@ -617,7 +617,7 @@ export const translations: Record<Language, Record<string, string>> = {
     'bdo.stallsInQueue': 'रांगेतील स्टॉल्स',
 
     // BMS Executive Dashboard
-    'bms.title': 'BMS एक्झिक्युटिव्ह',
+    'bms.title': 'मार्केट सर्व्हिस एक्झिक्युटिव्ह',
     'bms.attendance': 'हजेरी',
     'bms.inspection': 'तपासणी',
     'bms.assetRequest': 'मालमत्ता',

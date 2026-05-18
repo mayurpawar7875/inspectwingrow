@@ -11,7 +11,7 @@ export function BMSMonitoringWidget() {
   return (
     <Card className="w-full overflow-hidden">
       <CardHeader className="pb-2 px-3 sm:px-6">
-        <CardTitle className="text-base sm:text-lg">BMS Executive Monitoring</CardTitle>
+        <CardTitle className="text-base sm:text-lg">Market Service Executive Monitoring</CardTitle>
       </CardHeader>
       <CardContent className="px-3 sm:px-6">
         <Tabs value={activeTab} onValueChange={setActiveTab}>
