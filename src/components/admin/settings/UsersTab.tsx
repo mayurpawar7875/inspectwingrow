@@ -545,10 +545,7 @@ export function UsersTab({ onChangeMade }: UsersTabProps) {
                             {user.roles.includes('market_manager') ? '✓ Remove Market Manager' : '+ Add Market Manager'}
                           </SelectItem>
                           <SelectItem value="bms_executive" className="text-xs">
-                            {user.roles.includes('bms_executive') ? '✓ Remove BMS Executive' : '+ Add BMS Executive'}
-                          </SelectItem>
-                          <SelectItem value="bdo" className="text-xs">
-                            {user.roles.includes('bdo') ? '✓ Remove BDO' : '+ Add BDO'}
+                            {user.roles.includes('bms_executive') ? '✓ Remove Market Service Executive' : '+ Add Market Service Executive'}
                           </SelectItem>
                           <SelectItem value="admin" className="text-xs">
                             {user.roles.includes('admin') ? '✓ Remove Admin' : '+ Add Admin'}
