@@ -40,10 +40,7 @@ const MySessions = lazy(() => import("./pages/MySessions"));
 const Notifications = lazy(() => import("./pages/Notifications"));
 const MarketManagerDashboard = lazy(() => import("./pages/MarketManagerDashboard"));
 const MyManagerSessions = lazy(() => import("./pages/MyManagerSessions"));
-const BDODashboard = lazy(() => import("./pages/BDODashboard"));
-const BDOSession = lazy(() => import("./pages/BDOSession"));
-const MMSession = lazy(() => import("./pages/BDOSession")); // Same component, different route for Market Managers
-const BDOReporting = lazy(() => import("./pages/admin/BDOReporting"));
+const MMSession = lazy(() => import("./pages/BDOSession")); // Reused component for Market Managers
 const EmployeeReporting = lazy(() => import("./pages/admin/EmployeeReporting"));
 const EmployeeCitySelection = lazy(() => import("./pages/admin/EmployeeCitySelection"));
 const EmployeeMarketsList = lazy(() => import("./pages/admin/EmployeeMarketsList"));
@@ -97,8 +94,6 @@ const App = () => (
                 <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
                 <Route path="/manager-dashboard" element={<ProtectedRoute><MarketManagerDashboard /></ProtectedRoute>} />
                 <Route path="/my-manager-sessions" element={<ProtectedRoute><MyManagerSessions /></ProtectedRoute>} />
-                <Route path="/bdo-dashboard" element={<ProtectedRoute><BDODashboard /></ProtectedRoute>} />
-                <Route path="/bdo-session" element={<ProtectedRoute><BDOSession /></ProtectedRoute>} />
                 <Route path="/mm-session" element={<ProtectedRoute><MMSession /></ProtectedRoute>} />
                 <Route path="/market-selection" element={<ProtectedRoute><MarketSelection /></ProtectedRoute>} />
                 <Route path="/punch" element={<ProtectedRoute><Punch /></ProtectedRoute>} />
@@ -114,7 +109,7 @@ const App = () => (
                 <Route path="/admin/requests" element={<ProtectedRoute><AdminLayout><RequestsManagement /></AdminLayout></ProtectedRoute>} />
                 <Route path="/admin/bms-monitoring" element={<ProtectedRoute><AdminLayout><BMSMonitoring /></AdminLayout></ProtectedRoute>} />
                 <Route path="/admin/asset-management" element={<ProtectedRoute><AdminLayout><AssetManagement /></AdminLayout></ProtectedRoute>} />
-                <Route path="/admin/bdo-reporting" element={<ProtectedRoute><AdminLayout><BDOReporting /></AdminLayout></ProtectedRoute>} />
+                
                 <Route path="/admin/employee-reporting" element={<ProtectedRoute><AdminLayout><EmployeeCitySelection /></AdminLayout></ProtectedRoute>} />
                 <Route path="/admin/employee-reporting/city/:city" element={<ProtectedRoute><AdminLayout><EmployeeMarketsList /></AdminLayout></ProtectedRoute>} />
                 <Route path="/admin/employee-reporting/market/:marketId" element={<ProtectedRoute><AdminLayout><EmployeeReporting /></AdminLayout></ProtectedRoute>} />
@@ -125,7 +120,7 @@ const App = () => (
                 <Route path="/my-profile" element={<ProtectedRoute><MyProfile /></ProtectedRoute>} />
                 <Route path="/admin/live-market" element={<ProtectedRoute><AdminLayout><LiveMarket /></AdminLayout></ProtectedRoute>} />
                 <Route path="/admin/live-markets" element={<ProtectedRoute><AdminLayout><LiveMarkets /></AdminLayout></ProtectedRoute>} />
-                <Route path="/bdo/live-markets" element={<ProtectedRoute><LiveMarkets /></ProtectedRoute>} />
+                
                 <Route path="/admin/sessions" element={<ProtectedRoute><AdminLayout><AllSessions /></AdminLayout></ProtectedRoute>} />
                 <Route path="/admin/users" element={<ProtectedRoute><AdminLayout><Users /></AdminLayout></ProtectedRoute>} />
                 <Route path="/admin/leaves" element={<ProtectedRoute><AdminLayout><LeaveRequests /></AdminLayout></ProtectedRoute>} />

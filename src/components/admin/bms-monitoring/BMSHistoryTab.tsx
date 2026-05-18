@@ -341,7 +341,7 @@ export function BMSHistoryTab() {
           />
         </div>
         <div className="space-y-2">
-          <Label>BMS Executive</Label>
+          <Label>Market Service Executive</Label>
           <Select value={selectedEmployee} onValueChange={setSelectedEmployee}>
             <SelectTrigger>
               <SelectValue placeholder="All Executives" />

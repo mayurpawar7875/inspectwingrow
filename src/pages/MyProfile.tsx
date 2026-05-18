@@ -30,7 +30,7 @@ const ROLE_LABELS: Record<string, string> = {
   admin: 'Admin',
   market_manager: 'Market Manager',
   bdo: 'Business Development Manager',
-  bms_executive: 'BMS Executive',
+  bms_executive: 'Market Service Executive',
   employee: 'Organiser',
 };
 
