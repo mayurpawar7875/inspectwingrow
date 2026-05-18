@@ -94,8 +94,6 @@ const App = () => (
                 <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
                 <Route path="/manager-dashboard" element={<ProtectedRoute><MarketManagerDashboard /></ProtectedRoute>} />
                 <Route path="/my-manager-sessions" element={<ProtectedRoute><MyManagerSessions /></ProtectedRoute>} />
-                <Route path="/bdo-dashboard" element={<ProtectedRoute><BDODashboard /></ProtectedRoute>} />
-                <Route path="/bdo-session" element={<ProtectedRoute><BDOSession /></ProtectedRoute>} />
                 <Route path="/mm-session" element={<ProtectedRoute><MMSession /></ProtectedRoute>} />
                 <Route path="/market-selection" element={<ProtectedRoute><MarketSelection /></ProtectedRoute>} />
                 <Route path="/punch" element={<ProtectedRoute><Punch /></ProtectedRoute>} />
