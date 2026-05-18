@@ -28,7 +28,6 @@ export default function Auth() {
       const routes: Record<string, string> = {
         admin: '/admin',
         market_manager: '/manager-dashboard',
-        bdo: '/bdo-dashboard',
         bms_executive: '/bms-dashboard',
       };
       navigate(routes[currentRole] || '/dashboard', { replace: true });
