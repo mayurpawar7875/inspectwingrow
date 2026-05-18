@@ -55,9 +55,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (roles.includes('admin')) {
         setCurrentRole('admin');
         console.log('Role set to: admin');
-      } else if (roles.includes('bdo')) {
-        setCurrentRole('bdo');
-        console.log('Role set to: bdo');
       } else if (roles.includes('bms_executive')) {
         setCurrentRole('bms_executive');
         console.log('Role set to: bms_executive');
