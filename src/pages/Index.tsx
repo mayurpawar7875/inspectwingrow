@@ -20,7 +20,6 @@ const Index = () => {
       const opts = { replace: true };
       if (currentRole === "admin") navigate("/admin", opts);
       else if (currentRole === "market_manager") navigate("/manager-dashboard", opts);
-      else if (currentRole === "bdo") navigate("/bdo-dashboard", opts);
       else if (currentRole === "bms_executive") navigate("/bms-dashboard", opts);
       else navigate("/dashboard", opts);
     }
