@@ -150,6 +150,13 @@ export default function MarketSelection() {
 
     // Hard guard against double-submission (rapid clicks, StrictMode re-invocations)
     if (submittingRef.current || loading) return;
+
+    // Enforce max 2 active sessions per day per organiser.
+    if (existingSessions.length >= 2) {
+      toast.error('You already have 2 market sessions today. Continue one from above instead of starting another.');
+      return;
+    }
+
     submittingRef.current = true;
     setLoading(true);
 
