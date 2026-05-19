@@ -231,71 +231,130 @@ export default function LiveMarkets() {
       if (!sessionsData || sessionsData.length === 0) return [];
 
       const userIds = [...new Set(sessionsData.map(s => s.user_id))];
-      
-      // Fetch employee names
-      const { data: employeesData } = await supabase
-        .from('employees')
-        .select('id, full_name')
-        .in('id', userIds);
+      const sessionIds = sessionsData.map(s => s.id);
+      const safeSessionIds = sessionIds.length > 0 ? sessionIds : ['00000000-0000-0000-0000-000000000000'];
 
-      const employeeMap = new Map(employeesData?.map(e => [e.id, e.full_name]) || []);
+      // Fetch all task-related data in parallel (computed live, not from attendance_records counters)
+      const [
+        employeesRes,
+        attendanceRes,
+        stallsRes,
+        mediaRes,
+        offersRes,
+        commoditiesRes,
+        feedbackRes,
+        inspectionsRes,
+        planningRes,
+        collectionsRes,
+      ] = await Promise.all([
+        supabase.from('employees').select('id, full_name').in('id', userIds),
+        supabase
+          .from('attendance_records')
+          .select('user_id, punch_in_lat, punch_in_lng')
+          .eq('attendance_date', todayDate)
+          .in('user_id', userIds),
+        supabase
+          .from('stall_confirmations')
+          .select('created_by, created_at')
+          .eq('market_id', marketId)
+          .eq('market_date', todayDate),
+        supabase.from('media').select('session_id, media_type').in('session_id', safeSessionIds),
+        supabase.from('offers').select('user_id').eq('market_id', marketId).eq('market_date', todayDate),
+        supabase.from('non_available_commodities').select('user_id').eq('market_id', marketId).eq('market_date', todayDate),
+        supabase.from('organiser_feedback').select('user_id').eq('market_id', marketId).eq('market_date', todayDate),
+        supabase.from('stall_inspections').select('session_id').in('session_id', safeSessionIds),
+        supabase.from('next_day_planning').select('user_id').eq('market_id', marketId).eq('market_date', todayDate),
+        supabase.from('collections').select('collected_by').eq('market_id', marketId).eq('collection_date', todayDate),
+      ]);
 
-      // Fetch attendance records with GPS data
-      const { data: attendanceData } = await supabase
-        .from('attendance_records')
-        .select('user_id, punch_in_lat, punch_in_lng, completed_tasks, total_tasks')
-        .eq('attendance_date', todayDate)
-        .in('user_id', userIds);
+      const employeeMap = new Map(employeesRes.data?.map((e: any) => [e.id, e.full_name]) || []);
+      const attendanceMap = new Map(attendanceRes.data?.map((a: any) => [a.user_id, a]) || []);
 
-      const attendanceMap = new Map(attendanceData?.map(a => [a.user_id, a]) || []);
+      const todayStartIST = new Date(`${todayDate}T00:00:00+05:30`).getTime();
+      const stallsCreatedToday = (stallsRes.data || []).filter((s: any) => {
+        if (!s.created_at) return false;
+        return new Date(s.created_at).getTime() >= todayStartIST;
+      });
 
-      // Build employee info array
-      const employees: EmployeeInfo[] = sessionsData.map(session => {
-        const name = employeeMap.get(session.user_id) || 'Unknown';
-        const attendance = attendanceMap.get(session.user_id);
-        
+      // Group sessions by user
+      const sessionsByUser = new Map<string, any[]>();
+      sessionsData.forEach((s: any) => {
+        if (!s.user_id) return;
+        if (!sessionsByUser.has(s.user_id)) sessionsByUser.set(s.user_id, []);
+        sessionsByUser.get(s.user_id)!.push(s);
+      });
+
+      // Group media + inspections by session
+      const mediaBySession = new Map<string, any[]>();
+      mediaRes.data?.forEach((m: any) => {
+        if (!mediaBySession.has(m.session_id)) mediaBySession.set(m.session_id, []);
+        mediaBySession.get(m.session_id)!.push(m);
+      });
+      const inspectionsBySession = new Map<string, any[]>();
+      inspectionsRes.data?.forEach((i: any) => {
+        if (!inspectionsBySession.has(i.session_id)) inspectionsBySession.set(i.session_id, []);
+        inspectionsBySession.get(i.session_id)!.push(i);
+      });
+
+      const employees: EmployeeInfo[] = Array.from(sessionsByUser.entries()).map(([userId, userSessions]) => {
+        const name = (employeeMap.get(userId) as string) || 'Unknown';
+        const attendance: any = attendanceMap.get(userId);
+
+        const primarySession = [...userSessions].sort((a, b) =>
+          new Date(b.punch_in_time || 0).getTime() - new Date(a.punch_in_time || 0).getTime()
+        )[0];
+
+        const userMedia = userSessions.flatMap((s: any) => mediaBySession.get(s.id) || []);
+        const userInspectionsCount = userSessions.reduce(
+          (sum: number, s: any) => sum + ((inspectionsBySession.get(s.id) || []).length || 0), 0
+        );
+
+        let completedTasks = 0;
+        if (userSessions.some((s: any) => s.punch_in_time)) completedTasks++;
+        if (stallsCreatedToday.some((s: any) => s.created_by === userId)) completedTasks++;
+        if (userMedia.some((m: any) => m.media_type === 'outside_rates')) completedTasks++;
+        if (userMedia.some((m: any) => m.media_type === 'rate_board')) completedTasks++;
+        if (userMedia.some((m: any) => m.media_type === 'market_video')) completedTasks++;
+        if (userMedia.some((m: any) => m.media_type === 'cleaning_video')) completedTasks++;
+        if (userMedia.some((m: any) => m.media_type === 'customer_feedback')) completedTasks++;
+        if (userMedia.some((m: any) => m.media_type === 'selfie_gps')) completedTasks++;
+        if ((offersRes.data || []).some((o: any) => o.user_id === userId)) completedTasks++;
+        if ((commoditiesRes.data || []).some((c: any) => c.user_id === userId)) completedTasks++;
+        if ((feedbackRes.data || []).some((f: any) => f.user_id === userId)) completedTasks++;
+        if (userInspectionsCount > 0) completedTasks++;
+        if ((planningRes.data || []).some((p: any) => p.user_id === userId)) completedTasks++;
+        if ((collectionsRes.data || []).some((c: any) => c.collected_by === userId)) completedTasks++;
+
         let duration: number | null = null;
-        if (session.punch_in_time && session.punch_out_time) {
-          const start = new Date(session.punch_in_time);
-          const end = new Date(session.punch_out_time);
-          duration = Math.round((end.getTime() - start.getTime()) / (1000 * 60)); // in minutes
+        if (primarySession?.punch_in_time && primarySession?.punch_out_time) {
+          duration = Math.round(
+            (new Date(primarySession.punch_out_time).getTime() - new Date(primarySession.punch_in_time).getTime()) / (1000 * 60)
+          );
         }
 
         let status: 'active' | 'completed' | 'half_day' = 'active';
-        if (session.status === 'finalized' || session.status === 'completed') {
+        if (primarySession?.status === 'finalized' || primarySession?.status === 'completed') {
           status = 'completed';
-        } else if (session.punch_out_time && !session.punch_in_time) {
-          status = 'half_day';
         }
 
-        const initials = name
-          .split(' ')
-          .map((n: string) => n[0])
-          .join('')
-          .toUpperCase()
-          .slice(0, 2);
+        const initials = name.split(' ').filter(Boolean).map((n: string) => n[0]).join('').toUpperCase().slice(0, 2);
 
         return {
-          id: session.user_id,
+          id: userId,
           name,
           initials,
           status,
-          punch_in_time: session.punch_in_time,
-          punch_out_time: session.punch_out_time,
+          punch_in_time: primarySession?.punch_in_time || null,
+          punch_out_time: primarySession?.punch_out_time || null,
           punch_in_lat: attendance?.punch_in_lat || null,
           punch_in_lng: attendance?.punch_in_lng || null,
           duration,
-          completed_tasks: attendance?.completed_tasks || 0,
-          total_tasks: attendance?.total_tasks || 13,
+          completed_tasks: completedTasks,
+          total_tasks: 14,
         };
       });
 
-      // Remove duplicates (same user can have multiple sessions)
-      const uniqueEmployees = Array.from(
-        new Map(employees.map(e => [e.id, e])).values()
-      );
-
-      return uniqueEmployees;
+      return employees;
     } catch (error) {
       console.error('Error fetching employee details:', error);
       return [];
