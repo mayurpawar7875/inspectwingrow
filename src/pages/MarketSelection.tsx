@@ -128,11 +128,14 @@ export default function MarketSelection() {
       );
 
       setMarkets(availableMarkets);
-      setSelectedMarket((current) =>
-        availableMarkets.some((market) => market.id === current)
-          ? current
-          : availableMarkets[0]?.id || ''
-      );
+      // Only auto-preselect when the user has no started sessions yet.
+      // Otherwise require an explicit choice to avoid accidentally
+      // creating additional market sessions on the same day.
+      setSelectedMarket((current) => {
+        if (availableMarkets.some((market) => market.id === current)) return current;
+        if (sessionRows.length > 0) return '';
+        return availableMarkets[0]?.id || '';
+      });
     } catch (error: any) {
       toast.error('Failed to load markets');
       console.error(error);
