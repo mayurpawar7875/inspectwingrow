@@ -128,11 +128,14 @@ export default function MarketSelection() {
       );
 
       setMarkets(availableMarkets);
-      setSelectedMarket((current) =>
-        availableMarkets.some((market) => market.id === current)
-          ? current
-          : availableMarkets[0]?.id || ''
-      );
+      // Only auto-preselect when the user has no started sessions yet.
+      // Otherwise require an explicit choice to avoid accidentally
+      // creating additional market sessions on the same day.
+      setSelectedMarket((current) => {
+        if (availableMarkets.some((market) => market.id === current)) return current;
+        if (sessionRows.length > 0) return '';
+        return availableMarkets[0]?.id || '';
+      });
     } catch (error: any) {
       toast.error('Failed to load markets');
       console.error(error);
@@ -147,6 +150,13 @@ export default function MarketSelection() {
 
     // Hard guard against double-submission (rapid clicks, StrictMode re-invocations)
     if (submittingRef.current || loading) return;
+
+    // Enforce max 2 active sessions per day per organiser.
+    if (existingSessions.length >= 2) {
+      toast.error('You already have 2 market sessions today. Continue one from above instead of starting another.');
+      return;
+    }
+
     submittingRef.current = true;
     setLoading(true);
 
