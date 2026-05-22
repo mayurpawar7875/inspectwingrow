@@ -1,7 +1,11 @@
 import { toast } from 'sonner';
 
-const TARGET_SIZE_MB = 8;
-const MAX_SIZE_MB = 10;
+const TARGET_SIZE_MB = 40;
+// Only compress very large videos. Smaller files upload directly so users
+// don't get stuck on the slow real-time re-encode pipeline.
+const MAX_SIZE_MB = 50;
+// Hard ceiling on compression time — fall back to uploading the original.
+const COMPRESSION_TIMEOUT_MS = 90_000;
 
 /**
  * Detects if browser supports the compression pipeline (MediaRecorder + webm/vp8).
