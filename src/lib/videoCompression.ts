@@ -1,7 +1,11 @@
 import { toast } from 'sonner';
 
-const TARGET_SIZE_MB = 8;
-const MAX_SIZE_MB = 10;
+const TARGET_SIZE_MB = 40;
+// Only compress very large videos. Smaller files upload directly so users
+// don't get stuck on the slow real-time re-encode pipeline.
+const MAX_SIZE_MB = 50;
+// Hard ceiling on compression time — fall back to uploading the original.
+const COMPRESSION_TIMEOUT_MS = 90_000;
 
 /**
  * Detects if browser supports the compression pipeline (MediaRecorder + webm/vp8).
@@ -45,8 +49,16 @@ export async function compressVideo(file: File): Promise<File> {
     // Target bitrate in bits per second (with some buffer for audio)
     const targetBitrate = Math.floor((targetSizeBytes * 8) / duration * 0.85);
 
-    const compressedBlob = await reencodeVideo(file, targetBitrate, duration);
-    
+    const compressedBlob = await Promise.race([
+      reencodeVideo(file, targetBitrate, duration),
+      new Promise<Blob>((_, reject) =>
+        setTimeout(
+          () => reject(new Error('Compression timed out')),
+          COMPRESSION_TIMEOUT_MS
+        )
+      ),
+    ]);
+
     const compressedSizeMB = compressedBlob.size / (1024 * 1024);
     toast.success(`Video compressed: ${fileSizeMB.toFixed(1)}MB → ${compressedSizeMB.toFixed(1)}MB`);
 
