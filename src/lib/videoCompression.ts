@@ -49,8 +49,16 @@ export async function compressVideo(file: File): Promise<File> {
     // Target bitrate in bits per second (with some buffer for audio)
     const targetBitrate = Math.floor((targetSizeBytes * 8) / duration * 0.85);
 
-    const compressedBlob = await reencodeVideo(file, targetBitrate, duration);
-    
+    const compressedBlob = await Promise.race([
+      reencodeVideo(file, targetBitrate, duration),
+      new Promise<Blob>((_, reject) =>
+        setTimeout(
+          () => reject(new Error('Compression timed out')),
+          COMPRESSION_TIMEOUT_MS
+        )
+      ),
+    ]);
+
     const compressedSizeMB = compressedBlob.size / (1024 * 1024);
     toast.success(`Video compressed: ${fileSizeMB.toFixed(1)}MB → ${compressedSizeMB.toFixed(1)}MB`);
 
