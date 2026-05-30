@@ -26,49 +26,34 @@ function isCompressionSupported(): boolean {
  * @returns Compressed video blob or original if already small enough
  */
 export async function compressVideo(file: File): Promise<File> {
+  // In-browser compression is unreliable on mobile/PWA and frequently hangs
+  // or fails. We now always upload the original file and rely on the 500MB
+  // server-side validation limit. Keep this function as a no-op passthrough
+  // so existing call sites continue to work.
   const fileSizeMB = file.size / (1024 * 1024);
-  
-  // If file is already under max size, return as-is
-  if (fileSizeMB <= MAX_SIZE_MB) {
-    return file;
+  if (fileSizeMB > MAX_SIZE_MB) {
+    toast.info(`Uploading ${fileSizeMB.toFixed(1)}MB video — please keep the app open...`);
   }
+  return file;
+}
 
-  // Skip compression on unsupported browsers (e.g. iOS Safari) — return original
-  if (!isCompressionSupported()) {
-    console.warn('Video compression not supported in this browser; uploading original.');
-    toast.info(`Uploading ${fileSizeMB.toFixed(1)}MB video (compression unavailable on this device)...`);
-    return file;
-  }
-
-  toast.info(`Video is ${fileSizeMB.toFixed(1)}MB. Compressing to ~${TARGET_SIZE_MB}MB...`);
-
+// Legacy helper kept for reference; no longer invoked.
+async function _legacyCompress(file: File): Promise<File> {
+  const fileSizeMB = file.size / (1024 * 1024);
+  if (!isCompressionSupported()) return file;
   try {
-    // Calculate target bitrate based on video duration
     const duration = await getVideoDuration(file);
     const targetSizeBytes = TARGET_SIZE_MB * 1024 * 1024;
-    // Target bitrate in bits per second (with some buffer for audio)
     const targetBitrate = Math.floor((targetSizeBytes * 8) / duration * 0.85);
-
     const compressedBlob = await Promise.race([
       reencodeVideo(file, targetBitrate, duration),
       new Promise<Blob>((_, reject) =>
-        setTimeout(
-          () => reject(new Error('Compression timed out')),
-          COMPRESSION_TIMEOUT_MS
-        )
+        setTimeout(() => reject(new Error('Compression timed out')), COMPRESSION_TIMEOUT_MS)
       ),
     ]);
-
-    const compressedSizeMB = compressedBlob.size / (1024 * 1024);
-    toast.success(`Video compressed: ${fileSizeMB.toFixed(1)}MB → ${compressedSizeMB.toFixed(1)}MB`);
-
-    // Replace extension with .webm so storage/content-type stays consistent
     const baseName = file.name.replace(/\.[^.]+$/, '');
     return new File([compressedBlob], `${baseName}.webm`, { type: 'video/webm' });
-  } catch (error) {
-    console.error('Video compression failed:', error);
-    toast.warning('Compression failed — uploading original file instead.');
-    // Don't throw — let caller upload original file as fallback
+  } catch {
     return file;
   }
 }
