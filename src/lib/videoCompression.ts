@@ -1,11 +1,10 @@
 import { toast } from 'sonner';
 
-const TARGET_SIZE_MB = 40;
-// Only compress very large videos. Smaller files upload directly so users
-// don't get stuck on the slow real-time re-encode pipeline.
-const MAX_SIZE_MB = 50;
+const TARGET_SIZE_MB = 20;
+// Compress anything above this; smaller files upload directly.
+const MAX_SIZE_MB = 20;
 // Hard ceiling on compression time — fall back to uploading the original.
-const COMPRESSION_TIMEOUT_MS = 90_000;
+const COMPRESSION_TIMEOUT_MS = 120_000;
 
 /**
  * Detects if browser supports the compression pipeline (MediaRecorder + webm/vp8).
@@ -21,39 +20,44 @@ function isCompressionSupported(): boolean {
 }
 
 /**
- * Compresses a video file to target size using browser APIs
- * @param file - The video file to compress
- * @returns Compressed video blob or original if already small enough
+ * Compresses a video file to ~20MB using browser APIs.
+ * Falls back to the original file if compression isn't supported or fails.
  */
 export async function compressVideo(file: File): Promise<File> {
-  // In-browser compression is unreliable on mobile/PWA and frequently hangs
-  // or fails. We now always upload the original file and rely on the 500MB
-  // server-side validation limit. Keep this function as a no-op passthrough
-  // so existing call sites continue to work.
   const fileSizeMB = file.size / (1024 * 1024);
-  if (fileSizeMB > MAX_SIZE_MB) {
-    toast.info(`Uploading ${fileSizeMB.toFixed(1)}MB video — please keep the app open...`);
-  }
-  return file;
-}
 
-// Legacy helper kept for reference; no longer invoked.
-async function _legacyCompress(file: File): Promise<File> {
-  const fileSizeMB = file.size / (1024 * 1024);
-  if (!isCompressionSupported()) return file;
+  if (fileSizeMB <= MAX_SIZE_MB) {
+    return file;
+  }
+
+  if (!isCompressionSupported()) {
+    console.warn('Video compression not supported in this browser; uploading original.');
+    toast.info(`Uploading ${fileSizeMB.toFixed(1)}MB video (compression unavailable on this device)...`);
+    return file;
+  }
+
+  toast.info(`Compressing video (${fileSizeMB.toFixed(1)}MB → ~${TARGET_SIZE_MB}MB)...`);
+
   try {
     const duration = await getVideoDuration(file);
     const targetSizeBytes = TARGET_SIZE_MB * 1024 * 1024;
     const targetBitrate = Math.floor((targetSizeBytes * 8) / duration * 0.85);
+
     const compressedBlob = await Promise.race([
       reencodeVideo(file, targetBitrate, duration),
       new Promise<Blob>((_, reject) =>
         setTimeout(() => reject(new Error('Compression timed out')), COMPRESSION_TIMEOUT_MS)
       ),
     ]);
+
+    const compressedSizeMB = compressedBlob.size / (1024 * 1024);
+    toast.success(`Compressed: ${fileSizeMB.toFixed(1)}MB → ${compressedSizeMB.toFixed(1)}MB`);
+
     const baseName = file.name.replace(/\.[^.]+$/, '');
     return new File([compressedBlob], `${baseName}.webm`, { type: 'video/webm' });
-  } catch {
+  } catch (error) {
+    console.error('Video compression failed:', error);
+    toast.warning('Compression failed — uploading original file instead.');
     return file;
   }
 }
@@ -196,8 +200,8 @@ async function reencodeVideo(file: File, targetBitrate: number, duration: number
 /**
  * Check if video needs compression (now always false — compression disabled)
  */
-export function needsCompression(_file: File): boolean {
-  return false;
+export function needsCompression(file: File): boolean {
+  return file.size / (1024 * 1024) > MAX_SIZE_MB;
 }
 
 /**
