@@ -194,11 +194,10 @@ async function reencodeVideo(file: File, targetBitrate: number, duration: number
 }
 
 /**
- * Check if video needs compression
+ * Check if video needs compression (now always false — compression disabled)
  */
-export function needsCompression(file: File): boolean {
-  const fileSizeMB = file.size / (1024 * 1024);
-  return fileSizeMB > MAX_SIZE_MB;
+export function needsCompression(_file: File): boolean {
+  return false;
 }
 
 /**
