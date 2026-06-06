@@ -199,8 +199,9 @@ export const fetchOrganiserTaskProgressMap = async (
   const dateValues = sessionRows
     .map((session) => (session.session_date || '').slice(0, 10))
     .filter(Boolean);
-  const minDate = dateValues.length ? [...dateValues].sort()[0] : null;
-  const maxDate = dateValues.length ? [...dateValues].sort().at(-1)! : null;
+  const sortedDates = [...dateValues].sort();
+  const minDate = sortedDates.length ? sortedDates[0] : null;
+  const maxDate = sortedDates.length ? sortedDates[sortedDates.length - 1] : null;
 
   const stallsPromise = marketIds.length > 0 && minDate && maxDate
     ? supabase
