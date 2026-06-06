@@ -792,7 +792,7 @@ export default function AttendanceReporting() {
       supabase.from("user_roles").select("user_id, role"),
       supabase.from("employee_leaves").select("user_id, leave_date, status").gte("leave_date", startDate).lte("leave_date", reportEndDate),
       supabase.from("sessions").select("id, user_id, market_id, session_date, punch_in_time, punch_out_time, markets(name, city)").gte("session_date", startDate).lte("session_date", reportEndDate),
-      supabase.from("market_manager_sessions").select("id, user_id, session_date, punch_in_time, punch_out_time, attendance_status, working_hours").gte("session_date", startDate).lte("session_date", reportEndDate),
+      supabase.from("market_manager_sessions").select("id, user_id, session_date, attendance_status, working_hours").gte("session_date", startDate).lte("session_date", reportEndDate),
       supabase.from("bdo_sessions").select("id, user_id, session_date, punch_in_time, punch_out_time, attendance_status, working_hours").gte("session_date", startDate).lte("session_date", reportEndDate),
     ]);
 
@@ -818,6 +818,15 @@ export default function AttendanceReporting() {
     const organiserSessions = sessionsRes.data || [];
     const organiserProgressBySession = await fetchOrganiserTaskProgressMap(organiserSessions as any);
     const organiserSessionById = new Map((organiserSessions as any[]).map((session: any) => [session.id, session]));
+    const mmSessionIds = (mmSessionsRes.data || []).map((session: any) => session.id);
+    const [mmPunchInRes, mmPunchOutRes] = mmSessionIds.length > 0
+      ? await Promise.all([
+          supabase.from("market_manager_punchin").select("session_id, punched_at").in("session_id", mmSessionIds),
+          supabase.from("market_manager_punchout").select("session_id, punched_at").in("session_id", mmSessionIds),
+        ])
+      : [{ data: [] }, { data: [] }];
+    const mmPunchInBySession = new Map((mmPunchInRes.data || []).map((punch: any) => [punch.session_id, punch.punched_at]));
+    const mmPunchOutBySession = new Map((mmPunchOutRes.data || []).map((punch: any) => [punch.session_id, punch.punched_at]));
     const enriched = data.map((record) => {
         const employee = employeeById.get(record.user_id) as any;
         const market = markets.find((m) => m.id === record.market_id);
@@ -899,15 +908,15 @@ export default function AttendanceReporting() {
           city: null,
           total_tasks: 0,
           completed_tasks: 0,
-          punch_in_time: session.punch_in_time ?? null,
-          punch_out_time: session.punch_out_time ?? null,
+          punch_in_time: mmPunchInBySession.get(session.id) ?? null,
+          punch_out_time: mmPunchOutBySession.get(session.id) ?? null,
           working_hours: session.working_hours ?? null,
           status: resolveAttendanceStatus({
             role: 'market_manager',
             dbStatus: session.attendance_status,
             attendanceDate: dateStr,
-            punchInTime: session.punch_in_time,
-            punchOutTime: session.punch_out_time,
+            punchInTime: mmPunchInBySession.get(session.id) ?? null,
+            punchOutTime: mmPunchOutBySession.get(session.id) ?? null,
             workingHours: session.working_hours,
             approvedLeave: hasApprovedLeave(session.user_id, dateStr),
           }),
