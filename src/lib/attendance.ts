@@ -38,6 +38,15 @@ export type OrganiserTaskProgress = {
   tasks: Array<{ key: string; label: string; done: boolean }>;
 };
 
+export type OrganiserSessionTaskInput = {
+  id: string;
+  user_id?: string | null;
+  market_id?: string | null;
+  session_date?: string | null;
+  punch_in_time?: string | null;
+  punch_out_time?: string | null;
+};
+
 export const getISTDateString = (date = new Date()): string => {
   const ist = new Date(date.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
   const y = ist.getFullYear();
@@ -176,4 +185,86 @@ export const fetchOrganiserTaskProgress = async (
     total: ORGANISER_TOTAL_TASKS,
     tasks,
   };
+};
+
+export const fetchOrganiserTaskProgressMap = async (
+  sessions: OrganiserSessionTaskInput[]
+): Promise<Map<string, OrganiserTaskProgress>> => {
+  const sessionRows = sessions.filter((session) => Boolean(session.id));
+  const progressBySession = new Map<string, OrganiserTaskProgress>();
+  if (sessionRows.length === 0) return progressBySession;
+
+  const sessionIds = sessionRows.map((session) => session.id);
+  const marketIds = [...new Set(sessionRows.map((session) => session.market_id).filter(Boolean))] as string[];
+  const dateValues = sessionRows
+    .map((session) => (session.session_date || '').slice(0, 10))
+    .filter(Boolean);
+  const minDate = dateValues.length ? [...dateValues].sort()[0] : null;
+  const maxDate = dateValues.length ? [...dateValues].sort().at(-1)! : null;
+
+  const stallsPromise = marketIds.length > 0 && minDate && maxDate
+    ? supabase
+        .from('stall_confirmations')
+        .select('id, market_id, market_date, created_by')
+        .in('market_id', marketIds)
+        .gte('market_date', minDate)
+        .lte('market_date', maxDate)
+    : Promise.resolve({ data: [] } as any);
+
+  const [mediaRes, stallsRes, offersRes, commoditiesRes, inspectionsRes, feedbackRes, planningRes] = await Promise.all([
+    supabase.from('media').select('session_id, media_type').in('session_id', sessionIds),
+    stallsPromise,
+    supabase.from('offers').select('session_id').in('session_id', sessionIds),
+    supabase.from('non_available_commodities').select('session_id').in('session_id', sessionIds),
+    supabase.from('stall_inspections').select('session_id').in('session_id', sessionIds),
+    supabase.from('organiser_feedback').select('session_id').in('session_id', sessionIds),
+    supabase.from('next_day_planning').select('session_id').in('session_id', sessionIds),
+  ]);
+
+  const mediaBySession = new Map<string, Set<string>>();
+  (mediaRes.data || []).forEach((media: any) => {
+    if (!mediaBySession.has(media.session_id)) mediaBySession.set(media.session_id, new Set());
+    mediaBySession.get(media.session_id)!.add(media.media_type);
+  });
+
+  const offersBySession = new Set((offersRes.data || []).map((row: any) => row.session_id));
+  const commoditiesBySession = new Set((commoditiesRes.data || []).map((row: any) => row.session_id));
+  const inspectionsBySession = new Set((inspectionsRes.data || []).map((row: any) => row.session_id));
+  const feedbackBySession = new Set((feedbackRes.data || []).map((row: any) => row.session_id));
+  const planningBySession = new Set((planningRes.data || []).map((row: any) => row.session_id));
+  const stallRows = stallsRes.data || [];
+
+  sessionRows.forEach((session) => {
+    const uploadedTypes = mediaBySession.get(session.id) || new Set<string>();
+    const sessionDate = (session.session_date || '').slice(0, 10);
+    const stallsDone = stallRows.some((stall: any) =>
+      stall.market_id === session.market_id &&
+      String(stall.market_date).slice(0, 10) === sessionDate &&
+      (!session.user_id || stall.created_by === session.user_id || stall.created_by == null)
+    );
+
+    const tasks = [
+      { key: 'punch_in', done: !!session.punch_in_time },
+      { key: 'selfie_gps', done: uploadedTypes.has('selfie_gps') },
+      { key: 'outside_rates', done: uploadedTypes.has('outside_rates') },
+      { key: 'rate_board', done: uploadedTypes.has('rate_board') },
+      { key: 'market_video', done: uploadedTypes.has('market_video') },
+      { key: 'cleaning_video', done: uploadedTypes.has('cleaning_video') },
+      { key: 'customer_feedback', done: uploadedTypes.has('customer_feedback') },
+      { key: 'stall_confirmations', done: stallsDone },
+      { key: 'offers', done: offersBySession.has(session.id) },
+      { key: 'non_available_commodities', done: commoditiesBySession.has(session.id) },
+      { key: 'stall_inspections', done: inspectionsBySession.has(session.id) },
+      { key: 'organiser_feedback', done: feedbackBySession.has(session.id) },
+      { key: 'next_day_planning', done: planningBySession.has(session.id) },
+    ].map((task) => ({ ...task, label: ORGANISER_TASK_LABELS[task.key] || task.key }));
+
+    progressBySession.set(session.id, {
+      completed: tasks.filter((task) => task.done).length,
+      total: ORGANISER_TOTAL_TASKS,
+      tasks,
+    });
+  });
+
+  return progressBySession;
 };
