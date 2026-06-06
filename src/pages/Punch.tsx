@@ -10,7 +10,7 @@ import { toast } from 'sonner';
 import { ArrowLeft, Clock, CheckCircle, Camera, MapPin, AlertTriangle } from 'lucide-react';
 import { validateImage, generateUploadPath } from '@/lib/fileValidation';
 import { getGPSPosition, checkLocationPermission, isSecureContext, GPSError } from '@/lib/gpsHelper';
-import { fetchOrganiserTaskProgress, finalStatusFromCompletion } from '@/lib/attendance';
+import { fetchOrganiserTaskProgress, finalStatusFromCompletion, getISTDateString } from '@/lib/attendance';
 
 export default function Punch() {
   const { user } = useAuth();
@@ -151,6 +151,7 @@ export default function Punch() {
     setActionLoading(true);
     try {
       const now = new Date().toISOString();
+      const attendanceDate = getISTDateString(new Date());
       let gpsLat: number | null = null;
       let gpsLng: number | null = null;
       let gpsAccuracy: number | null = null;
@@ -242,7 +243,7 @@ export default function Punch() {
       await supabase.from('attendance_records').insert({
         user_id: user!.id,
         session_id: session.id,
-        attendance_date: now.split('T')[0],
+        attendance_date: attendanceDate,
         punch_in_time: now,
         punch_in_lat: gpsLat,
         punch_in_lng: gpsLng,
