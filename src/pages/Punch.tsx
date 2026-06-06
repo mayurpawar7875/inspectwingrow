@@ -303,8 +303,10 @@ export default function Punch() {
 
       if (sessionError) throw sessionError;
 
+      const attendanceDate = (session.session_date || getISTDateString(now)).slice(0, 10);
+
       // Update attendance record with punch out, tasks, and calculated status
-      await supabase
+      const { data: updatedAttendance, error: attendanceUpdateError } = await supabase
         .from('attendance_records')
         .update({
           punch_out_time: nowIso,
@@ -313,7 +315,26 @@ export default function Punch() {
           status: attendanceStatus,
         })
         .eq('session_id', session.id)
-        .eq('user_id', user!.id);
+        .eq('user_id', user!.id)
+        .select('id')
+        .maybeSingle();
+
+      if (attendanceUpdateError) throw attendanceUpdateError;
+
+      if (!updatedAttendance) {
+        const { error: attendanceInsertError } = await supabase.from('attendance_records').insert({
+          user_id: user!.id,
+          session_id: session.id,
+          attendance_date: attendanceDate,
+          punch_in_time: session.punch_in_time,
+          punch_out_time: nowIso,
+          total_tasks: totalTasks,
+          completed_tasks: completedTasks,
+          status: attendanceStatus,
+        });
+
+        if (attendanceInsertError) throw attendanceInsertError;
+      }
 
       const statusText = attendanceStatus === 'full_day' ? 'Full Day' : 
                         attendanceStatus === 'half_day' ? 'Half Day' : 'Absent';
