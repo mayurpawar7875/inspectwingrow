@@ -52,12 +52,15 @@ export const isWeeklyOffDate = (dateStr: string): boolean => {
 
 export const isTodayIST = (dateStr: string): boolean => dateStr === getISTDateString();
 
-const finalStatusFromCompletion = (completed: number, total = ORGANISER_TOTAL_TASKS): 'full_day' | 'half_day' | 'absent' => {
+export const finalStatusFromCompletion = (completed: number, total = ORGANISER_TOTAL_TASKS): 'full_day' | 'half_day' | 'absent' => {
   const pct = total > 0 ? (completed / total) * 100 : 0;
   if (pct >= 95) return 'full_day';
   if (pct >= 55) return 'half_day';
   return 'absent';
 };
+
+const isFinalAttendanceStatus = (status?: string | null): status is 'full_day' | 'half_day' | 'absent' =>
+  status === 'full_day' || status === 'half_day' || status === 'absent';
 
 export const resolveAttendanceStatus = ({
   role,
@@ -86,8 +89,6 @@ export const resolveAttendanceStatus = ({
   const today = isTodayIST(attendanceDate);
   if (today && punchInTime && !punchOutTime) return 'active';
 
-  if (dbStatus === 'full_day' || dbStatus === 'half_day' || dbStatus === 'absent') return dbStatus;
-
   const normalizedRole = role || 'employee';
 
   if (normalizedRole === 'market_manager' || normalizedRole === 'bdo') {
@@ -100,10 +101,12 @@ export const resolveAttendanceStatus = ({
       if (hours >= 4) return 'half_day';
       return 'absent';
     }
+    if (isFinalAttendanceStatus(dbStatus)) return dbStatus;
     return punchInTime ? (today ? 'active' : 'absent') : 'no_record';
   }
 
   if (normalizedRole === 'bms_executive') {
+    if (isFinalAttendanceStatus(dbStatus)) return dbStatus;
     if (punchInTime) return today && !punchOutTime ? 'active' : 'full_day';
     return today ? 'no_record' : 'absent';
   }
@@ -111,6 +114,7 @@ export const resolveAttendanceStatus = ({
   const completed = completedTasks ?? 0;
   const total = totalTasks ?? 0;
   if (total > 0) return finalStatusFromCompletion(completed, total);
+  if (isFinalAttendanceStatus(dbStatus)) return dbStatus;
   if (punchInTime && today && !punchOutTime) return 'active';
   return today ? 'no_record' : 'absent';
 };
