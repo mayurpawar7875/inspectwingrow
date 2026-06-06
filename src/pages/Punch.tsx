@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import { ArrowLeft, Clock, CheckCircle, Camera, MapPin, AlertTriangle } from 'lucide-react';
 import { validateImage, generateUploadPath } from '@/lib/fileValidation';
 import { getGPSPosition, checkLocationPermission, isSecureContext, GPSError } from '@/lib/gpsHelper';
+import { fetchOrganiserTaskProgress, finalStatusFromCompletion, getISTDateString } from '@/lib/attendance';
 
 export default function Punch() {
   const { user } = useAuth();
@@ -277,90 +278,11 @@ export default function Punch() {
         workingHours = Math.round((diffMs / (1000 * 60 * 60)) * 100) / 100; // Hours with 2 decimal places
       }
       
-      // Count completed tasks across all categories
-      let completedTasks = 0;
-      
-      // 1. Check media uploads (5 required types)
-      const { data: mediaData } = await supabase
-        .from('media')
-        .select('media_type')
-        .eq('session_id', session.id);
-      
-      const uploadedTypes = new Set(mediaData?.map(m => m.media_type) || []);
-      const requiredMediaTypes: Array<'outside_rates' | 'rate_board' | 'market_video' | 'cleaning_video' | 'customer_feedback'> = [
-        'outside_rates', 'rate_board', 'market_video', 'cleaning_video', 'customer_feedback'
-      ];
-      completedTasks += requiredMediaTypes.filter(type => uploadedTypes.has(type)).length;
-      
-      // 2. Check stall confirmations
-      const { count: stallsCount } = await supabase
-        .from('stall_confirmations')
-        .select('*', { count: 'exact', head: true })
-        .eq('market_id', session.market_id)
-        .eq('market_date', session.session_date);
-      if (stallsCount && stallsCount > 0) completedTasks++;
-      
-      // 3. Check today's offers
-      const { count: offersCount } = await supabase
-        .from('offers')
-        .select('*', { count: 'exact', head: true })
-        .eq('session_id', session.id);
-      if (offersCount && offersCount > 0) completedTasks++;
-      
-      // 4. Check non-available commodities
-      const { count: commoditiesCount } = await supabase
-        .from('non_available_commodities')
-        .select('*', { count: 'exact', head: true })
-        .eq('session_id', session.id);
-      if (commoditiesCount && commoditiesCount > 0) completedTasks++;
-      
-      // 5. Check organiser feedback
-      const { count: feedbackCount } = await supabase
-        .from('organiser_feedback')
-        .select('*', { count: 'exact', head: true })
-        .eq('session_id', session.id);
-      if (feedbackCount && feedbackCount > 0) completedTasks++;
-      
-      // 6. Check stall inspections
-      const { count: inspectionsCount } = await supabase
-        .from('stall_inspections')
-        .select('*', { count: 'exact', head: true })
-        .eq('session_id', session.id);
-      if (inspectionsCount && inspectionsCount > 0) completedTasks++;
-      
-      // 7. Check next day planning
-      const { count: planningCount } = await supabase
-        .from('next_day_planning')
-        .select('*', { count: 'exact', head: true })
-        .eq('session_id', session.id);
-      if (planningCount && planningCount > 0) completedTasks++;
-      
-      // 8. Check collections
-      const { count: collectionsCount } = await supabase
-        .from('collections')
-        .select('*', { count: 'exact', head: true })
-        .eq('market_id', session.market_id)
-        .eq('collection_date', session.session_date);
-      if (collectionsCount && collectionsCount > 0) completedTasks++;
-      
-      // Total possible tasks = 5 media + 1 stalls + 1 offers + 1 commodities + 1 feedback + 1 inspections + 1 planning + 1 collections = 12
-      // Plus selfie_gps (punch in) = 13, but we count it separately
-      const totalTasks = 12; // Excluding punch-in selfie
-      
-      // ORGANISER attendance is based on TASK COMPLETION, not working hours
-      // Full day: ≥95% tasks completed
-      // Half day: ≥55% but <95%
-      // Absent: <55%
-      let attendanceStatus: string;
+      const progress = await fetchOrganiserTaskProgress(session.id, session.market_id, session.session_date);
+      const completedTasks = progress.completed;
+      const totalTasks = progress.total;
       const completionPercentage = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
-      
-      if (completionPercentage >= 95) {
-        attendanceStatus = 'full_day';
-      } else if (completionPercentage >= 55) {
-        attendanceStatus = 'half_day';
-      } else {
-        attendanceStatus = 'absent';
-      }
+      const attendanceStatus = finalStatusFromCompletion(completedTasks, totalTasks);
       
       console.log('Organiser attendance calculation:', { 
         completedTasks, 
