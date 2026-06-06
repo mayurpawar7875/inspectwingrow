@@ -805,6 +805,11 @@ export default function AttendanceReporting() {
       return;
     }
 
+    const roleByUser = new Map<string, string>();
+    (rolesRes.data || []).forEach((r: any) => {
+      if (!roleByUser.has(r.user_id) || r.role !== 'employee') roleByUser.set(r.user_id, r.role);
+    });
+
     const activeEmployees = (employeesRes.data || []).filter((employee: any) => roleByUser.get(employee.id) !== 'admin');
     const employeeById = new Map((employeesRes.data || []).map((employee: any) => [employee.id, employee]));
     const approvedLeaves = leavesRes.data || [];
@@ -813,12 +818,6 @@ export default function AttendanceReporting() {
     const organiserSessions = sessionsRes.data || [];
     const organiserProgressBySession = await fetchOrganiserTaskProgressMap(organiserSessions as any);
     const organiserSessionById = new Map((organiserSessions as any[]).map((session: any) => [session.id, session]));
-
-    const roleByUser = new Map<string, string>();
-    (rolesRes.data || []).forEach((r: any) => {
-      if (!roleByUser.has(r.user_id) || r.role !== 'employee') roleByUser.set(r.user_id, r.role);
-    });
-
     const enriched = data.map((record) => {
         const employee = employeeById.get(record.user_id) as any;
         const market = markets.find((m) => m.id === record.market_id);
