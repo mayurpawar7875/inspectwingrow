@@ -645,7 +645,7 @@ import { format, startOfYear, endOfYear, eachMonthOfInterval, getDaysInMonth, st
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { CheckCircle2, AlertCircle, XCircle, MinusCircle } from "lucide-react";
-import { getISTDateString, resolveAttendanceStatus } from "@/lib/attendance";
+import { fetchOrganiserTaskProgressMap, getISTDateString, resolveAttendanceStatus } from "@/lib/attendance";
 
 /* --- INTERFACES ---- */
 
@@ -661,6 +661,8 @@ interface AttendanceRecord {
   status: "full_day" | "half_day" | "absent" | "weekly_off" | "active" | "leave" | "no_record";
   punch_in_time?: string | null;
   punch_out_time?: string | null;
+  session_id?: string | null;
+  working_hours?: number | null;
   employee_name?: string;
   market_name?: string;
 }
