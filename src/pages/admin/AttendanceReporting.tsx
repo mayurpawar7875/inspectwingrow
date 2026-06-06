@@ -786,11 +786,14 @@ export default function AttendanceReporting() {
 
     const reportEndDate = endDate > getISTDateString() ? getISTDateString() : endDate;
 
-    const [attendanceRes, employeesRes, rolesRes, leavesRes] = await Promise.all([
+    const [attendanceRes, employeesRes, rolesRes, leavesRes, sessionsRes, mmSessionsRes, bdoSessionsRes] = await Promise.all([
       supabase.from("attendance_records").select("*").gte("attendance_date", startDate).lte("attendance_date", reportEndDate),
       supabase.from("employees").select("id, full_name, email, status").eq("status", "active").order("full_name"),
       supabase.from("user_roles").select("user_id, role"),
       supabase.from("employee_leaves").select("user_id, leave_date, status").gte("leave_date", startDate).lte("leave_date", reportEndDate),
+      supabase.from("sessions").select("id, user_id, market_id, session_date, punch_in_time, punch_out_time, markets(name, city)").gte("session_date", startDate).lte("session_date", reportEndDate),
+      supabase.from("market_manager_sessions").select("id, user_id, session_date, punch_in_time, punch_out_time, attendance_status, working_hours").gte("session_date", startDate).lte("session_date", reportEndDate),
+      supabase.from("bdo_sessions").select("id, user_id, session_date, punch_in_time, punch_out_time, attendance_status, working_hours").gte("session_date", startDate).lte("session_date", reportEndDate),
     ]);
 
     const data = attendanceRes.data || [];
@@ -802,46 +805,156 @@ export default function AttendanceReporting() {
       return;
     }
 
-    const activeEmployees = employeesRes.data || [];
+    const activeEmployees = (employeesRes.data || []).filter((employee: any) => roleByUser.get(employee.id) !== 'admin');
+    const employeeById = new Map((employeesRes.data || []).map((employee: any) => [employee.id, employee]));
+    const approvedLeaves = leavesRes.data || [];
+    const hasApprovedLeave = (userId: string, dateStr: string) =>
+      approvedLeaves.some((l: any) => l.user_id === userId && l.leave_date === dateStr && l.status === 'approved');
+    const organiserSessions = sessionsRes.data || [];
+    const organiserProgressBySession = await fetchOrganiserTaskProgressMap(organiserSessions as any);
+    const organiserSessionById = new Map((organiserSessions as any[]).map((session: any) => [session.id, session]));
+
     const roleByUser = new Map<string, string>();
     (rolesRes.data || []).forEach((r: any) => {
       if (!roleByUser.has(r.user_id) || r.role !== 'employee') roleByUser.set(r.user_id, r.role);
     });
 
-    const enriched = await Promise.all(
-      data.map(async (record) => {
-        const { data: profile } = await supabase.from("profiles").select("full_name").eq("id", record.user_id).single();
-
+    const enriched = data.map((record) => {
+        const employee = employeeById.get(record.user_id) as any;
         const market = markets.find((m) => m.id === record.market_id);
+        const organiserSession = record.session_id ? organiserSessionById.get(record.session_id) as any : null;
+        const progress = record.session_id ? organiserProgressBySession.get(record.session_id) : null;
+        const completedTasks = progress?.completed ?? record.completed_tasks ?? 0;
+        const totalTasks = progress?.total ?? record.total_tasks ?? 0;
+        const attendanceDate = String(record.attendance_date).slice(0, 10);
         const status = resolveAttendanceStatus({
           role: record.role || roleByUser.get(record.user_id),
           dbStatus: record.status,
-          attendanceDate: record.attendance_date,
-          punchInTime: record.punch_in_time,
-          punchOutTime: record.punch_out_time,
-          completedTasks: record.completed_tasks,
-          totalTasks: record.total_tasks,
-          approvedLeave: (leavesRes.data || []).some((l: any) => l.user_id === record.user_id && l.leave_date === record.attendance_date && l.status === 'approved'),
+          attendanceDate,
+          punchInTime: organiserSession?.punch_in_time ?? record.punch_in_time,
+          punchOutTime: organiserSession?.punch_out_time ?? record.punch_out_time,
+          completedTasks,
+          totalTasks,
+          approvedLeave: hasApprovedLeave(record.user_id, attendanceDate),
         });
 
         return {
           ...record,
+          attendance_date: attendanceDate,
           role: record.role || roleByUser.get(record.user_id) || 'employee',
+          market_id: organiserSession?.market_id ?? record.market_id,
+          city: record.city ?? organiserSession?.markets?.city ?? market?.city ?? null,
+          completed_tasks: completedTasks,
+          total_tasks: totalTasks,
           status,
-          employee_name: profile?.full_name || "Unknown",
-          market_name: market?.name || "Unknown",
+          employee_name: employee?.full_name || employee?.email || "Unknown",
+          market_name: organiserSession?.markets?.name || market?.name || "N/A",
+        };
+      });
+
+    const existingSessionIds = new Set(enriched.map((r: any) => r.session_id).filter(Boolean));
+    const sessionDerived: AttendanceRecord[] = [
+      ...(organiserSessions as any[])
+        .filter((session: any) => session.id && !existingSessionIds.has(session.id))
+        .map((session: any) => {
+          const dateStr = String(session.session_date).slice(0, 10);
+          const employee = employeeById.get(session.user_id) as any;
+          const progress = organiserProgressBySession.get(session.id);
+          const completedTasks = progress?.completed ?? 0;
+          const totalTasks = progress?.total ?? 13;
+          return {
+            id: `organiser-${session.id}`,
+            user_id: session.user_id,
+            attendance_date: dateStr,
+            role: 'employee',
+            session_id: session.id,
+            market_id: session.market_id ?? null,
+            city: session.markets?.city ?? null,
+            total_tasks: totalTasks,
+            completed_tasks: completedTasks,
+            punch_in_time: session.punch_in_time ?? null,
+            punch_out_time: session.punch_out_time ?? null,
+            status: resolveAttendanceStatus({
+              role: 'employee',
+              attendanceDate: dateStr,
+              punchInTime: session.punch_in_time,
+              punchOutTime: session.punch_out_time,
+              completedTasks,
+              totalTasks,
+              approvedLeave: hasApprovedLeave(session.user_id, dateStr),
+            }),
+            employee_name: employee?.full_name || employee?.email || 'Unknown',
+            market_name: session.markets?.name || 'N/A',
+          };
+        }),
+      ...(mmSessionsRes.data || []).map((session: any) => {
+        const dateStr = String(session.session_date).slice(0, 10);
+        const employee = employeeById.get(session.user_id) as any;
+        return {
+          id: `mm-${session.id}`,
+          user_id: session.user_id,
+          attendance_date: dateStr,
+          role: 'market_manager',
+          session_id: session.id,
+          market_id: null,
+          city: null,
+          total_tasks: 0,
+          completed_tasks: 0,
+          punch_in_time: session.punch_in_time ?? null,
+          punch_out_time: session.punch_out_time ?? null,
+          working_hours: session.working_hours ?? null,
+          status: resolveAttendanceStatus({
+            role: 'market_manager',
+            dbStatus: session.attendance_status,
+            attendanceDate: dateStr,
+            punchInTime: session.punch_in_time,
+            punchOutTime: session.punch_out_time,
+            workingHours: session.working_hours,
+            approvedLeave: hasApprovedLeave(session.user_id, dateStr),
+          }),
+          employee_name: employee?.full_name || employee?.email || 'Unknown',
+          market_name: 'N/A',
         };
       }),
-    );
+      ...(bdoSessionsRes.data || []).map((session: any) => {
+        const dateStr = String(session.session_date).slice(0, 10);
+        const employee = employeeById.get(session.user_id) as any;
+        return {
+          id: `bdo-${session.id}`,
+          user_id: session.user_id,
+          attendance_date: dateStr,
+          role: 'bdo',
+          session_id: session.id,
+          market_id: null,
+          city: null,
+          total_tasks: 0,
+          completed_tasks: 0,
+          punch_in_time: session.punch_in_time ?? null,
+          punch_out_time: session.punch_out_time ?? null,
+          working_hours: session.working_hours ?? null,
+          status: resolveAttendanceStatus({
+            role: 'bdo',
+            dbStatus: session.attendance_status,
+            attendanceDate: dateStr,
+            punchInTime: session.punch_in_time,
+            punchOutTime: session.punch_out_time,
+            workingHours: session.working_hours,
+            approvedLeave: hasApprovedLeave(session.user_id, dateStr),
+          }),
+          employee_name: employee?.full_name || employee?.email || 'Unknown',
+          market_name: 'N/A',
+        };
+      }),
+    ];
 
-    const existingKeys = new Set(enriched.map((r: any) => `${r.user_id}|${r.attendance_date}`));
+    const existingKeys = new Set([...enriched, ...sessionDerived].map((r: any) => `${r.user_id}|${r.attendance_date}`));
     const synthetic: AttendanceRecord[] = [];
     for (let cursor = new Date(`${startDate}T00:00:00`); format(cursor, "yyyy-MM-dd") <= reportEndDate; cursor.setDate(cursor.getDate() + 1)) {
       const dateStr = format(cursor, "yyyy-MM-dd");
       activeEmployees.forEach((employee: any) => {
         const role = roleByUser.get(employee.id) || 'employee';
         if (existingKeys.has(`${employee.id}|${dateStr}`)) return;
-        const approvedLeave = (leavesRes.data || []).some((l: any) => l.user_id === employee.id && l.leave_date === dateStr && l.status === 'approved');
+        const approvedLeave = hasApprovedLeave(employee.id, dateStr);
         synthetic.push({
           id: `${employee.id}-${dateStr}-synthetic`,
           user_id: employee.id,
@@ -858,12 +971,12 @@ export default function AttendanceReporting() {
       });
     }
 
-    let filtered = [...enriched, ...synthetic];
+    let filtered = [...enriched, ...sessionDerived, ...synthetic];
     if (selectedRole !== "all") filtered = filtered.filter((r) => r.role === selectedRole);
     if (selectedCity !== "all") filtered = filtered.filter((r) => r.city === selectedCity);
     if (selectedMarket !== "all") filtered = filtered.filter((r) => r.market_id === selectedMarket);
     if (selectedUser !== "all") {
-      filtered = enriched.filter((r) => r.user_id === selectedUser);
+      filtered = filtered.filter((r) => r.user_id === selectedUser);
     }
     if (selectedStatus !== "all") {
       filtered = filtered.filter((r) => r.status === selectedStatus);
