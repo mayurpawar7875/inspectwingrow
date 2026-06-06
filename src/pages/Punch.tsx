@@ -10,7 +10,7 @@ import { toast } from 'sonner';
 import { ArrowLeft, Clock, CheckCircle, Camera, MapPin, AlertTriangle } from 'lucide-react';
 import { validateImage, generateUploadPath } from '@/lib/fileValidation';
 import { getGPSPosition, checkLocationPermission, isSecureContext, GPSError } from '@/lib/gpsHelper';
-import { fetchOrganiserTaskProgress, finalStatusFromCompletion, getISTDateString } from '@/lib/attendance';
+import { fetchOrganiserTaskProgress, finalStatusFromCompletion } from '@/lib/attendance';
 
 export default function Punch() {
   const { user } = useAuth();
