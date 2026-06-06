@@ -645,7 +645,7 @@ import { format, startOfYear, endOfYear, eachMonthOfInterval, getDaysInMonth, st
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { CheckCircle2, AlertCircle, XCircle, MinusCircle } from "lucide-react";
-import { fetchOrganiserTaskProgressMap, getISTDateString, resolveAttendanceStatus } from "@/lib/attendance";
+import { ATTENDANCE_STATUS_RANK, fetchOrganiserTaskProgressMap, getISTDateString, resolveAttendanceStatus } from "@/lib/attendance";
 
 /* --- INTERFACES ---- */
 
@@ -970,7 +970,16 @@ export default function AttendanceReporting() {
       });
     }
 
-    let filtered = [...enriched, ...sessionDerived, ...synthetic];
+    const bestByEmployeeDay = new Map<string, AttendanceRecord>();
+    [...enriched, ...sessionDerived, ...synthetic].forEach((record: any) => {
+      const key = `${record.user_id}|${record.attendance_date}`;
+      const existing = bestByEmployeeDay.get(key);
+      if (!existing || (ATTENDANCE_STATUS_RANK[record.status] ?? 0) > (ATTENDANCE_STATUS_RANK[existing.status] ?? 0)) {
+        bestByEmployeeDay.set(key, record);
+      }
+    });
+
+    let filtered = Array.from(bestByEmployeeDay.values());
     if (selectedRole !== "all") filtered = filtered.filter((r) => r.role === selectedRole);
     if (selectedCity !== "all") filtered = filtered.filter((r) => r.city === selectedCity);
     if (selectedMarket !== "all") filtered = filtered.filter((r) => r.market_id === selectedMarket);
